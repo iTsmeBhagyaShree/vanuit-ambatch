@@ -51,7 +51,7 @@ export default function AdminDashboard() {
 
   const refreshDashboard = () => {
     // Leads
-    const savedLeads = localStorage.getItem('app_leads_v2') || localStorage.getItem('app_leads');
+    const savedLeads = localStorage.getItem('app_leads_v5') || localStorage.getItem('app_leads_v2') || localStorage.getItem('app_leads');
     let tempLeadsList = [];
     if (savedLeads) {
       try {
@@ -61,6 +61,7 @@ export default function AdminDashboard() {
       } catch (e) { tempLeadsList = mockLeads; }
     } else {
       tempLeadsList = mockLeads;
+      localStorage.setItem('app_leads_v5', JSON.stringify(mockLeads));
       localStorage.setItem('app_leads_v2', JSON.stringify(mockLeads));
       localStorage.setItem('app_leads', JSON.stringify(mockLeads));
     }
@@ -142,7 +143,7 @@ export default function AdminDashboard() {
   const handleLeadSubmit = (e) => {
     e.preventDefault();
     
-    const savedLeads = localStorage.getItem('app_leads_v2') || localStorage.getItem('app_leads');
+    const savedLeads = localStorage.getItem('app_leads_v5') || localStorage.getItem('app_leads_v2') || localStorage.getItem('app_leads');
     const leadsList = savedLeads ? JSON.parse(savedLeads) : [];
     
     const newLead = {
@@ -151,18 +152,26 @@ export default function AdminDashboard() {
       company: leadForm.company || '-',
       phone: leadForm.phone || '-',
       email: leadForm.email,
-      status: leadForm.status,
+      productType: 'buitenkeuken',
+      size: '3x4m',
+      source: 'Direct',
+      status: leadForm.status === 'New' ? 'Nieuw' : (leadForm.status || 'Nieuw'),
       assignedTo: 'Admin',
-      date: new Date().toISOString().split('T')[0]
+      date: new Date().toISOString().split('T')[0],
+      lastContactDate: new Date().toISOString().split('T')[0],
+      workflowStep: 1
     };
     
     const updatedLeads = [newLead, ...leadsList];
+    localStorage.setItem('app_leads_v5', JSON.stringify(updatedLeads));
     localStorage.setItem('app_leads_v2', JSON.stringify(updatedLeads));
     localStorage.setItem('app_leads', JSON.stringify(updatedLeads));
+    window.dispatchEvent(new Event('app_data_changed'));
     
     showToast(language === 'NL' ? `Lead voor "${leadForm.name}" succesvol aangemaakt!` : `Lead for "${leadForm.name}" created successfully!`);
     setLeadForm({ name: '', company: '', phone: '', email: '', status: 'New' });
     setLeadModalOpen(false);
+    refreshDashboard();
   };
 
   const handleOpenQuoteModal = () => {

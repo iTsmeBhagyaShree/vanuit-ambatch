@@ -31,7 +31,7 @@ export default function Bank() {
 
   const [form, setForm] = useState({
     description: '',
-    category: 'Verkoop / Omzet',
+    category: language === 'EN' ? 'Sales / Revenue' : 'Verkoop / Omzet',
     type: 'Income',
     amount: '',
     date: new Date().toISOString().split('T')[0]
@@ -281,40 +281,40 @@ export default function Bank() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-dark/60 backdrop-blur-sm" onClick={() => setModalOpen(false)} />
             <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-md bg-[#EDE8DF] border border-[#C4BEB3] rounded-2xl p-6 shadow-2xl z-10 space-y-4">
               <div className="flex items-center justify-between border-b border-cream-dark/60 pb-3">
-                <h3 className="text-lg font-heading font-bold text-primary">Transactie Toevoegen</h3>
+                <h3 className="text-lg font-heading font-bold text-primary">{language === 'NL' ? 'Transactie Toevoegen' : 'Add Transaction'}</h3>
                 <button onClick={() => setModalOpen(false)} className="p-1 rounded-lg text-dark/40 hover:text-dark"><X className="w-5 h-5" /></button>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-3 text-xs">
                 <div>
-                  <label className="block font-semibold text-dark/60 mb-1 uppercase">Omschrijving</label>
-                  <input type="text" required value={form.description} onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg" placeholder="e.g. Materiaal Inkoop Teak Hout" />
+                  <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'NL' ? 'Omschrijving' : 'Description'}</label>
+                  <input type="text" required value={form.description} onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg" placeholder={language === 'NL' ? 'e.g. Materiaal Inkoop Teak Hout' : 'e.g. Teak Wood Purchase'} />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-semibold text-dark/60 mb-1 uppercase">Type</label>
+                    <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'NL' ? 'Type' : 'Type'}</label>
                     <select value={form.type} onChange={e => setForm(prev => ({ ...prev, type: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg">
-                      <option value="Income">Inkomsten (Income)</option>
-                      <option value="Expense">Uitgave (Expense)</option>
+                      <option value="Income">{language === 'NL' ? 'Inkomsten (Income)' : 'Income'}</option>
+                      <option value="Expense">{language === 'NL' ? 'Uitgave (Expense)' : 'Expense'}</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block font-semibold text-dark/60 mb-1 uppercase">Bedrag (€)</label>
+                    <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'NL' ? 'Bedrag (€)' : 'Amount (€)'}</label>
                     <input type="number" required value={form.amount} onChange={e => setForm(prev => ({ ...prev, amount: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg font-bold text-primary" placeholder="e.g. 2500" />
                   </div>
                 </div>
                 <div>
-                  <label className="block font-semibold text-dark/60 mb-1 uppercase">Categorie</label>
-                  <input type="text" value={form.category} onChange={e => setForm(prev => ({ ...prev, category: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg" placeholder="e.g. Verkoop / Materiaal" />
+                  <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'NL' ? 'Categorie' : 'Category'}</label>
+                  <input type="text" value={form.category} onChange={e => setForm(prev => ({ ...prev, category: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg" placeholder={language === 'NL' ? 'e.g. Verkoop / Materiaal' : 'e.g. Sales / Materials'} />
                 </div>
                 <div>
-                  <label className="block font-semibold text-dark/60 mb-1 uppercase">Datum</label>
+                  <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'NL' ? 'Datum' : 'Date'}</label>
                   <input type="date" value={form.date} onChange={e => setForm(prev => ({ ...prev, date: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg" />
                 </div>
 
                 <div className="flex justify-end gap-2 pt-3 border-t border-cream-dark/60">
                   <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>{t('common.cancel')}</Button>
-                  <Button type="submit">Opslaan</Button>
+                  <Button type="submit">{language === 'NL' ? 'Opslaan' : 'Save'}</Button>
                 </div>
               </form>
             </motion.div>

@@ -7,6 +7,111 @@ This file tracks all modifications, additions, and updates made to the **Vanuit 
 - **Key Features**: Admin Panel, Partner Panel, Role-Based Route Protection, Responsive Layout.
 - **Theme**: Premium Forest Green (`#3E4E36`), Accent Cream/Beige, custom typography.
 
+## 114. Tasks Page Mobile Layout Responsiveness & Badge Overlap Fix (Completed 2026-08-04)
+* **Goal**: Fix text wrapping squeeze and priority badge overlap on small mobile screens on the Tasks page (`/admin/tasks`).
+* **Changes**:
+  1. Updated `src/pages/admin/Tasks.jsx`:
+     - Modified task row container to use `flex flex-col sm:flex-row items-start sm:items-center`.
+     - Allowed title & linked project block to expand full width on mobile view (`w-full sm:w-auto`).
+     - Aligned Priority badge, Due Date, and Action buttons cleanly in a bottom sub-row on mobile view (`w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0`).
+  2. Verified clean production build (`npm run build`).
+
+---
+
+## 113. Tasks Page Linked Project Titles English Localization (Completed 2026-08-04)
+* **Goal**: Translate all remaining Dutch linked project titles on the Tasks & To-Do page (`/admin/tasks`) into 100% English.
+* **Changes**:
+  1. Updated `src/pages/admin/Tasks.jsx`:
+     - Added dynamic `EN` replacements in `translateTaskText` for linked project names (`Exclusive Outdoor Kitchen`, `Luxury Teak Outdoor Kitchen 4m`, `Bin Storage Triple Anthracite`, `Oak Wooden Canopy 6x4m`).
+  2. Verified clean production build (`npm run build`).
+
+---
+
+## 112. Tasks Persistence Key & Real-time Synchronization Fix (Completed 2026-08-04)
+* **Goal**: Resolve task persistence discrepancy where newly created tasks were saving to legacy `app_tasks` key instead of active `app_tasks_v2` key, causing modal close to wipe out new tasks.
+* **Changes**:
+  1. Updated `src/pages/admin/Tasks.jsx`:
+     - Added `saveTasksToStorage` helper function writing to `app_tasks_v2` and dispatching `app_data_changed` event.
+     - Updated `handleSubmit`, `handleToggleComplete`, and `handleDeleteTask` to use `saveTasksToStorage`.
+  2. Verified clean production build (`npm run build`).
+
+---
+
+## 111. Customer Quotes Page Full English Localization (Completed 2026-08-04)
+* **Goal**: Translate all remaining Dutch subtitles (`KLANTENPORTAAL` ➔ `CUSTOMER PORTAL`), project titles, and item descriptions on the Customer Quotes page (`/customer/quotes`) into 100% English.
+* **Changes**:
+  1. Updated `src/pages/customer/CustomerQuotes.jsx`:
+     - Translated banner subtitle (`KLANTENPORTAAL` ➔ `CUSTOMER PORTAL`).
+     - Added dynamic `EN` replacements for Dutch quote project titles (`Exclusive Outdoor Kitchen`, `Bin Storage Triple Anthracite`, `Oak Wooden Canopy 6x4m`).
+     - Added dynamic `EN` replacements for Dutch quote item breakdown descriptions (`Worktop & Finishing`, `Outdoor Kitchen Teak Wood Frame 4m`, `Concrete Worktop with Kamado Cutout`, `Triple 240L Bin Storage Powder Coated Steel Frame`, `Rustic Oak Truss Construction`, `EPDM Roofing System & Zinc Rainwater Drainage`).
+  2. Verified clean production build (`npm run build`).
+
+---
+
+## 110. Settings Page Brand & Modals English Localization (Completed 2026-08-04)
+* **Goal**: Translate all remaining Dutch cards, labels, and modal forms on the Admin Settings page (`/admin/settings`) into 100% English.
+* **Changes**:
+  1. Updated `src/pages/admin/Settings.jsx`:
+     - Translated Brand Identity card (`Brand Identity & Style`, `COMPANY LOGO`, `Click to upload logo`, `THEME COLORS`).
+     - Translated Invite User modal (`Invite New User`, `Name`, `Email Address`, `System Role`, `Send Invitation`).
+     - Translated Add Custom Field modal (`Add Custom Field`, `Field Name / Label`, `Options (comma separated)`, `Save Field`).
+  2. Verified clean production build (`npm run build`).
+
+---
+
+## 109. Tasks Page Missing Import Component Crash Fix (Completed 2026-08-04)
+* **Goal**: Resolve uncaught `ReferenceError: mockTasks is not defined` crash on the Tasks & To-Do page (`/admin/tasks`).
+* **Changes**:
+  1. Updated `src/pages/admin/Tasks.jsx`:
+     - Added `mockTasks` to named imports from `../../utils/mockData`.
+  2. Verified clean production build (`npm run build`).
+
+---
+
+## 108. Tasks & To-Do Page English Localization (Completed 2026-08-04)
+* **Goal**: Translate all task titles, priority badges (`Hoog` ➔ `High`), linked labels (`Gekoppeld aan` ➔ `Linked to`), and customer names on the Tasks & To-Do page (`/admin/tasks`) into 100% English.
+* **Changes**:
+  1. Updated `src/pages/admin/Tasks.jsx`:
+     - Added `translateTaskText` helper function to dynamically translate Dutch task titles to English (`Measure outdoor kitchen for John Miller`, `Send color samples to Sophia Taylor`, `Follow up on Quote Q-4003 (Mark Davis)`).
+     - Updated Priority badge rendering (`Hoog` ➔ `High`).
+     - Updated link label (`Gekoppeld aan:` ➔ `Linked to:`).
+     - Updated localStorage key to `app_tasks_v2` for clean initial data loading.
+  2. Verified clean production build (`npm run build`).
+
+---
+
+## 107. Main Partners Table UI English Localization (Completed 2026-08-04)
+* **Goal**: Translate all remaining Dutch badges, product specialism tags, workload indicators, and status badges on the main Partners page (`/admin/partners`) into 100% English.
+* **Changes**:
+  1. Updated `src/pages/admin/Partners.jsx`:
+     - Added `translateProductType` helper function to dynamically render Product Specialism tags in English (`Outdoor Kitchens`, `Canopies`, `Bin Storage`, `Steel Frames`, `Outdoor Living`, `Poolhouse`).
+     - Updated `getWorkloadBadge` to translate workload indicator badges (`Inactief` ➔ `Inactive`).
+     - Updated Status column rendering to translate partner status badges (`Actief` ➔ `Active`, `Inactief` ➔ `Inactive`).
+     - Updated localStorage key to `app_partners_v4` for clean persistence initialization.
+  2. Verified clean production build (`npm run build`).
+
+---
+
+## 106. Full English Localization, Persistence Sync & Partner/Bank Modals Update (Completed 2026-08-04)
+* **Goal**: Translate all remaining Dutch customer names, table badges, Bank modal, Partner profile modal, and fix real-time persistence synchronization for Dashboard lead creation and CSV imports.
+* **Changes**:
+  1. Updated `src/pages/admin/Leads.jsx`:
+     - Translated remaining Dutch table strings (`Volg op` ➔ `Follow up`, `Prijsaanvraag` ➔ `Price Request`, Status & Product Type filter dropdown options) to dynamic English.
+     - Added `saveLeadsToStorage` helper writing to `app_leads_v5` and dispatching `app_data_changed` event.
+     - Fixed `handleCSVImport` so imported CSV leads permanently persist across page refreshes under `app_leads_v5`.
+     - Added `app_data_changed` event listener in `useEffect` for real-time lead updates.
+  2. Updated `src/pages/admin/AdminDashboard.jsx`:
+     - Updated `handleLeadSubmit` and `refreshDashboard` to use `app_leads_v5` key and dispatch `app_data_changed` event so new leads added from Dashboard instantly show on the Leads menu page.
+  3. Updated `src/utils/mockData.js`:
+     - Replaced all Dutch customer names across `mockLeads`, `mockQuotes`, `mockProjects`, `mockInvoices`, `mockTasks`, `mockRecentActivities`, `mockFollowUps`, `mockDeliveries`, `mockWarnings`, and `mockProfitLossData` with English international names (`Mark Davis`, `Emma Wilson`, `Sophia Taylor`, `John Miller`).
+  4. Updated `src/pages/admin/Bank.jsx`:
+     - Translated the **Add Transaction (`Transactie Toevoegen`)** modal form fields (`Description`, `Type: Income/Expense`, `Amount`, `Category`, `Date`, `Save/Cancel`) into English.
+  5. Updated `src/pages/admin/Partners.jsx`:
+     - Translated the **Partner Profile Detail Modal** UI (`CoC Registered`, `Call`, `Email`, `Executed Projects History`, `Completed`, `Partner Purchase Invoices`, `Internal Notes`, `Close`) and **Add/Edit Partner Modal** into English.
+  6. Verified clean production build (`npm run build`).
+
+---
+
 ## 105. Reposition Action Buttons & 3 Auto-Loaded English Message Templates (Completed 2026-08-04)
 * **Goal**: Implement Client Requirement 2.3 by repositioning `WhatsApp`, `Call`, and `Email` action buttons from the top sticky header to below the workflow process step section, and adding 3 auto-loaded English message templates with an editable preview textarea and WhatsApp photo attachment toggle.
 * **Changes**:

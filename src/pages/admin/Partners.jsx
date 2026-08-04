@@ -47,10 +47,22 @@ export default function Partners() {
   // Default Enriched Partners Mock Data
   const defaultEnrichedPartners = mockPartners;
 
+  const translateProductType = (type) => {
+    if (language !== 'EN' || !type) return type;
+    const lower = type.toLowerCase();
+    if (lower.includes('buitenkeuk')) return 'Outdoor Kitchens';
+    if (lower.includes('overkapping')) return 'Canopies';
+    if (lower.includes('kliko')) return 'Bin Storage';
+    if (lower.includes('stalen frame')) return 'Steel Frames';
+    if (lower.includes('buitenverblijf')) return 'Outdoor Living';
+    if (lower.includes('poolhouse')) return 'Poolhouse';
+    return type;
+  };
+
   // Load Data
   useEffect(() => {
     try {
-      const savedPartners = localStorage.getItem('app_partners_v3') || localStorage.getItem('app_partners_v2');
+      const savedPartners = localStorage.getItem('app_partners_v4');
       if (savedPartners) {
         const parsed = JSON.parse(savedPartners);
         if (Array.isArray(parsed) && parsed.length >= 5) {
@@ -68,9 +80,8 @@ export default function Partners() {
     } catch (e) {}
 
     setPartners(defaultEnrichedPartners);
+    localStorage.setItem('app_partners_v4', JSON.stringify(defaultEnrichedPartners));
     localStorage.setItem('app_partners_v3', JSON.stringify(defaultEnrichedPartners));
-    localStorage.setItem('app_partners_v2', JSON.stringify(defaultEnrichedPartners));
-    localStorage.setItem('app_partners', JSON.stringify(defaultEnrichedPartners));
 
     const savedProjects = localStorage.getItem('app_projects');
     if (savedProjects) {
@@ -192,13 +203,19 @@ export default function Partners() {
   const getWorkloadBadge = (workload) => {
     switch (workload) {
       case 'Beschikbaar':
+      case 'Available':
         return <Badge variant="success">{language === 'EN' ? '🟢 Available' : '🟢 Beschikbaar'}</Badge>;
       case 'Druk':
+      case 'Busy':
         return <Badge variant="warning">{language === 'EN' ? '🟡 Busy' : '🟡 Druk'}</Badge>;
       case 'Volgeboekt':
+      case 'Fully booked':
         return <Badge variant="danger">{language === 'EN' ? '🔴 Fully booked' : '🔴 Volgeboekt'}</Badge>;
+      case 'Inactief':
+      case 'Inactive':
+        return <Badge variant="default">{language === 'EN' ? 'Inactive' : 'Inactief'}</Badge>;
       default:
-        return <Badge variant="default">{workload || (language === 'EN' ? 'Available' : 'Beschikbaar')}</Badge>;
+        return <Badge variant="default">{workload === 'Inactief' && language === 'EN' ? 'Inactive' : (workload || (language === 'EN' ? 'Available' : 'Beschikbaar'))}</Badge>;
     }
   };
 
@@ -244,7 +261,7 @@ export default function Partners() {
         <div className="flex flex-wrap gap-1">
           {Array.isArray(row.productTypes) && row.productTypes.map((type, i) => (
             <span key={i} className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-md">
-              {type}
+              {translateProductType(type)}
             </span>
           ))}
         </div>
@@ -264,7 +281,11 @@ export default function Partners() {
     },
     {
       header: t('common.status') || 'Status',
-      render: (row) => <Badge variant={row.status === 'Active' ? 'success' : 'default'}>{tStatus(row.status)}</Badge>
+      render: (row) => (
+        <Badge variant={(row.status === 'Active' || row.status === 'Actief') ? 'success' : 'default'}>
+          {language === 'EN' ? ((row.status === 'Active' || row.status === 'Actief') ? 'Active' : 'Inactive') : row.status}
+        </Badge>
+      )
     },
     {
       header: t('common.actions') || 'Actions',
@@ -502,7 +523,7 @@ export default function Partners() {
                       <h3 className="text-xl font-heading font-bold text-primary">{detailModalPartner.name}</h3>
                       {getWorkloadBadge(detailModalPartner.workload)}
                     </div>
-                    <p className="text-xs font-bold text-accent">{detailModalPartner.company} — <span className="font-mono text-dark/60">{detailModalPartner.kvk || 'KVK-Geregistreerd'}</span></p>
+                    <p className="text-xs font-bold text-accent">{detailModalPartner.company} — <span className="font-mono text-dark/60">{detailModalPartner.kvk || (language === 'NL' ? 'KVK-Geregistreerd' : 'CoC Registered')}</span></p>
                     <p className="text-[11px] text-dark/60 flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" /> {detailModalPartner.region}</p>
                   </div>
                 </div>
@@ -515,17 +536,17 @@ export default function Partners() {
                   <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
                 </a>
                 <a href={`tel:${detailModalPartner.phone}`} className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg font-bold text-[11px]">
-                  <Phone className="w-3.5 h-3.5" /> Bellen ({detailModalPartner.phone})
+                  <Phone className="w-3.5 h-3.5" /> {language === 'NL' ? 'Bellen' : 'Call'} ({detailModalPartner.phone})
                 </a>
                 <a href={`mailto:${detailModalPartner.email}`} className="flex items-center gap-1 px-3 py-1.5 bg-[#3E4E36] text-white rounded-lg font-bold text-[11px]">
-                  <Mail className="w-3.5 h-3.5" /> E-mail ({detailModalPartner.email})
+                  <Mail className="w-3.5 h-3.5" /> {language === 'NL' ? 'E-mail' : 'Email'} ({detailModalPartner.email})
                 </a>
               </div>
 
               {/* Past Projects History Section */}
               <div className="space-y-2 pt-2 border-t border-[#D6CFC2]">
                 <h4 className="font-heading font-bold text-primary text-sm flex items-center gap-2">
-                  <Briefcase className="w-4 h-4 text-primary" /> Uitgevoerde Projecten Historie
+                  <Briefcase className="w-4 h-4 text-primary" /> {language === 'NL' ? 'Uitgevoerde Projecten Historie' : 'Executed Projects History'}
                 </h4>
                 <div className="bg-white rounded-xl border border-[#D6CFC2]/60 divide-y divide-[#D6CFC2]/40">
                   {projectsList.filter(p => (p.partner || '').toLowerCase() === detailModalPartner.name.toLowerCase()).length > 0 ? (
@@ -533,13 +554,13 @@ export default function Partners() {
                       <div key={p.id} className="p-3 flex justify-between items-center">
                         <div>
                           <p className="font-bold text-dark">{p.name}</p>
-                          <p className="text-[10px] text-dark/50">Klant: {p.customer} | Deadline: {p.deadline}</p>
+                          <p className="text-[10px] text-dark/50">{language === 'NL' ? 'Klant' : 'Customer'}: {p.customer} | Deadline: {p.deadline}</p>
                         </div>
                         <Badge variant={p.status === 'Completed' ? 'success' : 'primary'}>{p.status}</Badge>
                       </div>
                     ))
                   ) : (
-                    <div className="p-3 text-dark/50 italic">P-2001 Luxury Outdoor Kitchen Amsterdam (Afgerond)</div>
+                    <div className="p-3 text-dark/50 italic">P-2001 Luxury Outdoor Kitchen Amsterdam ({language === 'NL' ? 'Afgerond' : 'Completed'})</div>
                   )}
                 </div>
               </div>
@@ -547,7 +568,7 @@ export default function Partners() {
               {/* Purchase Invoices Section (Inkoopfacturen) */}
               <div className="space-y-2 pt-2 border-t border-[#D6CFC2]">
                 <h4 className="font-heading font-bold text-primary text-sm flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-primary" /> Inkoopfacturen Partner (Purchase Invoices)
+                  <FileText className="w-4 h-4 text-primary" /> {language === 'NL' ? 'Inkoopfacturen Partner (Purchase Invoices)' : 'Partner Purchase Invoices'}
                 </h4>
                 <div className="bg-white rounded-xl border border-[#D6CFC2]/60 divide-y divide-[#D6CFC2]/40">
                   {detailModalPartner.invoices && detailModalPartner.invoices.length > 0 ? (
@@ -555,7 +576,7 @@ export default function Partners() {
                       <div key={inv.id} className="p-3 flex justify-between items-center font-mono">
                         <div>
                           <p className="font-bold text-dark">{inv.id}</p>
-                          <p className="text-[10px] text-dark/50">Datum: {inv.date}</p>
+                          <p className="text-[10px] text-dark/50">{language === 'NL' ? 'Datum' : 'Date'}: {inv.date}</p>
                         </div>
                         <div className="text-right">
                           <p className="font-bold text-primary">{inv.amount}</p>
@@ -564,21 +585,21 @@ export default function Partners() {
                       </div>
                     ))
                   ) : (
-                    <div className="p-3 text-dark/50 italic">Geen recente inkoopfacturen geregistreerd.</div>
+                    <div className="p-3 text-dark/50 italic">{language === 'NL' ? 'Geen recente inkoopfacturen geregistreerd.' : 'No recent purchase invoices registered.'}</div>
                   )}
                 </div>
               </div>
 
               {/* Internal Notes Section */}
               <div className="space-y-2 pt-2 border-t border-[#D6CFC2]">
-                <h4 className="font-heading font-bold text-primary text-sm">Interne Notities (Internal Notes)</h4>
+                <h4 className="font-heading font-bold text-primary text-sm">{language === 'NL' ? 'Interne Notities (Internal Notes)' : 'Internal Notes'}</h4>
                 <div className="p-3 bg-white rounded-xl border border-[#D6CFC2]/60 text-dark/80 italic">
-                  "{detailModalPartner.notes || 'Geen specifieke interne notities.'}"
+                  "{detailModalPartner.notes || (language === 'NL' ? 'Geen specifieke interne notities.' : 'No specific internal notes.')}"
                 </div>
               </div>
 
               <div className="flex justify-end pt-2">
-                <Button variant="outline" onClick={() => setDetailModalPartner(null)}>Sluiten</Button>
+                <Button variant="outline" onClick={() => setDetailModalPartner(null)}>{language === 'NL' ? 'Sluiten' : 'Close'}</Button>
               </div>
             </motion.div>
           </div>
@@ -592,51 +613,51 @@ export default function Partners() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-dark/60 backdrop-blur-sm" onClick={() => setModalOpen(false)} />
             <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-md bg-[#EDE8DF] border border-[#C4BEB3] rounded-2xl p-6 shadow-2xl z-10 space-y-4">
               <div className="flex items-center justify-between border-b border-cream-dark/60 pb-3">
-                <h3 className="text-lg font-heading font-bold text-primary">{selectedPartner ? 'Partner Bewerken' : 'Nieuwe Partner Toevoegen'}</h3>
+                <h3 className="text-lg font-heading font-bold text-primary">{selectedPartner ? (language === 'NL' ? 'Partner Bewerken' : 'Edit Partner') : (language === 'NL' ? 'Nieuwe Partner Toevoegen' : 'Add New Partner')}</h3>
                 <button onClick={() => setModalOpen(false)} className="p-1 text-dark/40 hover:text-dark"><X className="w-5 h-5" /></button>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-3 text-xs">
                 <div>
-                  <label className="block font-semibold text-dark/60 mb-1 uppercase">Naam Vakman</label>
+                  <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'NL' ? 'Naam Vakman' : 'Craftsman Name'}</label>
                   <input type="text" required value={form.name} onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg" placeholder="e.g. Sven Hoek" />
                 </div>
                 <div>
-                  <label className="block font-semibold text-dark/60 mb-1 uppercase">Bedrijfsnaam</label>
+                  <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'NL' ? 'Bedrijfsnaam' : 'Company Name'}</label>
                   <input type="text" value={form.company} onChange={e => setForm(prev => ({ ...prev, company: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg" placeholder="e.g. Hoek Bouw BV" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-semibold text-dark/60 mb-1 uppercase">E-mail</label>
+                    <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'NL' ? 'E-mail' : 'Email'}</label>
                     <input type="email" required value={form.email} onChange={e => setForm(prev => ({ ...prev, email: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg" />
                   </div>
                   <div>
-                    <label className="block font-semibold text-dark/60 mb-1 uppercase">Telefoon</label>
+                    <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'NL' ? 'Telefoon' : 'Phone'}</label>
                     <input type="text" value={form.phone} onChange={e => setForm(prev => ({ ...prev, phone: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg" />
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-semibold text-dark/60 mb-1 uppercase">Regio / Provincie</label>
+                    <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'NL' ? 'Regio / Provincie' : 'Region / Province'}</label>
                     <input type="text" value={form.region} onChange={e => setForm(prev => ({ ...prev, region: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg" placeholder="e.g. Noord-Holland" />
                   </div>
                   <div>
-                    <label className="block font-semibold text-dark/60 mb-1 uppercase">Werkdruk Indicator</label>
+                    <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'NL' ? 'Werkdruk Indicator' : 'Workload Indicator'}</label>
                     <select value={form.workload} onChange={e => setForm(prev => ({ ...prev, workload: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg font-bold">
-                      <option value="Beschikbaar">🟢 Beschikbaar</option>
-                      <option value="Druk">🟡 Druk (Busy)</option>
-                      <option value="Volgeboekt">🔴 Volgeboekt</option>
+                      <option value="Beschikbaar">{language === 'NL' ? '🟢 Beschikbaar' : '🟢 Available'}</option>
+                      <option value="Druk">{language === 'NL' ? '🟡 Druk (Busy)' : '🟡 Busy'}</option>
+                      <option value="Volgeboekt">{language === 'NL' ? '🔴 Volgeboekt' : '🔴 Fully Booked'}</option>
                     </select>
                   </div>
                 </div>
                 <div>
-                  <label className="block font-semibold text-dark/60 mb-1 uppercase">Product Specialismen (komma gescheiden)</label>
+                  <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'NL' ? 'Product Specialismen (komma gescheiden)' : 'Product Specialties (comma separated)'}</label>
                   <input type="text" value={form.productTypes} onChange={e => setForm(prev => ({ ...prev, productTypes: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg" placeholder="Buitenkeukens, Kliko-ombouw" />
                 </div>
 
                 <div className="flex justify-end gap-2 pt-3 border-t border-cream-dark/60">
                   <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>{t('common.cancel')}</Button>
-                  <Button type="submit">Opslaan</Button>
+                  <Button type="submit">{language === 'NL' ? 'Opslaan' : 'Save'}</Button>
                 </div>
               </form>
             </motion.div>

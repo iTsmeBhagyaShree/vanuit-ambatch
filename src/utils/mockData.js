@@ -76,9 +76,9 @@ export const mockPartners = [
 export const mockLeads = [
   {
     id: 'L-1001',
-    name: 'Jan de Vries',
+    name: 'John Miller',
     phone: '+31 6 1122 3344',
-    email: 'jan.devries@gmail.com',
+    email: 'john.miller@gmail.com',
     productType: 'buitenkeuken',
     size: '4x1.2m',
     source: 'Google Ads',
@@ -90,9 +90,9 @@ export const mockLeads = [
   },
   {
     id: 'L-1002',
-    name: 'Sophie Bakken',
+    name: 'Sophia Taylor',
     phone: '+31 6 9988 7766',
-    email: 'sophie.bakken@outlook.com',
+    email: 'sophia.taylor@outlook.com',
     productType: 'kliko',
     size: '3 Container Box',
     source: 'Facebook',
@@ -104,9 +104,9 @@ export const mockLeads = [
   },
   {
     id: 'L-1003',
-    name: 'Mark de Boer',
+    name: 'Mark Davis',
     phone: '+31 6 4455 6677',
-    email: 'm.deboer@amsterdam.nl',
+    email: 'mark.davis@gmail.com',
     productType: 'overkapping',
     size: '6x4m',
     source: 'Direct',
@@ -118,9 +118,9 @@ export const mockLeads = [
   },
   {
     id: 'L-1004',
-    name: 'Anouk Visser',
+    name: 'Emma Wilson',
     phone: '+31 6 3322 1100',
-    email: 'anouk.visser@hotmail.com',
+    email: 'emma.wilson@hotmail.com',
     productType: 'poolhouse',
     size: '8x4m Luxe',
     source: 'Referral',
@@ -135,7 +135,7 @@ export const mockLeads = [
 export const mockQuotes = [
   {
     id: 'Q-4001',
-    customer: 'Jan de Vries',
+    customer: 'John Miller',
     project: 'Luxe Teak Buitenkeuken 4m',
     amount: '€ 11,300',
     date: getRelativeDate(12),
@@ -148,7 +148,7 @@ export const mockQuotes = [
   },
   {
     id: 'Q-4002',
-    customer: 'Sophie Bakken',
+    customer: 'Sophia Taylor',
     project: 'Kliko Ombouw Triple Antraciet',
     amount: '€ 1,850',
     date: getRelativeDate(8),
@@ -160,7 +160,7 @@ export const mockQuotes = [
   },
   {
     id: 'Q-4003',
-    customer: 'Mark de Boer',
+    customer: 'Mark Davis',
     project: 'Eiken Houten Overkapping 6x4m',
     amount: '€ 14,500',
     date: getRelativeDate(4),
@@ -177,7 +177,7 @@ export const mockProjects = [
   {
     id: 'PRJ-101',
     name: 'Luxe Teak Buitenkeuken 4m',
-    customer: 'Jan de Vries',
+    customer: 'John Miller',
     partner: 'CraftWood Veluwe',
     progress: 65,
     deadline: getRelativeDate(-14), // 14 days in future
@@ -189,7 +189,7 @@ export const mockProjects = [
   {
     id: 'PRJ-102',
     name: 'Kliko Ombouw Triple Antraciet',
-    customer: 'Sophie Bakken',
+    customer: 'Sophia Taylor',
     partner: 'StaalWerk Brabant',
     progress: 20,
     deadline: getRelativeDate(-21),
@@ -204,7 +204,7 @@ export const mockInvoices = [
   {
     id: 'INV-4001-A',
     quoteId: 'Q-4001',
-    customer: 'Jan de Vries',
+    customer: 'John Miller',
     type: '50% Aanbetaling (Upfront)',
     amount: '€ 5,650',
     numericAmount: 5650,
@@ -215,7 +215,7 @@ export const mockInvoices = [
   {
     id: 'INV-4001-B',
     quoteId: 'Q-4001',
-    customer: 'Jan de Vries',
+    customer: 'John Miller',
     type: '50% Eindfactuur (Completion)',
     amount: '€ 5,650',
     numericAmount: 5650,
@@ -228,8 +228,8 @@ export const mockInvoices = [
 export const mockTasks = [
   {
     id: 'TSK-101',
-    title: 'Inmeten buitenkeuken bij Jan de Vries',
-    customer: 'Jan de Vries',
+    title: 'Inmeten buitenkeuken bij John Miller',
+    customer: 'John Miller',
     project: 'Luxe Teak Buitenkeuken 4m',
     dueDate: getRelativeDate(-1),
     priority: 'Hoog',
@@ -238,8 +238,8 @@ export const mockTasks = [
   },
   {
     id: 'TSK-102',
-    title: 'Kleurstalen opsturen naar Sophie Bakken',
-    customer: 'Sophie Bakken',
+    title: 'Kleurstalen opsturen naar Sophia Taylor',
+    customer: 'Sophia Taylor',
     project: 'Kliko Ombouw Triple Antraciet',
     dueDate: getRelativeDate(0),
     priority: 'Medium',
@@ -248,8 +248,8 @@ export const mockTasks = [
   },
   {
     id: 'TSK-103',
-    title: 'Offerte Q-4003 nabellen (Mark de Boer)',
-    customer: 'Mark de Boer',
+    title: 'Offerte Q-4003 nabellen (Mark Davis)',
+    customer: 'Mark Davis',
     project: 'Eiken Houten Overkapping 6x4m',
     dueDate: getRelativeDate(-2),
     priority: 'Hoog',
@@ -259,33 +259,33 @@ export const mockTasks = [
 ];
 
 export const mockRecentActivities = [
-  { id: 1, type: 'lead', title: 'Nieuwe lead ontvangen', detail: 'Anouk Visser (Poolhouse 8x4m)', time: '2 uur geleden' },
-  { id: 2, type: 'invoice', title: 'Factuur betaald', detail: 'Jan de Vries (€ 5.650 aanbetaling)', time: '1 dag geleden' },
-  { id: 3, type: 'quote', title: 'Offerte geaccepteerd', detail: 'Q-4001 door Jan de Vries', time: '2 dagen geleden' }
+  { id: 1, type: 'lead', title: 'New lead received', detail: 'Emma Wilson (Poolhouse 8x4m)', time: '2 hours ago' },
+  { id: 2, type: 'invoice', title: 'Invoice paid', detail: 'John Miller (€ 5,650 deposit)', time: '1 day ago' },
+  { id: 3, type: 'quote', title: 'Quote approved', detail: 'Q-4001 by John Miller', time: '2 days ago' }
 ];
 
 export const mockFollowUps = [
-  { id: 'FOL-101', name: 'Sophie Bakken', type: 'Offerte Q-4002 nabellen', due: 'Vandaag' },
-  { id: 'FOL-102', name: 'Mark de Boer', type: 'Opties overkapping bespreken', due: 'Morgen' },
-  { id: 'FOL-103', name: 'Anouk Visser', type: 'Intakegesprek poolhouse inplannen', due: 'Over 2 dagen' }
+  { id: 'FOL-101', name: 'Sophia Taylor', type: 'Offerte Q-4002 nabellen', due: 'Vandaag' },
+  { id: 'FOL-102', name: 'Mark Davis', type: 'Opties overkapping bespreken', due: 'Morgen' },
+  { id: 'FOL-103', name: 'Emma Wilson', type: 'Intakegesprek poolhouse inplannen', due: 'Over 2 dagen' }
 ];
 
 export const mockDeliveries = [
-  { id: 'DEL-101', project: 'Luxe Teak Buitenkeuken 4m', customer: 'Jan de Vries', date: 'Vr 14 Aug', partner: 'CraftWood Veluwe' },
-  { id: 'DEL-102', project: 'Kliko Ombouw Triple Antraciet', customer: 'Sophie Bakken', date: 'Wo 19 Aug', partner: 'StaalWerk Brabant' },
-  { id: 'DEL-103', project: 'Eiken Houten Overkapping 6x4m', customer: 'Mark de Boer', date: 'Ma 24 Aug', partner: 'Hout & Steen Utrecht' }
+  { id: 'DEL-101', project: 'Luxe Teak Buitenkeuken 4m', customer: 'John Miller', date: 'Vr 14 Aug', partner: 'CraftWood Veluwe' },
+  { id: 'DEL-102', project: 'Kliko Ombouw Triple Antraciet', customer: 'Sophia Taylor', date: 'Wo 19 Aug', partner: 'StaalWerk Brabant' },
+  { id: 'DEL-103', project: 'Eiken Houten Overkapping 6x4m', customer: 'Mark Davis', date: 'Ma 24 Aug', partner: 'Hout & Steen Utrecht' }
 ];
 
 export const mockWarnings = [
-  { id: 'WRN-101', type: 'Openstaande Aanbetaling', customer: 'Sophie Bakken', detail: 'Offerte Q-4002 van Sophie Bakken wacht op aanbetaling van € 925.' },
-  { id: 'WRN-102', type: 'Levering Nadert', customer: 'Jan de Vries', detail: 'PRJ-101 (Jan de Vries) moet over 14 dagen opgeleverd worden.' }
+  { id: 'WRN-101', type: 'Openstaande Aanbetaling', customer: 'Sophia Taylor', detail: 'Offerte Q-4002 van Sophia Taylor wacht op aanbetaling van € 925.' },
+  { id: 'WRN-102', type: 'Levering Nadert', customer: 'John Miller', detail: 'PRJ-101 (John Miller) moet over 14 dagen opgeleverd worden.' }
 ];
 
 export const mockProfitLossData = [
   {
     projectId: 'PRJ-101',
     projectName: 'Luxe Teak Buitenkeuken 4m',
-    customer: 'Jan de Vries',
+    customer: 'John Miller',
     category: 'Buitenkeukens',
     revenue: 11300,
     partnerCost: 3200,
@@ -295,7 +295,7 @@ export const mockProfitLossData = [
   {
     projectId: 'PRJ-102',
     projectName: 'Kliko Ombouw Triple Antraciet',
-    customer: 'Sophie Bakken',
+    customer: 'Sophia Taylor',
     category: 'Kliko Ombouwen',
     revenue: 1850,
     partnerCost: 520,
@@ -305,7 +305,7 @@ export const mockProfitLossData = [
   {
     projectId: 'PRJ-103',
     projectName: 'Eiken Houten Overkapping 6x4m',
-    customer: 'Mark de Boer',
+    customer: 'Mark Davis',
     category: 'Overkappingen',
     revenue: 14500,
     partnerCost: 4500,
@@ -315,7 +315,7 @@ export const mockProfitLossData = [
   {
     projectId: 'PRJ-104',
     projectName: 'Tuinterras De Luxe',
-    customer: 'Anouk Visser',
+    customer: 'Emma Wilson',
     category: 'Terrassen',
     revenue: 8900,
     partnerCost: 2400,

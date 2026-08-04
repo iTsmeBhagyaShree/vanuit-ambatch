@@ -3,7 +3,7 @@ import Card from '../../components/Card';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
 import { Plus, CheckSquare, Square, Trash2, Edit2, X, CheckCircle, Clock, Link as LinkIcon, Filter, Search, Calendar } from 'lucide-react';
-import { mockProjects, mockLeads } from '../../utils/mockData';
+import { mockProjects, mockLeads, mockTasks } from '../../utils/mockData';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -32,11 +32,39 @@ export default function Tasks() {
     completed: false
   });
 
-  const defaultMockTasks = [];
+  const translateTaskText = (str) => {
+    if (language !== 'EN' || !str) return str;
+    return str
+      .replace(/Inmeten buitenkeuken bij Jan de Vries/g, 'Measure outdoor kitchen for John Miller')
+      .replace(/Inmeten buitenkeuken bij John Miller/g, 'Measure outdoor kitchen for John Miller')
+      .replace(/Kleurstalen opsturen naar Sophie Bakken/g, 'Send color samples to Sophia Taylor')
+      .replace(/Kleurstalen opsturen naar Sophia Taylor/g, 'Send color samples to Sophia Taylor')
+      .replace(/Offerte Q-4003 nabellen \(Mark de Boer\)/g, 'Follow up on Quote Q-4003 (Mark Davis)')
+      .replace(/Offerte Q-4003 nabellen \(Mark Davis\)/g, 'Follow up on Quote Q-4003 (Mark Davis)')
+      .replace(/Exclusieve Buitenkeuken - Maatwerk/g, 'Exclusive Outdoor Kitchen - Custom Build')
+      .replace(/Exclusieve Buitenkeuken/g, 'Exclusive Outdoor Kitchen')
+      .replace(/Luxe Teak Buitenkeuken 4m/g, 'Luxury Teak Outdoor Kitchen 4m')
+      .replace(/Kliko Ombouw Triple Antraciet/g, 'Bin Storage Triple Anthracite')
+      .replace(/Eiken Houten Overkapping 6x4m/g, 'Oak Wooden Canopy 6x4m')
+      .replace(/Jan de Vries/g, 'John Miller')
+      .replace(/Sophie Bakken/g, 'Sophia Taylor')
+      .replace(/Mark de Boer/g, 'Mark Davis')
+      .replace(/Anouk Visser/g, 'Emma Wilson');
+  };
+
+  const defaultMockTasks = (mockTasks || []).map(t => ({
+    id: t.id,
+    title: t.title,
+    linkedType: 'Project',
+    linkedId: `P-${t.id} (${t.project})`,
+    priority: t.priority === 'Hoog' ? 'High' : t.priority,
+    dueDate: t.dueDate,
+    completed: t.status === 'Voltooid'
+  }));
 
   // Load Initial Data
   useEffect(() => {
-    const savedTasks = localStorage.getItem('app_tasks');
+    const savedTasks = localStorage.getItem('app_tasks_v2');
     if (savedTasks) {
       try {
         const parsed = JSON.parse(savedTasks);
@@ -45,6 +73,7 @@ export default function Tasks() {
       } catch (e) { setTasks(defaultMockTasks); }
     } else {
       setTasks(defaultMockTasks);
+      localStorage.setItem('app_tasks_v2', JSON.stringify(defaultMockTasks));
       localStorage.setItem('app_tasks', JSON.stringify(defaultMockTasks));
     }
 
@@ -64,25 +93,31 @@ export default function Tasks() {
     setTimeout(() => setToastMsg(''), 3000);
   };
 
+  const saveTasksToStorage = (updated) => {
+    localStorage.setItem('app_tasks_v2', JSON.stringify(updated));
+    localStorage.setItem('app_tasks', JSON.stringify(updated));
+    window.dispatchEvent(new Event('app_data_changed'));
+  };
+
   // Toggle Task Checkbox completion
   const handleToggleComplete = (taskId) => {
     const updatedTasks = tasks.map(t => {
       if (t.id === taskId) {
         const nextState = !t.completed;
-        showToast(nextState ? `Taak "${t.title}" gemarkeerd als afgerond! ✅` : `Taak status teruggezet.`);
+        showToast(nextState ? (language === 'EN' ? 'Task marked as completed! ✅' : `Taak "${t.title}" gemarkeerd als afgerond! ✅`) : (language === 'EN' ? 'Task status reset.' : `Taak status teruggezet.`));
         return { ...t, completed: nextState };
       }
       return t;
     });
     setTasks(updatedTasks);
-    localStorage.setItem('app_tasks', JSON.stringify(updatedTasks));
+    saveTasksToStorage(updatedTasks);
   };
 
   const handleDeleteTask = (id, title) => {
     const updated = tasks.filter(t => t.id !== id);
     setTasks(updated);
-    localStorage.setItem('app_tasks', JSON.stringify(updated));
-    showToast(`Taak verwijderd.`);
+    saveTasksToStorage(updated);
+    showToast(language === 'EN' ? 'Task deleted.' : `Taak verwijderd.`);
   };
 
   const handleOpenAddModal = () => {
@@ -151,7 +186,7 @@ export default function Tasks() {
     }
 
     setTasks(updatedList);
-    localStorage.setItem('app_tasks', JSON.stringify(updatedList));
+    saveTasksToStorage(updatedList);
     setModalOpen(false);
   };
 
@@ -243,17 +278,17 @@ export default function Tasks() {
               key={task.id}
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`p-3.5 rounded-xl border transition-all flex items-center justify-between gap-3 ${
+              className={`p-3.5 rounded-xl border transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
                 task.completed
                   ? 'bg-gray-50/70 border-gray-200 text-dark/50'
                   : 'bg-white border-[#D6CFC2] hover:border-primary/50 shadow-xs'
               }`}
             >
               {/* Checkbox Toggle + Title */}
-              <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1 w-full sm:w-auto">
                 <button
                   onClick={() => handleToggleComplete(task.id)}
-                  className="text-primary hover:scale-110 transition-transform flex-shrink-0"
+                  className="text-primary hover:scale-110 transition-transform flex-shrink-0 mt-0.5 sm:mt-0"
                   title={task.completed ? "Markeer als onafgerond" : "Markeer als afgerond"}
                 >
                   {task.completed ? (
@@ -263,22 +298,24 @@ export default function Tasks() {
                   )}
                 </button>
 
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <h4 className={`font-bold text-xs ${task.completed ? 'line-through text-dark/40' : 'text-dark'}`}>
-                    {task.title}
+                    {translateTaskText(task.title)}
                   </h4>
                   {task.linkedId && (
                     <p className="text-[10px] text-primary/80 flex items-center gap-1 mt-0.5 font-semibold">
-                      <LinkIcon className="w-3 h-3 text-accent" /> Gekoppeld aan: {task.linkedId}
+                      <LinkIcon className="w-3 h-3 text-accent flex-shrink-0" /> {language === 'EN' ? 'Linked to' : 'Gekoppeld aan'}: {translateTaskText(task.linkedId)}
                     </p>
                   )}
                 </div>
               </div>
 
               {/* Priority + Due Date + Actions */}
-              <div className="flex items-center gap-3 flex-shrink-0">
-                <Badge variant={task.priority === 'High' ? 'danger' : task.priority === 'Medium' ? 'warning' : 'default'} className="text-[9px]">
-                  {task.priority || 'Normal'}
+              <div className="flex items-center justify-between sm:justify-start gap-2.5 sm:gap-3 flex-shrink-0 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-[#D6CFC2]/40">
+                <Badge variant={(task.priority === 'High' || task.priority === 'Hoog') ? 'danger' : task.priority === 'Medium' ? 'warning' : 'default'} className="text-[9px]">
+                  {language === 'EN' 
+                    ? ((task.priority === 'Hoog' || task.priority === 'High') ? 'High' : task.priority === 'Medium' ? 'Medium' : 'Low')
+                    : task.priority}
                 </Badge>
 
                 <span className="text-[10px] text-dark/60 font-mono flex items-center gap-1 bg-[#EDE8DF]/60 px-2 py-1 rounded">
