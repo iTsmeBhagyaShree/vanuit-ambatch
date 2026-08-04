@@ -4,7 +4,7 @@ import Card from '../../components/Card';
 import Table from '../../components/Table';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
-import { Plus, Search, Filter, X, CheckCircle, Trash2, Edit2, RotateCcw, FileText, Download, Printer, PlusCircle, MinusCircle, Briefcase } from 'lucide-react';
+import { Plus, Search, Filter, X, Check, CheckCircle, Trash2, Edit2, RotateCcw, FileText, Download, Printer, PlusCircle, MinusCircle, Briefcase } from 'lucide-react';
 import { mockQuotes as defaultQuotes } from '../../utils/mockData';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -850,7 +850,7 @@ export default function Quotes() {
         )}
       </AnimatePresence>
 
-      {/* PDF PREVIEW / EXPORT MODAL */}
+      {/* FULL 6-PAGE DUTCH BRANDED PDF PROPOSAL PREVIEW MODAL */}
       <AnimatePresence>
         {pdfPreviewQuote && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
@@ -865,19 +865,22 @@ export default function Quotes() {
               initial={{ scale: 0.95, opacity: 0 }} 
               animate={{ scale: 1, opacity: 1 }} 
               exit={{ scale: 0.95, opacity: 0 }} 
-              className="relative w-full max-w-xl bg-white border border-[#D6CFC2] rounded-2xl p-4 sm:p-6 shadow-2xl z-10 space-y-4 max-h-[92vh] overflow-y-auto"
+              className="relative w-full max-w-3xl bg-white border border-[#D6CFC2] rounded-2xl p-4 sm:p-6 shadow-2xl z-10 space-y-6 max-h-[92vh] overflow-y-auto"
             >
-              {/* Modal Header */}
+              {/* Modal Top Control Header */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-[#D6CFC2] pb-3 print:hidden">
                 <div className="flex items-center gap-2 min-w-0">
                   <FileText className="w-5 h-5 text-primary flex-shrink-0" />
-                  <h3 className="font-heading font-bold text-base sm:text-lg text-primary truncate">
-                    Offerte PDF Preview ({pdfPreviewQuote.id})
-                  </h3>
+                  <div>
+                    <h3 className="font-heading font-bold text-base sm:text-lg text-primary truncate">
+                      {language === 'EN' ? `Official 6-Page Proposal PDF (${pdfPreviewQuote.id})` : `Officiële 6-Pagina Offerte PDF (${pdfPreviewQuote.id})`}
+                    </h3>
+                    <p className="text-[11px] text-dark/50 font-body">Vanuit Ambacht • Custom Outdoor Craftsmen</p>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">
                   <Button size="sm" icon={Printer} onClick={() => window.print()} className="text-xs">
-                    <span className="hidden sm:inline">Afdrukken / </span>Export PDF
+                    {language === 'EN' ? 'Print / Save PDF' : 'Afdrukken / Export PDF'}
                   </Button>
                   <button onClick={() => setPdfPreviewQuote(null)} className="p-1.5 text-dark/40 hover:text-dark rounded-lg hover:bg-dark/5 transition-colors">
                     <X className="w-5 h-5" />
@@ -885,77 +888,178 @@ export default function Quotes() {
                 </div>
               </div>
 
-              {/* Printable Document Card */}
-              <div className="p-4 sm:p-6 bg-[#F8F7F4] rounded-xl border border-[#D6CFC2] space-y-5 text-xs text-dark/80 font-body">
-                {/* Brand & Quote Info Header */}
-                <div className="flex flex-col sm:flex-row justify-between items-start gap-3 pb-4 border-b border-[#D6CFC2]/60">
-                  <div>
-                    <h2 className="text-lg sm:text-xl font-heading font-bold text-primary tracking-tight">VANUIT AMBACHT</h2>
-                    <p className="text-[10px] text-dark/50 font-mono">Exclusieve Houtbouw & Buitenkeukens</p>
+              {/* 6-PAGE DOCUMENT CONTAINER */}
+              <div className="space-y-8 bg-[#EBE6DD] p-3 sm:p-6 rounded-2xl border border-[#C4BEB3]">
+
+                {/* PAGE 1: BRANDED LUXURY COVER */}
+                <div className="bg-[#FDFBF7] rounded-xl shadow-lg border border-[#C4BEB3] overflow-hidden p-6 sm:p-8 space-y-6 relative">
+                  <div className="flex justify-between items-start border-b border-[#C4BEB3]/60 pb-4">
+                    <div>
+                      <h1 className="text-2xl font-heading font-bold text-primary tracking-wide">VANUIT AMBACHT</h1>
+                      <p className="text-xs text-accent font-mono font-semibold">Exclusieve Houtbouw & Buitenkeukens</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-mono font-bold bg-primary text-cream px-3 py-1 rounded-md shadow-xs">{pdfPreviewQuote.id}</span>
+                      <p className="text-[11px] text-dark/60 font-mono mt-1">Datum: {pdfPreviewQuote.date}</p>
+                    </div>
                   </div>
-                  <div className="sm:text-right">
-                    <p className="font-bold text-dark text-sm sm:text-base font-mono">{pdfPreviewQuote.id}</p>
-                    <p className="text-dark/60 text-[11px] font-mono">Datum: {pdfPreviewQuote.date}</p>
-                    <Badge variant={getStatusBadgeVariant(pdfPreviewQuote.status)} className="mt-1">{pdfPreviewQuote.status}</Badge>
+
+                  <div className="relative h-52 rounded-xl overflow-hidden shadow-md border border-[#C4BEB3]/60">
+                    <img src="/dasbordes images.png" alt="Vanuit Ambacht Project" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent"></div>
+                    <div className="absolute bottom-4 left-5 right-5 text-white">
+                      <span className="bg-[#70624F] text-[#FDFBF7] text-[10px] font-mono font-bold uppercase tracking-widest px-2.5 py-1 rounded shadow-xs inline-block">
+                        Officieel Maatwerk Voorstel
+                      </span>
+                      <h2 className="text-xl sm:text-2xl font-heading font-bold text-white mt-1.5 drop-shadow-md">
+                        {pdfPreviewQuote.project}
+                      </h2>
+                    </div>
+                  </div>
+
+                  <div className="bg-[#EDE8DF] p-4 rounded-xl border border-[#C4BEB3]/60 grid grid-cols-2 gap-4 text-xs font-body">
+                    <div>
+                      <span className="text-[10px] text-accent uppercase font-bold tracking-wider block">Opdrachtgever (Client)</span>
+                      <span className="font-bold text-primary text-sm">{pdfPreviewQuote.customer}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-accent uppercase font-bold tracking-wider block">Product Categorie</span>
+                      <span className="font-bold text-dark">{pdfPreviewQuote.category || 'Buitenkeukens'}</span>
+                    </div>
+                  </div>
+                  <div className="text-right text-[10px] text-dark/50 font-mono font-semibold">Pagina 1 van 6</div>
+                </div>
+
+                {/* PAGE 2: PERSONAL INTRO LETTER */}
+                <div className="bg-[#FDFBF7] rounded-xl shadow-lg border border-[#C4BEB3] p-6 sm:p-8 space-y-4 text-xs font-body text-dark">
+                  <div className="flex justify-between items-center border-b border-[#C4BEB3]/60 pb-2 text-[10px] font-mono text-accent font-bold">
+                    <span>VANUIT AMBACHT • OFFERTE SPECIFICATIE</span>
+                    <span>Pagina 2 van 6</span>
+                  </div>
+                  <h3 className="text-lg font-heading font-bold text-primary">Persoonlijke Introductie & Welkom</h3>
+                  <p>Beste <strong>{pdfPreviewQuote.customer}</strong>,</p>
+                  <p className="leading-relaxed text-dark/80">
+                    Hartelijk dank voor uw interesse in onze ambachtelijke buitenkeukens en exclusieve houtbouw projecten.
+                    Met deze offerte bieden wij u een gedetailleerd overzicht van het ontwerp, de hoogwaardige materialen en de kosten op maat.
+                  </p>
+                  <p className="leading-relaxed text-dark/80">
+                    Bij Vanuit Ambacht werken wij uitsluitend met massief teak en thermowood van topkwaliteit, gecombineerd met gezaagd graniet en RVS inbouwapparatuur. Elk meubel wordt met de hand vervaardigd door onze ervaren vakmensen.
+                  </p>
+                  <div className="pt-4 border-t border-[#C4BEB3]/60 flex justify-between items-center text-xs">
+                    <div>
+                      <p className="font-bold text-primary">Met vriendelijke groet,</p>
+                      <p className="font-heading font-bold text-dark text-base mt-0.5">Tim & Bram</p>
+                      <p className="text-[10px] text-accent font-semibold">Oprichters Vanuit Ambacht</p>
+                    </div>
+                    <div className="px-4 py-2 bg-[#EDE8DF] rounded-lg border border-[#C4BEB3]/60 font-serif text-primary text-sm font-bold italic">
+                      Tim & Bram
+                    </div>
                   </div>
                 </div>
 
-                {/* Client & Project Info Box */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-white rounded-xl border border-[#D6CFC2]/50 shadow-xs">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase text-dark/40 tracking-wider">Offerte Voor (Client):</p>
-                    <p className="font-bold text-dark text-xs sm:text-sm mt-0.5">{pdfPreviewQuote.customer}</p>
+                {/* PAGE 3: PRODUCT SPECS & VISUAL CONFIGURATION */}
+                <div className="bg-[#FDFBF7] rounded-xl shadow-lg border border-[#C4BEB3] p-6 sm:p-8 space-y-4 text-xs font-body text-dark">
+                  <div className="flex justify-between items-center border-b border-[#C4BEB3]/60 pb-2 text-[10px] font-mono text-accent font-bold">
+                    <span>PRODUCT CONFIGURATIE & MATERIALEN</span>
+                    <span>Pagina 3 van 6</span>
                   </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase text-dark/40 tracking-wider">Project Type:</p>
-                    <p className="font-bold text-dark text-xs sm:text-sm mt-0.5">{pdfPreviewQuote.project}</p>
+                  <h3 className="text-lg font-heading font-bold text-primary">Product Specificaties</h3>
+                  <div className="grid grid-cols-2 gap-3.5 bg-[#EDE8DF]/70 p-4 rounded-xl border border-[#C4BEB3]/60 text-xs">
+                    <div>
+                      <span className="text-[10px] text-accent font-bold uppercase tracking-wider block">Frame Materiaal</span>
+                      <span className="font-bold text-primary text-xs">Massief Teak Hout (FSC)</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-accent font-bold uppercase tracking-wider block">Werkblad</span>
+                      <span className="font-bold text-primary text-xs">Zwart Polijst Beton Cire (8cm)</span>
+                    </div>
+                    <div className="mt-2">
+                      <span className="text-[10px] text-accent font-bold uppercase tracking-wider block">Afmetingen</span>
+                      <span className="font-bold text-primary text-xs">350cm (L) x 90cm (B) x 95cm (H)</span>
+                    </div>
+                    <div className="mt-2">
+                      <span className="text-[10px] text-accent font-bold uppercase tracking-wider block">Inbouwopties</span>
+                      <span className="font-bold text-primary text-xs">Kamado BBQ + RVS Spoelbak</span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Line Items Table */}
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
+                {/* PAGE 4: DETAILED ITEMIZED COST BREAKDOWN */}
+                <div className="bg-[#FDFBF7] rounded-xl shadow-lg border border-[#C4BEB3] p-6 sm:p-8 space-y-4 text-xs font-body text-dark">
+                  <div className="flex justify-between items-center border-b border-[#C4BEB3]/60 pb-2 text-[10px] font-mono text-accent font-bold">
+                    <span>PRIJSOPBOUW & FINANCIEEL OVERZICHT</span>
+                    <span>Pagina 4 van 6</span>
+                  </div>
+                  <h3 className="text-lg font-heading font-bold text-primary">Gedetailleerde Specificatie & Kosten</h3>
+
+                  <table className="w-full text-left border-collapse overflow-hidden rounded-lg border border-[#C4BEB3]/60">
                     <thead>
-                      <tr className="border-b border-[#D6CFC2] text-[10px] uppercase text-dark/50 font-bold tracking-wider">
-                        <th className="py-2 pr-2">Omschrijving</th>
-                        <th className="py-2 text-center px-2">Aantal</th>
-                        <th className="py-2 text-right pl-2">Prijs</th>
+                      <tr className="bg-primary text-cream text-[10px] uppercase font-bold tracking-wider">
+                        <th className="py-2.5 px-3">Omschrijving</th>
+                        <th className="py-2.5 text-center px-2">Aantal</th>
+                        <th className="py-2.5 text-right px-3">Prijs</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#D6CFC2]/40">
+                    <tbody className="divide-y divide-[#C4BEB3]/40 bg-white">
                       {pdfPreviewQuote.items && pdfPreviewQuote.items.length > 0 ? (
                         pdfPreviewQuote.items.map((item, idx) => (
                           <tr key={idx}>
-                            <td className="py-2.5 pr-2 font-semibold text-dark text-xs">{item.description}</td>
-                            <td className="py-2.5 text-center px-2">{item.quantity}</td>
-                            <td className="py-2.5 text-right pl-2 font-mono text-xs whitespace-nowrap">€ {(item.unitPrice * item.quantity).toLocaleString()}</td>
+                            <td className="py-3 px-3 font-semibold text-dark text-xs">{item.description}</td>
+                            <td className="py-3 text-center px-2">{item.quantity}</td>
+                            <td className="py-3 text-right px-3 font-mono text-xs font-bold text-primary whitespace-nowrap">€ {(item.unitPrice * item.quantity).toLocaleString()}</td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td className="py-2.5 pr-2 font-semibold text-dark text-xs">{pdfPreviewQuote.project} Specs & Delivery</td>
-                          <td className="py-2.5 text-center px-2">1</td>
-                          <td className="py-2.5 text-right pl-2 font-mono text-xs whitespace-nowrap">{pdfPreviewQuote.amount}</td>
+                          <td className="py-3 px-3 font-semibold text-dark text-xs">{pdfPreviewQuote.project} Specs & Delivery</td>
+                          <td className="py-3 text-center px-2">1</td>
+                          <td className="py-3 text-right px-3 font-mono text-xs font-bold text-primary whitespace-nowrap">{pdfPreviewQuote.amount}</td>
                         </tr>
                       )}
                     </tbody>
                   </table>
-                </div>
 
-                {/* Total Box */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pt-3 border-t border-[#D6CFC2]">
-                  {pdfPreviewQuote.discountPercent > 0 ? (
-                    <span className="text-[11px] text-red-600 font-semibold">
-                      Korting ({pdfPreviewQuote.discountPercent}%): Toegepast
-                    </span>
-                  ) : (
-                    <span className="text-[11px] text-dark/50">Inclusief 21% BTW</span>
-                  )}
-                  <div className="text-right flex items-center gap-2 self-end sm:self-auto">
-                    <span className="text-xs font-semibold text-dark/70">Totaal:</span>
-                    <span className="text-sm sm:text-base font-bold text-primary font-mono whitespace-nowrap">{pdfPreviewQuote.amount}</span>
+                  <div className="pt-3 border-t border-[#C4BEB3] flex justify-between items-center bg-[#EDE8DF] p-3 rounded-xl font-bold">
+                    <span className="text-accent text-xs">Totaalbedrag (Inclusief 21% BTW):</span>
+                    <span className="text-base font-mono text-primary font-bold">{pdfPreviewQuote.amount}</span>
                   </div>
                 </div>
+
+                {/* PAGE 5: ALGEMENE VOORWAARDEN (TERMS & CONDITIONS) */}
+                <div className="bg-[#FDFBF7] rounded-xl shadow-lg border border-[#C4BEB3] p-6 sm:p-8 space-y-3 text-[11px] font-body text-dark/80">
+                  <div className="flex justify-between items-center border-b border-[#C4BEB3]/60 pb-2 text-[10px] font-mono text-accent font-bold">
+                    <span>ALGEMENE VOORWAARDEN</span>
+                    <span>Pagina 5 van 6</span>
+                  </div>
+                  <h3 className="text-lg font-heading font-bold text-primary">Voorwaarden & Garantie</h3>
+                  <ol className="list-decimal pl-4 space-y-1.5 leading-relaxed">
+                    <li><strong>Aanbetaling:</strong> Bij akkoord geldt een aanbetaling van 50% om materialen te reserveren.</li>
+                    <li><strong>Garantie:</strong> 10 jaar garantie op de houtconstructie en 5 jaar op betonbladen.</li>
+                    <li><strong>Levertijd:</strong> Na goedkeuring en aanbetaling is de geschatte levertijd 4 tot 6 weken.</li>
+                    <li><strong>Montage:</strong> Montage op locatie is inbegrepen mits de tuin goed toegankelijk is.</li>
+                  </ol>
+                </div>
+
+                {/* PAGE 6: DIGITAL SIGNATURE & ACCEPTANCE */}
+                <div className="bg-[#FDFBF7] rounded-xl shadow-lg border border-[#C4BEB3] p-6 sm:p-8 space-y-4 text-xs font-body text-dark">
+                  <div className="flex justify-between items-center border-b border-[#C4BEB3]/60 pb-2 text-[10px] font-mono text-accent font-bold">
+                    <span>DIGITAAL AKKOORD & HANDTEKENING</span>
+                    <span>Pagina 6 van 6</span>
+                  </div>
+                  <h3 className="text-lg font-heading font-bold text-primary">Akkoord & Ondertekening</h3>
+                  <p className="text-dark/80">Door deze offerte digitaal te ondertekenen gaat u akkoord met het ontwerp en de prijsopbouw.</p>
+                  
+                  <div className="p-4 bg-[#EDE8DF] border border-[#C4BEB3] rounded-xl flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div>
+                      <span className="text-[10px] text-accent font-bold uppercase tracking-wider block">Handtekening Klant</span>
+                      <span className="font-bold text-primary text-sm">{pdfPreviewQuote.customer}</span>
+                    </div>
+                    <Button size="sm" icon={Check} onClick={() => { setToastMsg(language === 'EN' ? 'Quote digitally approved & signed!' : 'Offerte digitaal akkoord bevonden!'); setPdfPreviewQuote(null); }}>
+                      {language === 'EN' ? 'Approve Quote Digitally' : 'Digitaal Akkoord Geven'}
+                    </Button>
+                  </div>
+                </div>
+
               </div>
             </motion.div>
           </div>
