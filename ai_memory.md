@@ -7,6 +7,21 @@ This file tracks all modifications, additions, and updates made to the **Vanuit 
 - **Key Features**: Admin Panel, Partner Panel, Role-Based Route Protection, Responsive Layout.
 - **Theme**: Premium Forest Green (`#3E4E36`), Accent Cream/Beige, custom typography.
 
+## 105. Reposition Action Buttons & 3 Auto-Loaded English Message Templates (Completed 2026-08-04)
+* **Goal**: Implement Client Requirement 2.3 by repositioning `WhatsApp`, `Call`, and `Email` action buttons from the top sticky header to below the workflow process step section, and adding 3 auto-loaded English message templates with an editable preview textarea and WhatsApp photo attachment toggle.
+* **Changes**:
+  1. Updated `src/components/WorkflowTracker.jsx`:
+     - Removed `WhatsApp`, `Call`, and `Email` buttons from top sticky header to clean up header layout.
+     - Added repositioned Auto-Message Templates & Contact Actions block inside the workflow step card.
+     - Integrated 3 Auto-Loaded English Message Templates:
+       - Template 1: Initial Inquiry Response
+       - Template 2: 1st Follow-up Message
+       - Template 3: 2nd Follow-up Message
+     - Added editable message preview textarea bound to selected template with dynamic customer name and translated product category replacement.
+     - Added WhatsApp project photos & 3D render attachment option checkbox.
+     - Updated `WhatsApp`, `Call`, and `Email` buttons to trigger with the English prefilled template message text.
+  2. Verified clean production build (`npm run build`).
+
 ---
 
 ## 104. Partner Dashboard, Bank, Taxes & ProfitLoss Complete English Localization (Completed 2026-08-04)
