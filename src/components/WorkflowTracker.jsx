@@ -8,7 +8,7 @@ import {
   UserPlus, MessageSquare, FileText, CheckCircle2, Briefcase, 
   UserCheck, Calendar, Award, ArrowRight, Check, Clock, Phone, 
   Mail, MapPin, DollarSign, Wrench, ShieldCheck, Download, ChevronRight,
-  AlertCircle, X, Sparkles, Send, FileSpreadsheet, CheckSquare, MessageCircle
+  AlertCircle, X, Sparkles, Send, FileSpreadsheet, CheckSquare, MessageCircle, Paperclip
 } from 'lucide-react';
 
 export const WORKFLOW_STEPS = [
@@ -43,6 +43,43 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus }) {
   const customerEmail = lead?.email || 'jan@devries.nl';
   const customerPhone = lead?.phone || '+31 6 12345678';
   const customerCategory = lead?.category || (lead?.company?.toLowerCase().includes('kliko') ? 'Kliko-ombouw' : lead?.company?.toLowerCase().includes('snijplanken') ? 'Snijplanken' : 'Buitenkeukens');
+  
+  const translateCategory = (cat) => {
+    if (language !== 'EN' || !cat) return cat;
+    return cat
+      .replace(/Buitenkeukens/gi, 'Outdoor Kitchens')
+      .replace(/Buitenkeuken/gi, 'Outdoor Kitchen')
+      .replace(/Kliko-ombouw/gi, 'Bin Storage')
+      .replace(/Kliko/gi, 'Bin Storage')
+      .replace(/Overkappingen/gi, 'Canopies')
+      .replace(/Overkapping/gi, 'Canopy')
+      .replace(/Snijplanken/gi, 'Cutting Boards');
+  };
+
+  const translatedCat = translateCategory(lead?.productType || customerCategory);
+
+  // Section 2.3: Auto-Loaded Message Templates (English)
+  const [selectedTemplate, setSelectedTemplate] = useState('template1');
+  const [attachPhotos, setAttachPhotos] = useState(false);
+
+  const getTemplateText = (tmplId) => {
+    switch (tmplId) {
+      case 'template1':
+        return `Dear ${customerName}, thank you for reaching out to Vanuit Ambacht regarding your ${translatedCat} inquiry. We would love to discuss your requirements in detail. When would it suit you to talk? Kind regards, Tim & Bram - Vanuit Ambacht`;
+      case 'template2':
+        return `Dear ${customerName}, we wanted to follow up regarding your ${translatedCat} inquiry. Please let us know if you have any questions or when you would be available for a brief phone call. Kind regards, Tim & Bram - Vanuit Ambacht`;
+      case 'template3':
+        return `Dear ${customerName}, following up regarding your ${translatedCat} project with Vanuit Ambacht. We are happy to help you finalize the specifications whenever you are ready. Best regards, Tim & Bram - Vanuit Ambacht`;
+      default:
+        return '';
+    }
+  };
+
+  const [customMessageText, setCustomMessageText] = useState(() => getTemplateText('template1'));
+
+  useEffect(() => {
+    setCustomMessageText(getTemplateText(selectedTemplate));
+  }, [selectedTemplate, lead, language]);
   
   // Interactive Auto-Fill Modal Forms
   const [quoteForm, setQuoteForm] = useState({
@@ -232,9 +269,9 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus }) {
             {/* Meta badges */}
             <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
               <span className="text-[10px] font-bold text-accent tracking-wider uppercase font-body">Workflow</span>
-              <Badge variant="info">Stap {currentStep}/8</Badge>
+              <Badge variant="info">{language === 'EN' ? `Step ${currentStep}/8` : `Stap ${currentStep}/8`}</Badge>
               <span className="text-[10px] font-bold text-primary font-body bg-primary/10 px-1.5 py-0.5 rounded-md capitalize">
-                {lead?.productType || customerCategory}
+                {translateCategory(lead?.productType || customerCategory)}
               </span>
             </div>
             {/* Customer name */}
@@ -253,33 +290,7 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus }) {
           )}
         </div>
 
-        {/* Row 2: Quick Contact Buttons */}
-        <div className="flex gap-1.5 mb-3 flex-wrap">
-          <a
-            href={`https://wa.me/${customerPhone.replace(/[^0-9]/g, '')}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 px-2.5 py-1 bg-green-500 hover:bg-green-600 text-white text-[10px] font-bold rounded-lg transition-all duration-200 shadow-sm"
-          >
-            <MessageCircle className="w-3 h-3" /> WhatsApp
-          </a>
-          <a
-            href={`tel:${customerPhone}`}
-            className="flex items-center gap-1 px-2.5 py-1 bg-blue-500 hover:bg-blue-600 text-white text-[10px] font-bold rounded-lg transition-all duration-200 shadow-sm"
-          >
-            <Phone className="w-3 h-3" /> Bellen
-          </a>
-          <a
-            href={`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(customerEmail)}&su=${encodeURIComponent(`Vanuit Ambacht — ${lead?.productType || customerCategory} voor ${customerName}`)}&body=${encodeURIComponent(`Beste ${customerName},\n\nBedankt voor uw interesse.\n\nMet vriendelijke groet,\nVanuit Ambacht`)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 px-2.5 py-1 bg-[#3E4E36] hover:bg-[#2e3a28] text-white text-[10px] font-bold rounded-lg transition-all duration-200 shadow-sm"
-          >
-            <Mail className="w-3 h-3" /> E-mail
-          </a>
-        </div>
-
-        {/* Row 3: 8-Step Stepper — always horizontally scrollable */}
+        {/* Row 2: 8-Step Stepper — always horizontally scrollable */}
         <div className="overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
           <div className="flex items-center min-w-[640px] justify-between relative px-2">
             {/* Connecting Track Line */}
@@ -297,7 +308,7 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus }) {
                 <button
                   key={step.id}
                   onClick={() => setCurrentStep(step.id)}
-                  title={`Stap ${step.id}: ${step.name}`}
+                  title={`${language === 'EN' ? 'Step' : 'Stap'} ${step.id}: ${step.name}`}
                   className="flex flex-col items-center group relative z-10 focus:outline-none cursor-pointer"
                 >
                   <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
@@ -375,7 +386,7 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus }) {
                       <MapPin className="w-4 h-4 text-primary" />
                       <div>
                         <p className="text-[10px] text-dark/50 font-bold uppercase">Location & Product</p>
-                        <p className="font-semibold text-dark">Amsterdam, NL ({customerCategory})</p>
+                        <p className="font-semibold text-dark">Amsterdam, NL ({translateCategory(customerCategory)})</p>
                       </div>
                     </div>
                   </div>
@@ -579,6 +590,77 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus }) {
                 </div>
               )}
 
+              {/* Repositioned Auto-Message Templates & Contact Actions (Section 2.3) */}
+              <div className="pt-4 mt-6 border-t border-[#D6CFC2]/70 space-y-3 bg-[#EDE8DF]/40 p-4 rounded-xl border border-[#D6CFC2]/60">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <MessageSquare className="w-4 h-4 text-primary" />
+                    <span className="text-xs font-bold text-primary font-heading uppercase tracking-wider">
+                      Auto-Message Templates & Contact Actions
+                    </span>
+                  </div>
+                  {/* Template Selector Dropdown */}
+                  <select
+                    value={selectedTemplate}
+                    onChange={(e) => setSelectedTemplate(e.target.value)}
+                    className="px-2.5 py-1 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium"
+                  >
+                    <option value="template1">Template 1: Initial Inquiry Response</option>
+                    <option value="template2">Template 2: 1st Follow-up Message</option>
+                    <option value="template3">Template 3: 2nd Follow-up Message</option>
+                  </select>
+                </div>
+
+                {/* Editable Message Textarea */}
+                <div>
+                  <textarea
+                    value={customMessageText}
+                    onChange={(e) => setCustomMessageText(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[64px] resize-none"
+                    placeholder="Message content..."
+                  />
+                </div>
+
+                {/* Bottom Row: Attach photos toggle & Action Buttons */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                  <label className="flex items-center gap-1.5 text-[11px] text-dark/70 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={attachPhotos}
+                      onChange={(e) => setAttachPhotos(e.target.checked)}
+                      className="rounded border-[#D6CFC2] text-primary focus:ring-primary/20"
+                    />
+                    <Paperclip className="w-3.5 h-3.5 text-primary" />
+                    <span>Attach project photos & 3D render (WhatsApp)</span>
+                  </label>
+
+                  <div className="flex gap-2 flex-wrap">
+                    <a
+                      href={`https://wa.me/${customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(customMessageText + (attachPhotos ? '\n\n[Attached: Project Photos & 3D Render]' : ''))}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-lg transition-all duration-200 shadow-xs"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                    </a>
+                    <a
+                      href={`tel:${customerPhone}`}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-all duration-200 shadow-xs"
+                    >
+                      <Phone className="w-3.5 h-3.5" /> Call
+                    </a>
+                    <a
+                      href={`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(customerEmail)}&su=${encodeURIComponent(`Vanuit Ambacht — ${translatedCat} for ${customerName}`)}&body=${encodeURIComponent(customMessageText)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-[#3E4E36] hover:bg-[#2e3a28] text-white text-xs font-bold rounded-lg transition-all duration-200 shadow-xs"
+                    >
+                      <Mail className="w-3.5 h-3.5" /> E-mail
+                    </a>
+                  </div>
+                </div>
+              </div>
+
             </div>
 
             {/* Prominent Primary Action Button (What should I do next?) */}
@@ -588,26 +670,26 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus }) {
                   {language === 'NL' ? 'Aanbevolen Volgende Actie' : 'Recommended Next Action'}
                 </span>
                 <span className="text-xs font-bold text-dark">
-                  {currentStep === 1 && 'Neem contact op om de vereisten te bespreken'}
-                  {currentStep === 2 && 'Stuur de prijsaanvraag naar de geselecteerde partner'}
-                  {currentStep === 3 && 'Partner offerte ontvangen — maak nu de klantofferte'}
-                  {currentStep === 4 && 'Offerte goedgekeurd — maak actief project aan'}
-                  {currentStep === 5 && 'Wijs een ambachtsman partner toe aan het project'}
-                  {currentStep === 6 && 'Plan de installatiedatum op locatie'}
-                  {currentStep === 7 && 'Installatie voltooien & eindfactuur genereren'}
-                  {currentStep === 8 && 'Project archiveren & documenten opslaan'}
+                  {currentStep === 1 && (language === 'EN' ? 'Contact customer to discuss requirements' : 'Neem contact op om de vereisten te bespreken')}
+                  {currentStep === 2 && (language === 'EN' ? 'Send price request to selected partner' : 'Stuur de prijsaanvraag naar de geselecteerde partner')}
+                  {currentStep === 3 && (language === 'EN' ? 'Partner quote received — create customer quote now' : 'Partner offerte ontvangen — maak nu de klantofferte')}
+                  {currentStep === 4 && (language === 'EN' ? 'Quote approved — create active project' : 'Offerte goedgekeurd — maak actief project aan')}
+                  {currentStep === 5 && (language === 'EN' ? 'Assign a craftsman partner to the project' : 'Wijs een ambachtsman partner toe aan het project')}
+                  {currentStep === 6 && (language === 'EN' ? 'Schedule site installation date' : 'Plan de installatiedatum op locatie')}
+                  {currentStep === 7 && (language === 'EN' ? 'Complete installation & generate final invoice' : 'Installatie voltooien & eindfactuur genereren')}
+                  {currentStep === 8 && (language === 'EN' ? 'Archive project & save documents' : 'Project archiveren & documenten opslaan')}
                 </span>
               </div>
 
               {currentStep < 8 && (
                 <Button variant="primary" icon={ArrowRight} onClick={handleNextStep} className="w-full sm:w-auto shadow-md">
-                  {currentStep === 1 && 'Contact Opnemen →'}
-                  {currentStep === 2 && 'Prijsaanvraag Versturen →'}
-                  {currentStep === 3 && 'Offerte Ontvangen — Ga verder →'}
-                  {currentStep === 4 && 'Project Aanmaken →'}
-                  {currentStep === 5 && 'Partner Toewijzen →'}
-                  {currentStep === 6 && 'Planning Inplannen →'}
-                  {currentStep === 7 && 'Markeer als Afgerond →'}
+                  {currentStep === 1 && (language === 'EN' ? 'Contact Customer →' : 'Contact Opnemen →')}
+                  {currentStep === 2 && (language === 'EN' ? 'Send Price Request →' : 'Prijsaanvraag Versturen →')}
+                  {currentStep === 3 && (language === 'EN' ? 'Quote Received — Proceed →' : 'Offerte Ontvangen — Ga verder →')}
+                  {currentStep === 4 && (language === 'EN' ? 'Create Project →' : 'Project Aanmaken →')}
+                  {currentStep === 5 && (language === 'EN' ? 'Assign Partner →' : 'Partner Toewijzen →')}
+                  {currentStep === 6 && (language === 'EN' ? 'Schedule Planning →' : 'Planning Inplannen →')}
+                  {currentStep === 7 && (language === 'EN' ? 'Mark as Completed →' : 'Markeer als Afgerond →')}
                 </Button>
               )}
 
