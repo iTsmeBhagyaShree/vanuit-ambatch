@@ -3,6 +3,39 @@ import Button from '../../components/Button';
 import { Download, TrendingUp, Briefcase, Users } from 'lucide-react';
 
 export default function Reports() {
+  const handleExportExcel = () => {
+    const reportData = [
+      ['Lead Conversion Funnel Metric Report'],
+      ['Stage', 'Inquiries Count', 'Percentage'],
+      ['Total Inquiries', 220, '100%'],
+      ['Leads Created', 142, '65%'],
+      ['Quotes Sent', 80, '36%'],
+      ['Projects Started', 52, '24%'],
+      ['Completed', 48, '22%'],
+      [],
+      ['Monthly Revenue Performance (2023)'],
+      ['Month', 'Revenue (€)'],
+      ['Jan', 32000], ['Feb', 41000], ['Mar', 38000],
+      ['Apr', 55000], ['May', 48000], ['Jun', 62000],
+      ['Jul', 58000], ['Aug', 71000], ['Sep', 65000],
+      ['Oct', 78000], ['Nov', 69000], ['Dec', 90000]
+    ];
+    
+    const csvContent = reportData.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Vanuit_Ambacht_Reports_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDownloadPDF = () => {
+    window.print();
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -11,8 +44,8 @@ export default function Reports() {
           <p className="text-dark/60 text-sm">Business performance reports and analytics.</p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" icon={Download} size="sm">Download PDF</Button>
-          <Button variant="outline" icon={Download} size="sm">Export Excel</Button>
+          <Button variant="outline" icon={Download} size="sm" onClick={handleDownloadPDF}>Download PDF</Button>
+          <Button variant="outline" icon={Download} size="sm" onClick={handleExportExcel}>Export Excel</Button>
         </div>
       </div>
 
@@ -44,14 +77,16 @@ export default function Reports() {
             { stage: 'Projects Started', count: 52, pct: 24, color: 'bg-green-500' },
             { stage: 'Completed', count: 48, pct: 22, color: 'bg-green-600' },
           ].map((item, i) => (
-            <div key={i} className="flex items-center gap-4">
-              <span className="text-sm text-dark/70 w-36 flex-shrink-0">{item.stage}</span>
-              <div className="flex-1 bg-secondary/20 rounded-full h-6 relative overflow-hidden">
-                <div className={`h-full ${item.color} rounded-full transition-all flex items-center justify-end pr-3`} style={{ width: `${item.pct}%` }}>
-                  <span className="text-white text-xs font-bold">{item.count}</span>
+            <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-4">
+              <span className="text-xs sm:text-sm font-body font-medium text-dark/70 sm:w-36 flex-shrink-0">{item.stage}</span>
+              <div className="flex-1 flex items-center gap-3">
+                <div className="flex-1 bg-secondary/20 rounded-full h-6 relative overflow-hidden">
+                  <div className={`h-full ${item.color} rounded-full transition-all flex items-center justify-end pr-3 min-w-[36px]`} style={{ width: `${item.pct}%` }}>
+                    <span className="text-white text-[11px] font-bold">{item.count}</span>
+                  </div>
                 </div>
+                <span className="text-xs sm:text-sm text-dark/50 font-body w-10 text-right font-medium">{item.pct}%</span>
               </div>
-              <span className="text-sm text-dark/50 w-10 text-right">{item.pct}%</span>
             </div>
           ))}
         </div>
@@ -59,22 +94,27 @@ export default function Reports() {
 
       {/* Monthly Performance */}
       <Card title="Monthly Revenue Performance">
-        <div className="flex items-end justify-between gap-2 h-40">
-          {[
-            { month: 'Jan', val: 32000 }, { month: 'Feb', val: 41000 }, { month: 'Mar', val: 38000 },
-            { month: 'Apr', val: 55000 }, { month: 'May', val: 48000 }, { month: 'Jun', val: 62000 },
-            { month: 'Jul', val: 58000 }, { month: 'Aug', val: 71000 }, { month: 'Sep', val: 65000 },
-            { month: 'Oct', val: 78000 }, { month: 'Nov', val: 69000 }, { month: 'Dec', val: 90000 },
-          ].map((item, i) => {
-            const maxVal = 90000;
-            const pct = (item.val / maxVal) * 100;
-            return (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                <div className="w-full bg-primary hover:bg-accent transition-colors rounded-t-sm" style={{ height: `${pct}%` }}></div>
-                <span className="text-xs text-dark/50">{item.month}</span>
-              </div>
-            );
-          })}
+        <div className="overflow-x-auto pb-2 min-w-0">
+          <div className="flex items-end justify-between gap-2 h-44 min-w-[420px] pt-4 px-1">
+            {[
+              { month: 'Jan', val: 32000 }, { month: 'Feb', val: 41000 }, { month: 'Mar', val: 38000 },
+              { month: 'Apr', val: 55000 }, { month: 'May', val: 48000 }, { month: 'Jun', val: 62000 },
+              { month: 'Jul', val: 58000 }, { month: 'Aug', val: 71000 }, { month: 'Sep', val: 65000 },
+              { month: 'Oct', val: 78000 }, { month: 'Nov', val: 69000 }, { month: 'Dec', val: 90000 },
+            ].map((item, i) => {
+              const maxVal = 90000;
+              const pct = (item.val / maxVal) * 100;
+              return (
+                <div key={i} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group">
+                  <span className="text-[10px] text-primary font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                    €{(item.val / 1000).toFixed(0)}k
+                  </span>
+                  <div className="w-full bg-primary hover:bg-accent transition-colors rounded-t-md shadow-sm" style={{ height: `${pct}%` }}></div>
+                  <span className="text-[11px] text-dark/60 font-body font-medium mt-0.5">{item.month}</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </Card>
     </div>

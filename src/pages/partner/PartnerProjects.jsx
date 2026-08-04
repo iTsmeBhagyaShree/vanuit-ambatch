@@ -1,77 +1,380 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Card from '../../components/Card';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
-import { Calendar, Briefcase, Clock, Upload, FileText, CheckCircle } from 'lucide-react';
+import { Calendar, Briefcase, Clock, Upload, FileText, CheckCircle, Eye, Edit3, X, Filter, MapPin, DollarSign, Download, Compass, ShieldCheck, FileCheck, Layers } from 'lucide-react';
 import { mockProjects } from '../../utils/mockData';
+import { useNavigate } from 'react-router-dom';
 import projectImg from '../../assets/outdoor_project_card.png';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function PartnerProjects() {
+  const { t, language } = useLanguage();
+  const label = (english, dutch) => language === 'EN' ? english : dutch;
+  const [projects, setProjects] = useState([]);
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [editProject, setEditProject] = useState(null);
+  const [toastMsg, setToastMsg] = useState('');
+
+  // Default active logged-in partner name
+  const currentPartnerName = 'Sven Hoek';
+
+  // Load and Filter Only Assigned Projects for Current Partner
+  useEffect(() => {
+    const savedProjects = localStorage.getItem('app_projects');
+    let allProjects = [];
+    if (savedProjects) {
+      try {
+        const parsed = JSON.parse(savedProjects);
+        if (Array.isArray(parsed) && parsed.length > 0) allProjects = parsed;
+        else allProjects = mockProjects;
+      } catch (e) { allProjects = mockProjects; }
+    } else {
+      allProjects = mockProjects;
+    }
+
+    // Enrich projects with Partner Portal specific specs (Address, Build Fee, Blueprint File)
+    const enriched = allProjects.map((p, idx) => ({
+      ...p,
+      deliveryAddress: p.deliveryAddress || (idx % 2 === 0 ? 'Keizersgracht 420, 1016 GC Amsterdam' : 'Parklaan 88, 2011 KM Haarlem'),
+      agreedBuildPrice: p.agreedBuildPrice || (idx % 2 === 0 ? '€ 4,850.00' : '€ 3,400.00'),
+      dimensions: p.dimensions || '350cm x 90cm x 95cm',
+      frameMaterial: p.frameMaterial || 'Massief Teak Hout (FSC Certificaat)',
+      topMaterial: p.topMaterial || 'Polijst Beton (Dark Grey)',
+      blueprintFile: p.blueprintFile || `BLU-${p.id || '2001'}-SPEC.pdf`,
+      // Ensure partner assignment
+      partner: p.partner || (idx % 2 === 0 ? 'Sven Hoek' : 'Lars Jansen')
+    }));
+
+    // STRICTLY FILTER: Only Assigned Projects for current logged in partner
+    const assignedOnly = enriched.filter(p => (p.partner || '').toLowerCase().includes(currentPartnerName.toLowerCase()) || p.partner === 'Sven Hoek');
+    
+    // Fallback if none assigned
+    if (assignedOnly.length === 0) {
+      setProjects(enriched.slice(0, 3));
+    } else {
+      setProjects(assignedOnly);
+    }
+  }, []);
+
+  const showToast = (msg) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(''), 3000);
+  };
+
+  const handleUpdateProgress = (e) => {
+    e.preventDefault();
+    if (!editProject) return;
+
+    // Update state and localStorage
+    const savedProjects = localStorage.getItem('app_projects');
+    let allProjects = savedProjects ? JSON.parse(savedProjects) : mockProjects;
+
+    const updatedAll = allProjects.map(p => p.id === editProject.id ? { ...p, status: editProject.status, progress: editProject.progress } : p);
+    localStorage.setItem('app_projects', JSON.stringify(updatedAll));
+
+    setProjects(prev => prev.map(p => p.id === editProject.id ? editProject : p));
+    showToast(`Project "${editProject.name}" voortgang bijgewerkt!`);
+    setEditProject(null);
+  };
+
+  const handleDownloadBlueprint = (fileName) => {
+    const docName = fileName || 'BLU-2001-SPEC.pdf';
+    const content = `%PDF-1.4
+VANUIT AMBACHT - TECHNICAL BLUEPRINT & SPECIFICATION
+==================================================
+Blueprint File: ${docName}
+Generated for Partner Craftsman Workspace
+==================================================
+`;
+    const blob = new Blob([content], { type: 'application/pdf' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = docName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+
+    showToast(`Blueprint PDF gedownload: ${docName}`);
+  };
+
+  const filteredProjects = statusFilter === 'All' 
+    ? projects 
+    : projects.filter(p => p.status === statusFilter);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-body text-[#4A4A43] relative">
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toastMsg && (
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 10 }} exit={{ opacity: 0, y: -20 }} className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-primary text-cream px-4 py-3 rounded-xl shadow-lg text-xs font-body">
+            <CheckCircle className="w-4 h-4 text-green-400" />
+            {toastMsg}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-heading font-bold text-primary">Mijn Projecten</h2>
-          <p className="text-dark/50 text-sm font-body">Al uw toegewezen projecten op één plek.</p>
+          <div className="flex items-center gap-2">
+            <h2 className="text-2xl font-heading font-bold text-primary">{label('My Assigned Projects', 'Mijn toegewezen projecten')}</h2>
+            <Badge variant="primary" className="text-xs">Partner: {currentPartnerName}</Badge>
+          </div>
+          <p className="text-dark/60 text-sm mt-0.5">{label('Overview of your assigned delivery projects, specifications, delivery locations and agreed build price.', 'Overzicht van uw toegewezen opleverprojecten, specificaties, opleverlocaties en overeengekomen bouwsom.')}</p>
         </div>
-        <Button icon={Upload} variant="outline" size="sm">Document Uploaden</Button>
       </div>
 
-      {/* Status summary */}
-      <div className="grid grid-cols-3 gap-4">
+      {/* Status Summary Filter Cards — Ultra-Compact Mini Cards (32px height) */}
+      <div className="grid grid-cols-3 gap-1.5 sm:gap-3">
         {[
-          { label: 'Alle projecten', count: mockProjects.length, color: 'border-l-primary' },
-          { label: 'In uitvoering', count: mockProjects.filter(p => p.status === 'In Progress').length, color: 'border-l-accent' },
-          { label: 'Voltooid', count: mockProjects.filter(p => p.status === 'Completed').length, color: 'border-l-green-500' },
-        ].map((s, i) => (
-          <Card key={i} className={`border-l-4 ${s.color} py-3`}>
-            <p className="text-2xl font-heading font-bold text-dark">{s.count}</p>
-            <p className="text-xs text-dark/50 font-body">{s.label}</p>
+          { key: 'All', label: label('Assigned', 'Toegewezen'), count: projects.length, color: 'border-l-primary' },
+          { key: 'In Progress', label: label('In Progress', 'In uitvoering'), count: projects.filter(p => p.status === 'In Progress').length, color: 'border-l-accent' },
+          { key: 'Completed', label: label('Completed', 'Afgerond'), count: projects.filter(p => p.status === 'Completed').length, color: 'border-l-green-600' },
+        ].map((s) => (
+          <button
+            key={s.key}
+            onClick={() => setStatusFilter(s.key)}
+            className={`text-left transition-all min-w-0 ${statusFilter === s.key ? 'scale-[1.01]' : 'opacity-85 hover:opacity-100'}`}
+          >
+            <Card noPadding className={`border-l-3 ${s.color} cursor-pointer px-2.5 py-1.5 sm:px-3 sm:py-2 ${statusFilter === s.key ? 'bg-white shadow-xs ring-1 ring-primary/30' : 'bg-[#EDE8DF]/60'}`}>
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[9px] sm:text-[11px] text-dark/60 font-body font-bold uppercase tracking-wider truncate">
+                  {s.label}
+                </span>
+                <span className="text-xs sm:text-base font-heading font-bold text-primary flex-shrink-0">
+                  {s.count}
+                </span>
+              </div>
+            </Card>
+          </button>
+        ))}
+      </div>
+
+      {/* Assigned Projects Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+        {filteredProjects.map(project => (
+          <Card key={project.id} noPadding className="overflow-hidden hover:shadow-card-hover transition-shadow flex flex-col justify-between">
+            <div>
+              {/* Image & Division Header */}
+              <div className="relative h-36 sm:h-44 overflow-hidden bg-cream-dark/20">
+                <img src={projectImg} alt={project.name} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-primary/95 via-primary/50 to-transparent"></div>
+                
+                <div className="absolute top-2.5 right-2.5 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-lg border border-[#D6CFC2] shadow-xs flex items-center gap-1.5">
+                  <img
+                    src={
+                      project.name.toLowerCase().includes('kliko') || project.name.toLowerCase().includes('rotterdam')
+                        ? '/logo_kliko.png'
+                        : project.name.toLowerCase().includes('snijplanken') || project.name.toLowerCase().includes('utrecht')
+                        ? '/logo_snijplanken.png'
+                        : '/logo_buitenkeukens.png'
+                    }
+                    alt="Division Logo"
+                    className="h-4 max-w-[60px] object-contain mix-blend-multiply"
+                  />
+                  <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-md whitespace-nowrap">
+                    {project.name.toLowerCase().includes('kliko') || project.name.toLowerCase().includes('rotterdam')
+                      ? 'Kliko-ombouw'
+                      : project.name.toLowerCase().includes('snijplanken') || project.name.toLowerCase().includes('utrecht')
+                      ? 'Snijplanken'
+                      : 'Buitenkeukens'}
+                  </span>
+                </div>
+
+                <div className="absolute bottom-2.5 left-3 right-3 flex items-end justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[10px] font-mono text-cream/80 font-bold block">{project.id}</span>
+                    <h3 className="font-heading font-bold text-white text-sm sm:text-base leading-snug truncate">{project.name}</h3>
+                  </div>
+                  <Badge variant={project.status === 'Completed' ? 'success' : project.status === 'In Progress' ? 'primary' : 'warning'} className="flex-shrink-0 text-[10px]">
+                    {project.status}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Specs & Pricing Details */}
+              <div className="p-3 sm:p-4 space-y-2.5 text-xs">
+                {/* Agreed Build Price & Deadline */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2.5 bg-[#F8F7F4] rounded-xl border border-[#D6CFC2]/60">
+                  <div>
+                    <span className="text-[10px] text-dark/50 font-bold uppercase block">{label('Agreed Build Price', 'Overeengekomen bouwsom')}</span>
+                    <span className="font-bold text-primary text-xs sm:text-sm">{project.agreedBuildPrice}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-dark/50 font-bold uppercase block">{label('Delivery Deadline', 'Opleverdeadline')}</span>
+                    <span className="font-bold text-dark text-xs sm:text-sm flex items-center gap-1 mt-0.5"><Calendar className="w-3.5 h-3.5 text-accent" /> {project.deadline}</span>
+                  </div>
+                </div>
+
+                {/* Delivery Address */}
+                <div className="flex items-start gap-2 text-dark/80 bg-white p-2.5 rounded-xl border border-[#D6CFC2]/50">
+                  <MapPin className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                  <div className="min-w-0">
+                    <span className="text-[10px] text-dark/50 font-bold uppercase block">{label('Delivery Location / Address', 'Opleverlocatie / bezorgadres')}</span>
+                    <span className="font-semibold text-dark text-xs truncate block">{project.deliveryAddress}</span>
+                  </div>
+                </div>
+
+                {/* Progress Bar */}
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-dark/60 font-semibold">{label('Progress', 'Voortgang')}</span>
+                    <span className="font-bold text-primary font-mono">{project.progress || 0}%</span>
+                  </div>
+                  <div className="w-full bg-[#EDE8DF] rounded-full h-2">
+                    <div className="bg-primary h-2 rounded-full transition-all duration-500" style={{ width: `${project.progress || 0}%` }}></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="px-3 sm:px-4 pb-3.5 pt-1 flex gap-2">
+              <Button size="sm" variant="outline" icon={Edit3} className="flex-1 text-xs justify-center whitespace-nowrap" onClick={() => setEditProject({ ...project })}>
+                <span className="sm:hidden">{label('Voortgang', 'Voortgang')}</span>
+                <span className="hidden sm:inline">{label('Update Progress', 'Voortgang bijwerken')}</span>
+              </Button>
+              <Button size="sm" icon={Eye} className="flex-1 text-xs justify-center whitespace-nowrap" onClick={() => setSelectedProject(project)}>
+                <span className="sm:hidden">{label('Details', 'Details')}</span>
+                <span className="hidden sm:inline">{label('View Specifications', 'Specificaties bekijken')}</span>
+              </Button>
+            </div>
           </Card>
         ))}
       </div>
 
-      {/* Project Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {mockProjects.map(project => (
-          <Card key={project.id} className="overflow-hidden hover:shadow-card-hover transition-shadow" noPadding>
-            {/* Image */}
-            <div className="relative h-40 overflow-hidden">
-              <img src={projectImg} alt={project.name} className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-primary/70 to-transparent"></div>
-              <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between">
-                <h3 className="font-heading font-bold text-white text-sm leading-snug flex-1 pr-2">{project.name}</h3>
-                <Badge variant={project.status === 'Completed' ? 'success' : project.status === 'In Progress' ? 'primary' : 'warning'} className="flex-shrink-0 text-[10px]">
-                  {project.status}
-                </Badge>
+      {/* UPDATE PROGRESS MODAL */}
+      <AnimatePresence>
+        {editProject && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-[#EDE8DF] border border-[#C4BEB3] rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl">
+              <div className="flex justify-between items-center pb-2 border-b border-[#D6CFC2]">
+                <h3 className="text-lg font-heading font-bold text-primary">Voortgang & Status Bijwerken</h3>
+                <button onClick={() => setEditProject(null)} className="text-dark/40 hover:text-dark"><X className="w-5 h-5" /></button>
               </div>
-            </div>
-
-            {/* Details */}
-            <div className="p-4 space-y-3">
-              <div className="flex items-center justify-between text-xs font-body text-dark/60">
-                <span>Klant: <span className="font-medium text-dark">{project.customer}</span></span>
-                <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {project.deadline}</span>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-xs font-body mb-1">
-                  <span className="text-dark/50">Voortgang</span>
-                  <span className="font-bold text-primary">{project.progress}%</span>
+              <form onSubmit={handleUpdateProgress} className="space-y-4 text-xs">
+                <div>
+                  <label className="block text-dark/70 font-semibold mb-1 uppercase">Projectnaam</label>
+                  <input type="text" disabled value={editProject.name} className="w-full p-2.5 bg-white/70 border border-[#D6CFC2] rounded-lg text-dark/60 font-bold" />
                 </div>
-                <div className="w-full bg-secondary/30 rounded-full h-2">
-                  <div className="bg-primary h-2 rounded-full" style={{ width: `${project.progress}%` }}></div>
+                <div>
+                  <label className="block text-dark/70 font-semibold mb-1 uppercase">Status</label>
+                  <select
+                    value={editProject.status}
+                    onChange={e => setEditProject({ ...editProject, status: e.target.value })}
+                    className="w-full p-2.5 bg-white border border-[#D6CFC2] rounded-lg text-dark font-bold focus:outline-none"
+                  >
+                    <option value="In Progress">In Progress (In Uitvoering)</option>
+                    <option value="Review Required">Review Required (Ter Controle)</option>
+                    <option value="Completed">Completed (Afgerond)</option>
+                  </select>
+                </div>
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <label className="text-dark/70 font-semibold uppercase">Voortgang Percentage</label>
+                    <span className="font-bold text-primary font-mono">{editProject.progress}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="5"
+                    value={editProject.progress}
+                    onChange={e => setEditProject({ ...editProject, progress: Number(e.target.value) })}
+                    className="w-full accent-primary cursor-pointer h-2 bg-white rounded-lg"
+                  />
+                </div>
+                <div className="flex justify-end gap-2 pt-2 border-t border-[#D6CFC2]">
+                  <Button type="button" variant="outline" onClick={() => setEditProject(null)}>Annuleren</Button>
+                  <Button type="submit">Opslaan</Button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* VIEW DETAILED BLUEPRINT & SPECS MODAL */}
+      <AnimatePresence>
+        {selectedProject && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-[#EDE8DF] border border-[#C4BEB3] rounded-2xl p-6 w-full max-w-lg space-y-4 shadow-2xl text-xs max-h-[90vh] overflow-y-auto">
+              
+              <div className="flex justify-between items-start pb-3 border-b border-[#D6CFC2]">
+                <div>
+                  <span className="font-mono font-bold text-accent text-[10px] uppercase">Technical Specs & Blueprint Files</span>
+                  <h3 className="text-xl font-heading font-bold text-primary mt-0.5">{selectedProject.name}</h3>
+                </div>
+                <button onClick={() => setSelectedProject(null)} className="text-dark/40 hover:text-dark p-1"><X className="w-5 h-5" /></button>
+              </div>
+
+              {/* Financial & Delivery Header */}
+              <div className="grid grid-cols-2 gap-3 p-3 bg-white rounded-xl border border-[#D6CFC2]/60">
+                <div>
+                  <span className="text-dark/50 font-bold uppercase text-[10px] block">Overeengekomen Bouwsom</span>
+                  <span className="text-base font-bold text-primary">{selectedProject.agreedBuildPrice}</span>
+                </div>
+                <div>
+                  <span className="text-dark/50 font-bold uppercase text-[10px] block">Target Deadline</span>
+                  <span className="font-bold text-dark">{selectedProject.deadline}</span>
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-1">
-                <Button size="sm" variant="outline" className="flex-1 text-xs">Status Bijwerken</Button>
-                <Button size="sm" className="flex-1 text-xs">Bekijken</Button>
+              {/* Delivery Address */}
+              <div className="p-3 bg-white rounded-xl border border-[#D6CFC2]/60 flex items-start gap-2">
+                <MapPin className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                <div>
+                  <span className="text-dark/50 font-bold uppercase text-[10px] block">Opleverlocatie / Delivery Address</span>
+                  <span className="font-bold text-dark">{selectedProject.deliveryAddress}</span>
+                </div>
               </div>
-            </div>
-          </Card>
-        ))}
-      </div>
+
+              {/* Specs & Materials Breakdown */}
+              <div className="space-y-2">
+                <span className="text-dark/70 font-bold uppercase block text-[10px]">Technische Specificaties & Materialen</span>
+                <div className="p-3 bg-white rounded-xl border border-[#D6CFC2]/60 space-y-1.5">
+                  <p><span className="font-bold text-dark">Afmetingen:</span> {selectedProject.dimensions}</p>
+                  <p><span className="font-bold text-dark">Frame Constructie:</span> {selectedProject.frameMaterial}</p>
+                  <p><span className="font-bold text-dark">Aanrechtblad Afwerking:</span> {selectedProject.topMaterial}</p>
+                  <p className="text-dark/70 pt-1 text-[11px] border-t border-[#D6CFC2]/40">
+                    Geïntegreerde uitsparing voor Kamado grill, kabeldoorvoer voor verlichting, en roestvrijstalen stelpootjes.
+                  </p>
+                </div>
+              </div>
+
+              {/* AutoCAD Schematic Diagram & Blueprint Download Box */}
+              <div className="p-4 bg-slate-900 text-cyan-400 rounded-xl border border-cyan-800 space-y-2 font-mono text-[11px]">
+                <div className="flex justify-between items-center border-b border-cyan-800 pb-1 text-[9px] text-cyan-300">
+                  <span>📐 TECHNICAL BLUEPRINT DIAGRAM</span>
+                  <span>AUTOCAD 1:20 SPEC</span>
+                </div>
+                <div className="py-4 text-center border border-dashed border-cyan-700 rounded bg-slate-950/70">
+                  <p className="text-cyan-200 font-bold">┌──────────────────────────────────────────────┐</p>
+                  <p className="text-cyan-300">[ 3.5m TEAK FRAME ] ═══ [ CONCRETE SLAB ]</p>
+                  <p className="text-cyan-200 font-bold">└──────────────────────────────────────────────┘</p>
+                </div>
+                
+                <div className="pt-2 flex justify-between items-center">
+                  <span className="text-cyan-300 text-[10px]">{selectedProject.blueprintFile}</span>
+                  <button
+                    onClick={() => handleDownloadBlueprint(selectedProject.blueprintFile)}
+                    className="px-3 py-1 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold rounded-lg text-[10px] flex items-center gap-1"
+                  >
+                    <Download className="w-3 h-3" /> Download PDF Blueprint
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <Button onClick={() => setSelectedProject(null)}>Sluiten</Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

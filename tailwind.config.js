@@ -7,16 +7,16 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: '#3E4E36',    // Forest Green – Brandbook Hoofd kleur
+        primary: 'var(--primary-color)',    // Forest Green – Brandbook Hoofd kleur
         secondary: '#C4BEB3',  // Slightly darker Warm Beige for borders/accents
-        accent: '#70624F',     // Wood Brown – Brandbook Sub kleur
+        accent: 'var(--accent-color)',     // Wood Brown – Brandbook Sub kleur
         dark: '#4A4A43',       // Dark Gray – Brandbook Sub kleur
-        light: '#D6CFC2',      // Warm Beige – Page background (replaces off-white)
+        light: 'var(--background-color)',      // Warm Beige – Page background (replaces off-white)
         cream: '#EDE8DF',      // Warm Cream – Card/Input backgrounds
         'cream-dark': '#C4BEB3', // Borders
       },
       fontFamily: {
-        heading: ['Ragna', 'Georgia', 'serif'],
+        heading: ['"Cormorant Garamond"', 'Georgia', 'serif'],
         body: ['Montserrat', 'sans-serif'],
       },
       boxShadow: {

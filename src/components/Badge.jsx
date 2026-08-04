@@ -1,4 +1,9 @@
+import React from 'react';
+import { useLanguage } from '../context/LanguageContext';
+
 export default function Badge({ children, variant = 'default', className = '' }) {
+  const { tStatus } = useLanguage();
+  
   const variants = {
     default: "bg-secondary/40 text-dark",
     success: "bg-green-100 text-green-800",
@@ -8,9 +13,11 @@ export default function Badge({ children, variant = 'default', className = '' })
     primary: "bg-primary/10 text-primary",
   };
 
+  const displayText = typeof children === 'string' ? tStatus(children) : children;
+
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${variants[variant]} ${className}`}>
-      {children}
+      {displayText}
     </span>
   );
 }

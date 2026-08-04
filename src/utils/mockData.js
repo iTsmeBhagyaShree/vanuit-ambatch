@@ -1,37 +1,386 @@
-export const mockLeads = [
-  { id: 'L-1001', name: 'Jan de Vries', company: 'De Vries BV', phone: '+31 6 12345678', email: 'jan@devries.nl', status: 'New', assignedTo: 'Admin', date: '2023-10-15' },
-  { id: 'L-1002', name: 'Pieter Bakker', company: 'Bakker & Zonen', phone: '+31 6 87654321', email: 'pieter@bakker.nl', status: 'Contacted', assignedTo: 'Admin', date: '2023-10-16' },
-  { id: 'L-1003', name: 'Sanne Visser', company: '-', phone: '+31 6 11223344', email: 'sanne@example.com', status: 'Qualified', assignedTo: 'Admin', date: '2023-10-17' },
-  { id: 'L-1004', name: 'Kees Janssen', company: 'Janssen Groep', phone: '+31 6 44556677', email: 'kees@janssen.nl', status: 'New', assignedTo: 'Admin', date: '2023-10-18' },
-  { id: 'L-1005', name: 'Lotte van Berg', company: '-', phone: '+31 6 33221100', email: 'lotte@gmail.com', status: 'Contacted', assignedTo: 'Admin', date: '2023-10-19' },
-];
-
-export const mockProjects = [
-  { id: 'P-2001', name: 'Luxury Outdoor Kitchen Amsterdam', customer: 'Jan de Vries', partner: 'Sven Hoek', progress: 45, deadline: '2023-12-01', status: 'In Progress' },
-  { id: 'P-2002', name: 'Garden Lounge Set Rotterdam', customer: 'Pieter Bakker', partner: 'Lars Jansen', progress: 100, deadline: '2023-11-15', status: 'Completed' },
-  { id: 'P-2003', name: 'Custom Stone BBQ Utrecht', customer: 'Sanne Visser', partner: 'Unassigned', progress: 0, deadline: '2024-01-10', status: 'Pending' },
-  { id: 'P-2004', name: 'Outdoor Living Room Haarlem', customer: 'Kees Janssen', partner: 'Sven Hoek', progress: 70, deadline: '2023-11-30', status: 'In Progress' },
-];
+const getRelativeDate = (daysAgo) => new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
 export const mockPartners = [
-  { id: 'PT-3001', name: 'Sven Hoek', company: 'Hoek Bouw', email: 'sven@hoekbouw.nl', phone: '+31 6 99887766', projects: 2, status: 'Active' },
-  { id: 'PT-3002', name: 'Lars Jansen', company: 'Jansen Houtwerk', email: 'lars@jansen.nl', phone: '+31 6 55443322', projects: 1, status: 'Active' },
-  { id: 'PT-3003', name: 'Theo Mulder', company: 'Mulder Tuinen', email: 'theo@mulder.nl', phone: '+31 6 77889900', projects: 3, status: 'Active' },
-  { id: 'PT-3004', name: 'Emma Boer', company: 'Boer Ontwerp', email: 'emma@boer.nl', phone: '+31 6 22334455', projects: 0, status: 'Inactive' },
+  {
+    id: 'PART-001',
+    name: 'CraftWood Veluwe',
+    contactPerson: 'Erik van den Berg',
+    email: 'erik@craftwood.nl',
+    phone: '+31 6 1234 5678',
+    status: 'Actief',
+    region: 'Gelderland',
+    workload: 'Beschikbaar',
+    rating: 4.9,
+    completedProjects: 14,
+    productTypes: ['Buitenkeukens', 'Overkappingen'],
+    specialties: ['Eikenhout Constructies', 'RVS Inbouw']
+  },
+  {
+    id: 'PART-002',
+    name: 'StaalWerk Brabant',
+    contactPerson: 'Karel De Jong',
+    email: 'karel@staalwerk.nl',
+    phone: '+31 6 8765 4321',
+    status: 'Actief',
+    region: 'Noord-Brabant',
+    workload: 'Druk',
+    rating: 4.7,
+    completedProjects: 9,
+    productTypes: ['Kliko ombouwen', 'Stalen Frames'],
+    specialties: ['Poedercoaten', 'Maatwerk Klikobox']
+  },
+  {
+    id: 'PART-003',
+    name: 'Hout & Steen Utrecht',
+    contactPerson: 'Lisa Bakker',
+    email: 'lisa@houtsteen.nl',
+    phone: '+31 6 5544 3322',
+    status: 'Actief',
+    region: 'Utrecht',
+    workload: 'Volgeboekt',
+    rating: 4.8,
+    completedProjects: 22,
+    productTypes: ['Buitenverblijf', 'Poolhouse'],
+    specialties: ['Beton Cire', 'Luxe Poolhouses']
+  },
+  {
+    id: 'PART-004',
+    name: 'De Gelderse Ambacht',
+    contactPerson: 'Wouter Meijer',
+    email: 'info@gelderseambacht.nl',
+    phone: '+31 6 7788 9900',
+    status: 'Inactief',
+    region: 'Gelderland',
+    workload: 'Inactief',
+    rating: 4.5,
+    completedProjects: 6,
+    productTypes: ['Buitenkeukens'],
+    specialties: ['Tijdelijk Gepauzeerd']
+  },
+  {
+    id: 'PART-005',
+    name: 'Noord-Zeeland Houtbouw',
+    contactPerson: 'Sanne Smits',
+    email: 'contact@zeelandhout.nl',
+    phone: '+31 6 6655 4433',
+    status: 'Inactief',
+    region: 'Zeeland',
+    workload: 'Inactief',
+    rating: 4.2,
+    completedProjects: 4,
+    productTypes: ['Overkappingen'],
+    specialties: ['Contract Verlopen']
+  }
+];
+
+export const mockLeads = [
+  {
+    id: 'L-1001',
+    name: 'Jan de Vries',
+    phone: '+31 6 1122 3344',
+    email: 'jan.devries@gmail.com',
+    productType: 'buitenkeuken',
+    size: '4x1.2m',
+    source: 'Google Ads',
+    status: 'Gewonnen',
+    assignedTo: 'Tim',
+    date: getRelativeDate(15),
+    lastContactDate: getRelativeDate(3),
+    lostReason: ''
+  },
+  {
+    id: 'L-1002',
+    name: 'Sophie Bakken',
+    phone: '+31 6 9988 7766',
+    email: 'sophie.bakken@outlook.com',
+    productType: 'kliko',
+    size: '3 Container Box',
+    source: 'Facebook',
+    status: 'Offerte verstuurd',
+    assignedTo: 'Bram',
+    date: getRelativeDate(10),
+    lastContactDate: getRelativeDate(1),
+    lostReason: ''
+  },
+  {
+    id: 'L-1003',
+    name: 'Mark de Boer',
+    phone: '+31 6 4455 6677',
+    email: 'm.deboer@amsterdam.nl',
+    productType: 'overkapping',
+    size: '6x4m',
+    source: 'Direct',
+    status: 'In gesprek',
+    assignedTo: 'Tim',
+    date: getRelativeDate(5),
+    lastContactDate: getRelativeDate(1),
+    lostReason: ''
+  },
+  {
+    id: 'L-1004',
+    name: 'Anouk Visser',
+    phone: '+31 6 3322 1100',
+    email: 'anouk.visser@hotmail.com',
+    productType: 'poolhouse',
+    size: '8x4m Luxe',
+    source: 'Referral',
+    status: 'Nieuw',
+    assignedTo: 'Bram',
+    date: getRelativeDate(6),
+    lastContactDate: getRelativeDate(4),
+    lostReason: ''
+  }
 ];
 
 export const mockQuotes = [
-  { id: 'Q-4001', customer: 'Jan de Vries', project: 'Luxury Outdoor Kitchen', amount: '€ 12,500', status: 'Accepted', date: '2023-10-18' },
-  { id: 'Q-4002', customer: 'Pieter Bakker', project: 'Garden Lounge Set', amount: '€ 4,200', status: 'Paid', date: '2023-10-20' },
-  { id: 'Q-4003', customer: 'Sanne Visser', project: 'Custom Stone BBQ', amount: '€ 8,900', status: 'Draft', date: '2023-10-22' },
-  { id: 'Q-4004', customer: 'Kees Janssen', project: 'Outdoor Living Room', amount: '€ 15,750', status: 'Accepted', date: '2023-10-24' },
-  { id: 'Q-4005', customer: 'Lotte van Berg', project: 'Patio Upgrade', amount: '€ 3,400', status: 'Draft', date: '2023-10-25' },
+  {
+    id: 'Q-4001',
+    customer: 'Jan de Vries',
+    project: 'Luxe Teak Buitenkeuken 4m',
+    amount: '€ 11,300',
+    date: getRelativeDate(12),
+    status: 'Geaccepteerd',
+    discountPercent: 0,
+    items: [
+      { description: 'Buitenkeuken Teak Hout Frame 4m', quantity: 1, unitPrice: 8500 },
+      { description: 'Beton Aanrechtblad met Kamado Uitsparing', quantity: 1, unitPrice: 2800 }
+    ]
+  },
+  {
+    id: 'Q-4002',
+    customer: 'Sophie Bakken',
+    project: 'Kliko Ombouw Triple Antraciet',
+    amount: '€ 1,850',
+    date: getRelativeDate(8),
+    status: 'Verzonden',
+    discountPercent: 5,
+    items: [
+      { description: 'Triple 240L Klikobox Gepoedercoat Stalen Frame', quantity: 1, unitPrice: 1947 }
+    ]
+  },
+  {
+    id: 'Q-4003',
+    customer: 'Mark de Boer',
+    project: 'Eiken Houten Overkapping 6x4m',
+    amount: '€ 14,500',
+    date: getRelativeDate(4),
+    status: 'Concept',
+    discountPercent: 0,
+    items: [
+      { description: 'Rustiek Eiken Gebint Constructie', quantity: 1, unitPrice: 11000 },
+      { description: 'EPDM Daksysteem & Zinken Hemelwaterafvoer', quantity: 1, unitPrice: 3500 }
+    ]
+  }
+];
+
+export const mockProjects = [
+  {
+    id: 'PRJ-101',
+    name: 'Luxe Teak Buitenkeuken 4m',
+    customer: 'Jan de Vries',
+    partner: 'CraftWood Veluwe',
+    progress: 65,
+    deadline: getRelativeDate(-14), // 14 days in future
+    status: 'In Progress',
+    orderStatus: 'Productie gestart',
+    quoteId: 'Q-4001',
+    value: '€ 11,300'
+  },
+  {
+    id: 'PRJ-102',
+    name: 'Kliko Ombouw Triple Antraciet',
+    customer: 'Sophie Bakken',
+    partner: 'StaalWerk Brabant',
+    progress: 20,
+    deadline: getRelativeDate(-21),
+    status: 'Pending',
+    orderStatus: 'In afwachting van staal',
+    quoteId: 'Q-4002',
+    value: '€ 1,850'
+  }
+];
+
+export const mockInvoices = [
+  {
+    id: 'INV-4001-A',
+    quoteId: 'Q-4001',
+    customer: 'Jan de Vries',
+    type: '50% Aanbetaling (Upfront)',
+    amount: '€ 5,650',
+    numericAmount: 5650,
+    status: 'Betaald',
+    dueDate: getRelativeDate(5),
+    createdDate: getRelativeDate(12)
+  },
+  {
+    id: 'INV-4001-B',
+    quoteId: 'Q-4001',
+    customer: 'Jan de Vries',
+    type: '50% Eindfactuur (Completion)',
+    amount: '€ 5,650',
+    numericAmount: 5650,
+    status: 'Openstaand',
+    dueDate: getRelativeDate(-14),
+    createdDate: getRelativeDate(12)
+  }
+];
+
+export const mockTasks = [
+  {
+    id: 'TSK-101',
+    title: 'Inmeten buitenkeuken bij Jan de Vries',
+    customer: 'Jan de Vries',
+    project: 'Luxe Teak Buitenkeuken 4m',
+    dueDate: getRelativeDate(-1),
+    priority: 'Hoog',
+    status: 'Voltooid',
+    assignedTo: 'Admin'
+  },
+  {
+    id: 'TSK-102',
+    title: 'Kleurstalen opsturen naar Sophie Bakken',
+    customer: 'Sophie Bakken',
+    project: 'Kliko Ombouw Triple Antraciet',
+    dueDate: getRelativeDate(0),
+    priority: 'Medium',
+    status: 'Openstaand',
+    assignedTo: 'Admin'
+  },
+  {
+    id: 'TSK-103',
+    title: 'Offerte Q-4003 nabellen (Mark de Boer)',
+    customer: 'Mark de Boer',
+    project: 'Eiken Houten Overkapping 6x4m',
+    dueDate: getRelativeDate(-2),
+    priority: 'Hoog',
+    status: 'Openstaand',
+    assignedTo: 'Admin'
+  }
 ];
 
 export const mockRecentActivities = [
-  { id: 1, text: 'Quote Q-4001 accepted by Jan de Vries', time: '2 hours ago' },
-  { id: 2, text: 'Project P-2004 progress updated to 70%', time: '4 hours ago' },
-  { id: 3, text: 'Project P-2001 assigned to Sven Hoek', time: '5 hours ago' },
-  { id: 4, text: 'New lead from Sanne Visser received', time: '1 day ago' },
-  { id: 5, text: 'Invoice Q-4002 marked as Paid', time: '2 days ago' },
+  { id: 1, type: 'lead', title: 'Nieuwe lead ontvangen', detail: 'Anouk Visser (Poolhouse 8x4m)', time: '2 uur geleden' },
+  { id: 2, type: 'invoice', title: 'Factuur betaald', detail: 'Jan de Vries (€ 5.650 aanbetaling)', time: '1 dag geleden' },
+  { id: 3, type: 'quote', title: 'Offerte geaccepteerd', detail: 'Q-4001 door Jan de Vries', time: '2 dagen geleden' }
 ];
+
+export const mockFollowUps = [
+  { id: 'FOL-101', name: 'Sophie Bakken', type: 'Offerte Q-4002 nabellen', due: 'Vandaag' },
+  { id: 'FOL-102', name: 'Mark de Boer', type: 'Opties overkapping bespreken', due: 'Morgen' },
+  { id: 'FOL-103', name: 'Anouk Visser', type: 'Intakegesprek poolhouse inplannen', due: 'Over 2 dagen' }
+];
+
+export const mockDeliveries = [
+  { id: 'DEL-101', project: 'Luxe Teak Buitenkeuken 4m', customer: 'Jan de Vries', date: 'Vr 14 Aug', partner: 'CraftWood Veluwe' },
+  { id: 'DEL-102', project: 'Kliko Ombouw Triple Antraciet', customer: 'Sophie Bakken', date: 'Wo 19 Aug', partner: 'StaalWerk Brabant' },
+  { id: 'DEL-103', project: 'Eiken Houten Overkapping 6x4m', customer: 'Mark de Boer', date: 'Ma 24 Aug', partner: 'Hout & Steen Utrecht' }
+];
+
+export const mockWarnings = [
+  { id: 'WRN-101', type: 'Openstaande Aanbetaling', customer: 'Sophie Bakken', detail: 'Offerte Q-4002 van Sophie Bakken wacht op aanbetaling van € 925.' },
+  { id: 'WRN-102', type: 'Levering Nadert', customer: 'Jan de Vries', detail: 'PRJ-101 (Jan de Vries) moet over 14 dagen opgeleverd worden.' }
+];
+
+export const mockProfitLossData = [
+  {
+    projectId: 'PRJ-101',
+    projectName: 'Luxe Teak Buitenkeuken 4m',
+    customer: 'Jan de Vries',
+    category: 'Buitenkeukens',
+    revenue: 11300,
+    partnerCost: 3200,
+    materialCost: 1650,
+    otherCost: 0
+  },
+  {
+    projectId: 'PRJ-102',
+    projectName: 'Kliko Ombouw Triple Antraciet',
+    customer: 'Sophie Bakken',
+    category: 'Kliko Ombouwen',
+    revenue: 1850,
+    partnerCost: 520,
+    materialCost: 300,
+    otherCost: 0
+  },
+  {
+    projectId: 'PRJ-103',
+    projectName: 'Eiken Houten Overkapping 6x4m',
+    customer: 'Mark de Boer',
+    category: 'Overkappingen',
+    revenue: 14500,
+    partnerCost: 4500,
+    materialCost: 2300,
+    otherCost: 0
+  },
+  {
+    projectId: 'PRJ-104',
+    projectName: 'Tuinterras De Luxe',
+    customer: 'Anouk Visser',
+    category: 'Terrassen',
+    revenue: 8900,
+    partnerCost: 2400,
+    materialCost: 1200,
+    otherCost: 0
+  }
+];
+
+export const mockBankTransactions = [
+  {
+    id: 'TXN-9001',
+    description: '50% Aanbetaling Ontvangen - Jan de Vries (INV-4001-A)',
+    category: 'Verkoop / Omzet',
+    type: 'Income',
+    amount: '€ 5,650',
+    numericAmount: 5650,
+    date: getRelativeDate(12)
+  },
+  {
+    id: 'TXN-9002',
+    description: 'Betaling Kliko Ombouw - Sophie Bakken (INV-4002-A)',
+    category: 'Verkoop / Omzet',
+    type: 'Income',
+    amount: '€ 1,850',
+    numericAmount: 1850,
+    date: getRelativeDate(8)
+  },
+  {
+    id: 'TXN-9003',
+    description: 'Inkoop Teak Hout & Granieten Bladen - CraftWood Veluwe',
+    category: 'Materiaal Inkoop',
+    type: 'Expense',
+    amount: '€ 2,400',
+    numericAmount: 2400,
+    date: getRelativeDate(6)
+  },
+  {
+    id: 'TXN-9004',
+    description: 'Uitbetaling Vakman Voorschot - Sven Hoek (Hoek Bouw)',
+    category: 'Onderaanneming / Partner',
+    type: 'Expense',
+    amount: '€ 1,500',
+    numericAmount: 1500,
+    date: getRelativeDate(4)
+  },
+  {
+    id: 'TXN-9005',
+    description: 'Aanbetaling Houten Overkapping - Mark de Boer',
+    category: 'Verkoop / Omzet',
+    type: 'Income',
+    amount: '€ 4,200',
+    numericAmount: 4200,
+    date: getRelativeDate(2)
+  }
+];
+
+export const mockFunnelData = {
+  leads: { count: 4, label: "Leads deze maand" },
+  inGesprek: { count: 1, label: "In gesprek", percentage: 25 },
+  offerte: { count: 1, label: "Offerte verstuurd", percentage: 25 },
+  gewonnen: { count: 1, label: "Gewonnen (Project)", percentage: 25 }
+};
+
+export const mockFinancials = {
+  monthlyRevenue: '€ 5.650',
+  outstandingInvoices: '€ 5.650',
+  expectedRevenue: '€ 11.300'
+};

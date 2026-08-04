@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import MainLayout from './layouts/MainLayout';
@@ -12,10 +13,27 @@ import Partners from './pages/admin/Partners';
 import Finance from './pages/admin/Finance';
 import Reports from './pages/admin/Reports';
 import Settings from './pages/admin/Settings';
+import Planning from './pages/admin/Planning';
+import Tasks from './pages/admin/Tasks';
+import Invoices from './pages/admin/Invoices';
+import Bank from './pages/admin/Bank';
+import Taxes from './pages/admin/Taxes';
+import ProfitLoss from './pages/admin/ProfitLoss';
 
 // Partner Pages
 import PartnerDashboard from './pages/partner/PartnerDashboard';
 import PartnerProjects from './pages/partner/PartnerProjects';
+import PartnerPlanning from './pages/partner/PartnerPlanning';
+import PartnerPriceRequests from './pages/partner/PartnerPriceRequests';
+import Documents from './pages/Documents';
+import Profile from './pages/Profile';
+
+// Customer Pages
+import CustomerProject from './pages/customer/CustomerProject';
+import CustomerDocuments from './pages/customer/CustomerDocuments';
+import CustomerPhotos from './pages/customer/CustomerPhotos';
+import CustomerContact from './pages/customer/CustomerContact';
+import CustomerQuotes from './pages/customer/CustomerQuotes';
 
 // Protected Route
 function ProtectedRoute({ children, requiredRole }) {
@@ -35,7 +53,7 @@ const PlaceholderPage = ({ title, subtitle }) => (
       {subtitle && <p className="text-dark/50 text-sm font-body mt-1">{subtitle}</p>}
     </div>
     <div className="border-2 border-dashed border-secondary/50 rounded-2xl p-16 text-center">
-      <p className="text-dark/30 font-body text-sm">{title} content wordt hier weergegeven.</p>
+      <p className="text-dark/30 font-body text-sm">{title} content will be displayed here.</p>
     </div>
   </div>
 );
@@ -55,19 +73,37 @@ function App() {
         <Route path="quotes" element={<Quotes />} />
         <Route path="projects" element={<Projects />} />
         <Route path="partners" element={<Partners />} />
-        <Route path="documents" element={<PlaceholderPage title="Documents" subtitle="All project documents in one place." />} />
+        <Route path="documents" element={<Documents role="admin" />} />
         <Route path="finance" element={<Finance />} />
+        <Route path="invoices" element={<Invoices />} />
+        <Route path="bank" element={<Bank />} />
+        <Route path="taxes" element={<Taxes />} />
+        <Route path="profit-loss" element={<ProfitLoss />} />
+        <Route path="planning" element={<Planning />} />
+        <Route path="tasks" element={<Tasks />} />
         <Route path="reports" element={<Reports />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="profile" element={<Profile />} />
       </Route>
 
       {/* Partner */}
       <Route path="/partner" element={<ProtectedRoute requiredRole="partner"><MainLayout role="partner" /></ProtectedRoute>}>
         <Route path="dashboard" element={<PartnerDashboard />} />
         <Route path="projects" element={<PartnerProjects />} />
-        <Route path="planning" element={<PlaceholderPage title="Planning & Agenda" subtitle="Uw weekplanning en aankomende taken." />} />
-        <Route path="documents" element={<PlaceholderPage title="Documenten" subtitle="Upload en beheer uw projectdocumenten." />} />
-        <Route path="profile" element={<PlaceholderPage title="Mijn Profiel" subtitle="Uw persoonlijke profielinstellingen." />} />
+        <Route path="price-requests" element={<PartnerPriceRequests />} />
+        <Route path="planning" element={<PartnerPlanning />} />
+        <Route path="documents" element={<Documents role="partner" />} />
+        <Route path="profile" element={<Profile />} />
+      </Route>
+
+      {/* Customer */}
+      <Route path="/customer" element={<ProtectedRoute requiredRole="customer"><MainLayout role="customer" /></ProtectedRoute>}>
+        <Route path="dashboard" element={<Navigate to="/customer/project" replace />} />
+        <Route path="project" element={<CustomerProject />} />
+        <Route path="quotes" element={<CustomerQuotes />} />
+        <Route path="documents" element={<CustomerDocuments />} />
+        <Route path="photos" element={<CustomerPhotos />} />
+        <Route path="contact" element={<CustomerContact />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
