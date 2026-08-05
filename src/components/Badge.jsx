@@ -16,7 +16,7 @@ export default function Badge({ children, variant = 'default', className = '' })
   const displayText = typeof children === 'string' ? tStatus(children) : children;
 
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${variants[variant]} ${className}`}>
+    <span className={`inline-flex items-center whitespace-nowrap flex-shrink-0 px-2.5 py-0.5 rounded-full text-xs font-medium ${variants[variant]} ${className}`}>
       {displayText}
     </span>
   );

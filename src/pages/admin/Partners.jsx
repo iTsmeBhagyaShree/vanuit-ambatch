@@ -204,18 +204,18 @@ export default function Partners() {
     switch (workload) {
       case 'Beschikbaar':
       case 'Available':
-        return <Badge variant="success">{language === 'EN' ? '🟢 Available' : '🟢 Beschikbaar'}</Badge>;
+        return <Badge variant="success" className="whitespace-nowrap flex-shrink-0">{language === 'EN' ? '🟢 Available' : '🟢 Beschikbaar'}</Badge>;
       case 'Druk':
       case 'Busy':
-        return <Badge variant="warning">{language === 'EN' ? '🟡 Busy' : '🟡 Druk'}</Badge>;
+        return <Badge variant="warning" className="whitespace-nowrap flex-shrink-0">{language === 'EN' ? '🟡 Busy' : '🟡 Druk'}</Badge>;
       case 'Volgeboekt':
       case 'Fully booked':
-        return <Badge variant="danger">{language === 'EN' ? '🔴 Fully booked' : '🔴 Volgeboekt'}</Badge>;
+        return <Badge variant="danger" className="whitespace-nowrap flex-shrink-0">{language === 'EN' ? '🔴 Fully booked' : '🔴 Volgeboekt'}</Badge>;
       case 'Inactief':
       case 'Inactive':
-        return <Badge variant="default">{language === 'EN' ? 'Inactive' : 'Inactief'}</Badge>;
+        return <Badge variant="default" className="whitespace-nowrap flex-shrink-0">{language === 'EN' ? 'Inactive' : 'Inactief'}</Badge>;
       default:
-        return <Badge variant="default">{workload === 'Inactief' && language === 'EN' ? 'Inactive' : (workload || (language === 'EN' ? 'Available' : 'Beschikbaar'))}</Badge>;
+        return <Badge variant="default" className="whitespace-nowrap flex-shrink-0">{workload === 'Inactief' && language === 'EN' ? 'Inactive' : (workload || (language === 'EN' ? 'Available' : 'Beschikbaar'))}</Badge>;
     }
   };
 
@@ -258,9 +258,9 @@ export default function Partners() {
     { 
       header: t('partners.productSpecialism') || 'Product Specialism', 
       render: (row) => (
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap items-center justify-end sm:justify-start gap-1 max-w-full">
           {Array.isArray(row.productTypes) && row.productTypes.map((type, i) => (
-            <span key={i} className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-md">
+            <span key={i} className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md whitespace-nowrap inline-block flex-shrink-0">
               {translateProductType(type)}
             </span>
           ))}

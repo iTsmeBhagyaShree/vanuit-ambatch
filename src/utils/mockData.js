@@ -136,39 +136,39 @@ export const mockQuotes = [
   {
     id: 'Q-4001',
     customer: 'John Miller',
-    project: 'Luxe Teak Buitenkeuken 4m',
+    project: 'Luxury Teak Outdoor Kitchen 4m',
     amount: '€ 11,300',
     date: getRelativeDate(12),
-    status: 'Geaccepteerd',
+    status: 'Accepted',
     discountPercent: 0,
     items: [
-      { description: 'Buitenkeuken Teak Hout Frame 4m', quantity: 1, unitPrice: 8500 },
-      { description: 'Beton Aanrechtblad met Kamado Uitsparing', quantity: 1, unitPrice: 2800 }
+      { description: 'Outdoor Kitchen Teak Wood Frame 4m', quantity: 1, unitPrice: 8500 },
+      { description: 'Concrete Countertop with Kamado Cutout', quantity: 1, unitPrice: 2800 }
     ]
   },
   {
     id: 'Q-4002',
     customer: 'Sophia Taylor',
-    project: 'Kliko Ombouw Triple Antraciet',
+    project: 'Bin Storage Triple Anthracite',
     amount: '€ 1,850',
     date: getRelativeDate(8),
-    status: 'Verzonden',
+    status: 'Sent',
     discountPercent: 5,
     items: [
-      { description: 'Triple 240L Klikobox Gepoedercoat Stalen Frame', quantity: 1, unitPrice: 1947 }
+      { description: 'Triple 240L Bin Storage Powder-coated Steel Frame', quantity: 1, unitPrice: 1947 }
     ]
   },
   {
     id: 'Q-4003',
     customer: 'Mark Davis',
-    project: 'Eiken Houten Overkapping 6x4m',
+    project: 'Oak Wooden Canopy 6x4m',
     amount: '€ 14,500',
     date: getRelativeDate(4),
-    status: 'Concept',
+    status: 'Draft',
     discountPercent: 0,
     items: [
-      { description: 'Rustiek Eiken Gebint Constructie', quantity: 1, unitPrice: 11000 },
-      { description: 'EPDM Daksysteem & Zinken Hemelwaterafvoer', quantity: 1, unitPrice: 3500 }
+      { description: 'Rustic Oak Beam Construction', quantity: 1, unitPrice: 11000 },
+      { description: 'EPDM Roof System & Zinc Drainage', quantity: 1, unitPrice: 3500 }
     ]
   }
 ];
@@ -176,25 +176,25 @@ export const mockQuotes = [
 export const mockProjects = [
   {
     id: 'PRJ-101',
-    name: 'Luxe Teak Buitenkeuken 4m',
+    name: 'Luxury Teak Outdoor Kitchen 4m',
     customer: 'John Miller',
     partner: 'CraftWood Veluwe',
     progress: 65,
     deadline: getRelativeDate(-14), // 14 days in future
     status: 'In Progress',
-    orderStatus: 'Productie gestart',
+    orderStatus: 'Production started',
     quoteId: 'Q-4001',
     value: '€ 11,300'
   },
   {
     id: 'PRJ-102',
-    name: 'Kliko Ombouw Triple Antraciet',
+    name: 'Bin Storage Triple Anthracite',
     customer: 'Sophia Taylor',
     partner: 'StaalWerk Brabant',
     progress: 20,
     deadline: getRelativeDate(-21),
     status: 'Pending',
-    orderStatus: 'In afwachting van staal',
+    orderStatus: 'Awaiting steel',
     quoteId: 'Q-4002',
     value: '€ 1,850'
   }
@@ -205,10 +205,10 @@ export const mockInvoices = [
     id: 'INV-4001-A',
     quoteId: 'Q-4001',
     customer: 'John Miller',
-    type: '50% Aanbetaling (Upfront)',
+    type: '50% Down Payment (Upfront)',
     amount: '€ 5,650',
     numericAmount: 5650,
-    status: 'Betaald',
+    status: 'Paid',
     dueDate: getRelativeDate(5),
     createdDate: getRelativeDate(12)
   },
@@ -216,10 +216,10 @@ export const mockInvoices = [
     id: 'INV-4001-B',
     quoteId: 'Q-4001',
     customer: 'John Miller',
-    type: '50% Eindfactuur (Completion)',
+    type: '50% Final Invoice (Completion)',
     amount: '€ 5,650',
     numericAmount: 5650,
-    status: 'Openstaand',
+    status: 'Pending',
     dueDate: getRelativeDate(-14),
     createdDate: getRelativeDate(12)
   }
@@ -228,33 +228,36 @@ export const mockInvoices = [
 export const mockTasks = [
   {
     id: 'TSK-101',
-    title: 'Inmeten buitenkeuken bij John Miller',
+    title: 'Measure outdoor kitchen for John Miller',
     customer: 'John Miller',
-    project: 'Luxe Teak Buitenkeuken 4m',
+    project: 'Luxury Teak Outdoor Kitchen 4m',
     dueDate: getRelativeDate(-1),
-    priority: 'Hoog',
-    status: 'Voltooid',
-    assignedTo: 'Admin'
+    priority: 'High',
+    status: 'Completed',
+    assignedTo: 'Tim',
+    assignee: 'Tim'
   },
   {
     id: 'TSK-102',
-    title: 'Kleurstalen opsturen naar Sophia Taylor',
+    title: 'Send color samples to Sophia Taylor',
     customer: 'Sophia Taylor',
-    project: 'Kliko Ombouw Triple Antraciet',
+    project: 'Bin Storage Triple Anthracite',
     dueDate: getRelativeDate(0),
     priority: 'Medium',
-    status: 'Openstaand',
-    assignedTo: 'Admin'
+    status: 'Pending',
+    assignedTo: 'Tim',
+    assignee: 'Tim'
   },
   {
     id: 'TSK-103',
-    title: 'Offerte Q-4003 nabellen (Mark Davis)',
+    title: 'Follow up on Quote Q-4003 (Mark Davis)',
     customer: 'Mark Davis',
-    project: 'Eiken Houten Overkapping 6x4m',
+    project: 'Oak Wooden Canopy 6x4m',
     dueDate: getRelativeDate(-2),
-    priority: 'Hoog',
-    status: 'Openstaand',
-    assignedTo: 'Admin'
+    priority: 'High',
+    status: 'Pending',
+    assignedTo: 'Tim',
+    assignee: 'Tim'
   }
 ];
 
@@ -265,20 +268,20 @@ export const mockRecentActivities = [
 ];
 
 export const mockFollowUps = [
-  { id: 'FOL-101', name: 'Sophia Taylor', type: 'Offerte Q-4002 nabellen', due: 'Vandaag' },
-  { id: 'FOL-102', name: 'Mark Davis', type: 'Opties overkapping bespreken', due: 'Morgen' },
-  { id: 'FOL-103', name: 'Emma Wilson', type: 'Intakegesprek poolhouse inplannen', due: 'Over 2 dagen' }
+  { id: 'FOL-101', name: 'Sophia Taylor', type: 'Follow up on Quote Q-4002', due: 'Today' },
+  { id: 'FOL-102', name: 'Mark Davis', type: 'Discuss canopy options', due: 'Tomorrow' },
+  { id: 'FOL-103', name: 'Emma Wilson', type: 'Schedule intake consultation poolhouse', due: 'In 2 days' }
 ];
 
 export const mockDeliveries = [
-  { id: 'DEL-101', project: 'Luxe Teak Buitenkeuken 4m', customer: 'John Miller', date: 'Vr 14 Aug', partner: 'CraftWood Veluwe' },
-  { id: 'DEL-102', project: 'Kliko Ombouw Triple Antraciet', customer: 'Sophia Taylor', date: 'Wo 19 Aug', partner: 'StaalWerk Brabant' },
-  { id: 'DEL-103', project: 'Eiken Houten Overkapping 6x4m', customer: 'Mark Davis', date: 'Ma 24 Aug', partner: 'Hout & Steen Utrecht' }
+  { id: 'DEL-101', project: 'Luxury Teak Outdoor Kitchen 4m', customer: 'John Miller', date: 'Fri 14 Aug', partner: 'CraftWood Veluwe' },
+  { id: 'DEL-102', project: 'Bin Storage Triple Anthracite', customer: 'Sophia Taylor', date: 'Wed 19 Aug', partner: 'StaalWerk Brabant' },
+  { id: 'DEL-103', project: 'Oak Wooden Canopy 6x4m', customer: 'Mark Davis', date: 'Mon 24 Aug', partner: 'Hout & Steen Utrecht' }
 ];
 
 export const mockWarnings = [
-  { id: 'WRN-101', type: 'Openstaande Aanbetaling', customer: 'Sophia Taylor', detail: 'Offerte Q-4002 van Sophia Taylor wacht op aanbetaling van € 925.' },
-  { id: 'WRN-102', type: 'Levering Nadert', customer: 'John Miller', detail: 'PRJ-101 (John Miller) moet over 14 dagen opgeleverd worden.' }
+  { id: 'WRN-101', type: 'Pending Down Payment', customer: 'Sophia Taylor', detail: 'Quote Q-4002 from Sophia Taylor is awaiting deposit of € 925.' },
+  { id: 'WRN-102', type: 'Delivery Approaching', customer: 'John Miller', detail: 'PRJ-101 (John Miller) is due for delivery in 14 days.' }
 ];
 
 export const mockProfitLossData = [

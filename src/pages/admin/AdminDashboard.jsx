@@ -431,12 +431,12 @@ export default function AdminDashboard() {
                     { id: 'FOL-101', name: 'Sophie Bakken', type: 'Offerte Q-4002 nabellen', due: 'Vandaag' },
                     { id: 'FOL-102', name: 'Mark de Boer', type: 'Opties overkapping bespreken', due: 'Morgen' }
                   ]).map(item => (
-                    <div key={item.id} className="flex justify-between items-center bg-white p-2.5 rounded-lg border border-[#D6CFC2]/30 shadow-sm">
-                      <div>
-                        <p className="text-xs font-bold text-dark">{item.name}</p>
-                        <p className="text-[10px] text-dark/50">{item.type}</p>
+                    <div key={item.id} className="flex justify-between items-center gap-2 bg-white p-2.5 rounded-lg border border-[#D6CFC2]/30 shadow-sm min-w-0">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-dark truncate">{item.name}</p>
+                        <p className="text-[10px] text-dark/50 truncate">{item.type}</p>
                       </div>
-                      <Badge variant="warning">{item.due}</Badge>
+                      <Badge variant="warning" className="whitespace-nowrap flex-shrink-0 text-[10px]">{item.due}</Badge>
                     </div>
                   ))}
                 </div>
