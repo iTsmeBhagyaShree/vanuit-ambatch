@@ -227,7 +227,14 @@ export default function Taxes() {
           <h2 className="text-2xl font-heading font-bold text-primary">{t('screens.taxes.title')}</h2>
           <p className="text-dark/60 text-sm">{t('screens.taxes.description')}</p>
         </div>
-        <Button icon={Send} onClick={handleFileReturn}>{t('screens.taxes.submit')}</Button>
+        <Button 
+          size="sm" 
+          icon={Send} 
+          onClick={handleFileReturn}
+          className="py-1.5 px-3 text-xs font-bold whitespace-nowrap"
+        >
+          {language === 'EN' ? 'Submit VAT Return' : 'BTW Aangifte Indienen'}
+        </Button>
       </div>
 
       {/* Quarter Selector Tabs — Compact single row on mobile */}

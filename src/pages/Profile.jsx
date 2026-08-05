@@ -3,10 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import { useAuth } from '../hooks/useAuth';
+import { useLanguage } from '../context/LanguageContext';
 import { User, Mail, Phone, Lock, Save, Camera, CheckCircle, Globe } from 'lucide-react';
 
 export default function Profile() {
   const { user } = useAuth();
+  const { language } = useLanguage();
   const [toastMsg, setToastMsg] = useState('');
   
   const [personalInfo, setPersonalInfo] = useState({
@@ -36,16 +38,16 @@ export default function Profile() {
 
   const handleSaveInfo = (e) => {
     e.preventDefault();
-    showToast('Profile information updated successfully!');
+    showToast(language === 'EN' ? 'Profile information updated successfully!' : 'Profielgegevens succesvol bijgewerkt!');
   };
 
   const handlePasswordChange = (e) => {
     e.preventDefault();
     if (passwords.new !== passwords.confirm) {
-      alert("New passwords do not match!");
+      alert(language === 'EN' ? "New passwords do not match!" : "Nieuwe wachtwoorden komen niet overeen!");
       return;
     }
-    showToast('Password updated successfully!');
+    showToast(language === 'EN' ? 'Password updated successfully!' : 'Wachtwoord succesvol bijgewerkt!');
     setPasswords({ current: '', new: '', confirm: '' });
   };
 
@@ -53,7 +55,7 @@ export default function Profile() {
     const file = e.target.files[0];
     if (file) {
       setAvatar(URL.createObjectURL(file));
-      showToast('Avatar updated successfully!');
+      showToast(language === 'EN' ? 'Avatar updated successfully!' : 'Profielfoto succesvol bijgewerkt!');
     }
   };
 
@@ -75,8 +77,12 @@ export default function Profile() {
       </AnimatePresence>
 
       <div>
-        <h2 className="text-2xl font-heading font-bold text-primary">My Profile</h2>
-        <p className="text-dark/50 text-sm font-body">Manage your profile details and security settings.</p>
+        <h2 className="text-2xl font-heading font-bold text-primary">
+          {language === 'EN' ? 'My Profile' : 'Mijn Profiel'}
+        </h2>
+        <p className="text-dark/50 text-sm font-body">
+          {language === 'EN' ? 'Manage your profile details and security settings.' : 'Beheer uw profielgegevens en beveiligingsinstellingen.'}
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -97,7 +103,7 @@ export default function Profile() {
               </label>
             </div>
             <h3 className="font-heading font-bold text-lg text-dark">{personalInfo.name}</h3>
-            <p className="text-xs text-dark/50 capitalize font-body font-medium">{user?.role} Portal</p>
+            <p className="text-xs text-dark/50 capitalize font-body font-medium">{user?.role} {language === 'EN' ? 'Portal' : 'Portaal'}</p>
             
             <div className="mt-6 pt-6 border-t border-cream-dark/60 text-left space-y-4 px-2">
               <div className="flex items-center gap-3 text-xs text-dark/70 font-body">
@@ -119,11 +125,13 @@ export default function Profile() {
         {/* Right Column: Edit Forms */}
         <div className="lg:col-span-2 space-y-6">
           {/* Personal Info */}
-          <Card title="Personal Information" action={<div className="p-2 rounded-lg" style={{background:'color-mix(in srgb, var(--primary-color) 15%, transparent)'}}><User className="w-4 h-4 text-primary" /></div>}>
+          <Card title={language === 'EN' ? 'Personal Information' : 'Persoonlijke Gegevens'} action={<div className="p-2 rounded-lg" style={{background:'color-mix(in srgb, var(--primary-color) 15%, transparent)'}}><User className="w-4 h-4 text-primary" /></div>}>
             <form onSubmit={handleSaveInfo} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-dark/60 mb-1.5 font-body uppercase tracking-wider">Full Name</label>
+                  <label className="block text-xs font-semibold text-dark/60 mb-1.5 font-body uppercase tracking-wider">
+                    {language === 'EN' ? 'Full Name' : 'Volledige Naam'}
+                  </label>
                   <input
                     type="text"
                     value={personalInfo.name}
@@ -133,7 +141,9 @@ export default function Profile() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-dark/60 mb-1.5 font-body uppercase tracking-wider">Email Address</label>
+                  <label className="block text-xs font-semibold text-dark/60 mb-1.5 font-body uppercase tracking-wider">
+                    {language === 'EN' ? 'Email Address' : 'E-mailadres'}
+                  </label>
                   <input
                     type="email"
                     value={personalInfo.email}
@@ -143,7 +153,9 @@ export default function Profile() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-dark/60 mb-1.5 font-body uppercase tracking-wider">Phone Number</label>
+                  <label className="block text-xs font-semibold text-dark/60 mb-1.5 font-body uppercase tracking-wider">
+                    {language === 'EN' ? 'Phone Number' : 'Telefoonnummer'}
+                  </label>
                   <input
                     type="text"
                     value={personalInfo.phone}
@@ -152,31 +164,37 @@ export default function Profile() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-dark/60 mb-1.5 font-body uppercase tracking-wider">Language</label>
+                  <label className="block text-xs font-semibold text-dark/60 mb-1.5 font-body uppercase tracking-wider">
+                    {language === 'EN' ? 'Language' : 'Taal'}
+                  </label>
                   <select
                     value={personalInfo.language}
                     onChange={(e) => handleInfoChange('language', e.target.value)}
                     className="w-full px-3 py-2 bg-[#EDE8DF] border border-[#D6CFC2] rounded-lg text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/20 text-[#4A4A43]"
                   >
                     <option value="English">English</option>
-                    <option value="Dutch">Dutch (Nederlands)</option>
+                    <option value="Dutch">Nederlands (Dutch)</option>
                     <option value="German">German</option>
                   </select>
                 </div>
               </div>
               
               <div className="flex justify-end pt-2">
-                <Button icon={Save} type="submit">Save changes</Button>
+                <Button icon={Save} type="submit">
+                  {language === 'EN' ? 'Save changes' : 'Wijzigingen Opslaan'}
+                </Button>
               </div>
             </form>
           </Card>
 
           {/* Change Password */}
-          <Card title="Security & Password" action={<div className="p-2 rounded-lg" style={{background:'color-mix(in srgb, var(--primary-color) 15%, transparent)'}}><Lock className="w-4 h-4 text-primary" /></div>}>
+          <Card title={language === 'EN' ? 'Security & Password' : 'Beveiliging & Wachtwoord'} action={<div className="p-2 rounded-lg" style={{background:'color-mix(in srgb, var(--primary-color) 15%, transparent)'}}><Lock className="w-4 h-4 text-primary" /></div>}>
             <form onSubmit={handlePasswordChange} className="space-y-4">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-dark/60 mb-1.5 font-body uppercase tracking-wider">Current Password</label>
+                  <label className="block text-xs font-semibold text-dark/60 mb-1.5 font-body uppercase tracking-wider">
+                    {language === 'EN' ? 'Current Password' : 'Huidig Wachtwoord'}
+                  </label>
                   <input
                     type="password"
                     value={passwords.current}
@@ -187,7 +205,9 @@ export default function Profile() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-dark/60 mb-1.5 font-body uppercase tracking-wider">New Password</label>
+                    <label className="block text-xs font-semibold text-dark/60 mb-1.5 font-body uppercase tracking-wider">
+                      {language === 'EN' ? 'New Password' : 'Nieuw Wachtwoord'}
+                    </label>
                     <input
                       type="password"
                       value={passwords.new}
@@ -197,7 +217,9 @@ export default function Profile() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-dark/60 mb-1.5 font-body uppercase tracking-wider">Confirm New Password</label>
+                    <label className="block text-xs font-semibold text-dark/60 mb-1.5 font-body uppercase tracking-wider">
+                      {language === 'EN' ? 'Confirm New Password' : 'Bevestig Nieuw Wachtwoord'}
+                    </label>
                     <input
                       type="password"
                       value={passwords.confirm}
@@ -210,7 +232,9 @@ export default function Profile() {
               </div>
               
               <div className="flex justify-end pt-2">
-                <Button icon={Lock} type="submit">Update password</Button>
+                <Button icon={Lock} type="submit">
+                  {language === 'EN' ? 'Update password' : 'Wachtwoord Bijwerken'}
+                </Button>
               </div>
             </form>
           </Card>

@@ -314,10 +314,21 @@ export default function Partners() {
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-heading font-bold text-primary">{t('partners.title') || 'Partners Module'}</h2>
-          <p className="text-dark/60 text-sm">{t('partners.subtitle') || 'Manage active craftspeople and the recruitment pipeline for new partners.'}</p>
+          <h2 className="text-2xl font-heading font-bold text-primary">
+            {language === 'EN' ? 'Partners Module' : 'Partners Module'}
+          </h2>
+          <p className="text-dark/60 text-sm">
+            {language === 'EN' ? 'Manage active craftspeople and the recruitment pipeline for new partners.' : 'Beheer actieve ambachtelijke vakmannen en de sollicitatiepijplijn voor nieuwe partners.'}
+          </p>
         </div>
-        <Button icon={Plus} onClick={handleOpenAddModal}>{t('partners.addNew') || 'Add New Partner'}</Button>
+        <Button 
+          size="sm"
+          icon={Plus} 
+          onClick={handleOpenAddModal}
+          className="py-1.5 px-3 text-xs font-bold whitespace-nowrap"
+        >
+          {language === 'EN' ? 'Add New Partner' : 'Nieuwe Partner'}
+        </Button>
       </div>
 
       {/* Tabs Switcher: Active Partners vs Prospective Pipeline Kanban */}
@@ -330,7 +341,7 @@ export default function Partners() {
               : 'bg-white/80 text-dark/70 hover:bg-[#EDE8DF]'
           }`}
         >
-          <Briefcase className="w-3.5 h-3.5" /> {t('partners.activeList') || 'Active Partners List'}
+          <Briefcase className="w-3.5 h-3.5" /> {language === 'EN' ? 'Active Partners List' : 'Actieve Partners Lijst'}
         </button>
         <button
           onClick={() => setActiveTab('Pipeline')}
@@ -340,7 +351,7 @@ export default function Partners() {
               : 'bg-white/80 text-dark/70 hover:bg-[#EDE8DF]'
           }`}
         >
-          <Clock className="w-3.5 h-3.5" /> {t('partners.pipeline') || 'Prospective Partner Pipeline (Kanban)'}
+          <Clock className="w-3.5 h-3.5" /> {language === 'EN' ? 'Prospective Partner Pipeline (Kanban)' : 'Potentiële Partner Pijplijn (Kanban)'}
         </button>
       </div>
 

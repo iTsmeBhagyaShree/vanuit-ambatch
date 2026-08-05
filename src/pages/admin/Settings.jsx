@@ -3,14 +3,26 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import Badge from '../../components/Badge';
-import { Building2, Upload, Palette, Bell, Save, CheckCircle, Users, Plus, Trash2, Edit2, Shield, Sliders, Hash, Percent, X, UserPlus, ToggleLeft, ToggleRight, FileText } from 'lucide-react';
+import { Building2, Upload, Palette, Bell, Save, CheckCircle, Users, Plus, Trash2, Edit2, Shield, Sliders, Hash, Percent, X, UserPlus, ToggleLeft, ToggleRight, FileText, MessageSquare } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
 export default function Settings() {
   const { t, language } = useLanguage();
   const fileInputRef = useRef(null);
-  const [activeTab, setActiveTab] = useState('Company'); // 'Company' | 'Users' | 'FieldSet'
+  const [activeTab, setActiveTab] = useState('Company'); // 'Company' | 'Users' | 'FieldSet' | 'Templates'
   const [toastMsg, setToastMsg] = useState('');
+
+  // -------------------------------------------------------------
+  // 4. AUTO-MESSAGE TEMPLATES STATE (SECTION 2.3)
+  // -------------------------------------------------------------
+  const [messageTemplates, setMessageTemplates] = useState(() => {
+    const saved = localStorage.getItem('app_auto_templates_v1');
+    return saved ? JSON.parse(saved) : {
+      template1: "Dear {client_name}, thank you for reaching out to Vanuit Ambacht regarding your {product_category} inquiry. We would love to discuss your requirements in detail. When would it suit you to talk? Kind regards, Tim & Bram - Vanuit Ambacht",
+      template2: "Dear {client_name}, we wanted to follow up regarding your {product_category} inquiry. Please let us know if you have any questions or when you would be available for a brief phone call. Kind regards, Tim & Bram - Vanuit Ambacht",
+      template3: "Dear {client_name}, following up regarding your {product_category} project with Vanuit Ambacht. We are happy to help you finalize the specifications whenever you are ready. Best regards, Tim & Bram - Vanuit Ambacht"
+    };
+  });
 
   // -------------------------------------------------------------
   // 1. COMPANY DETAILS & NUMBERING STATE
@@ -132,6 +144,11 @@ export default function Settings() {
     showToast('Merkinstellingen opgeslagen!');
   };
 
+  const saveMessageTemplates = () => {
+    localStorage.setItem('app_auto_templates_v1', JSON.stringify(messageTemplates));
+    showToast(language === 'EN' ? 'Message templates saved successfully!' : 'Berichtsjablonen succesvol opgeslagen!');
+  };
+
   const handleCompanyChange = (key, value) => {
     setCompanyInfo(prev => ({ ...prev, [key]: value }));
   };
@@ -229,7 +246,7 @@ export default function Settings() {
 
       <div>
         <h2 className="text-2xl font-heading font-bold text-primary">
-          {language === 'EN' ? 'Settings (Admin Settings)' : 'Instellingen (Admin Settings)'}
+          {language === 'EN' ? 'Platform Settings' : 'Platform Instellingen'}
         </h2>
         <p className="text-dark/60 text-sm">
           {language === 'EN' 
@@ -265,7 +282,16 @@ export default function Settings() {
           }`}
         >
           <Sliders className="w-4 h-4 flex-shrink-0 text-primary" />
-          <span>{language === 'EN' ? 'Field-Set Configurator' : 'Field-Set Configurator'}</span>
+          <span>{language === 'EN' ? 'Product Fields Configurator' : 'Veldinstellingen Configuratie'}</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('Templates')}
+          className={`px-3.5 py-2 rounded-xl text-xs font-bold font-body transition-all flex items-center gap-2 whitespace-nowrap flex-shrink-0 ${
+            activeTab === 'Templates' ? 'bg-primary text-cream shadow-sm' : 'bg-white/80 text-dark/70 hover:bg-[#EDE8DF]'
+          }`}
+        >
+          <MessageSquare className="w-4 h-4 flex-shrink-0 text-primary" />
+          <span>{language === 'EN' ? 'Message Templates' : 'Berichtsjablonen'}</span>
         </button>
       </div>
 
@@ -558,6 +584,93 @@ export default function Settings() {
                   {language === 'EN' ? 'No custom fields configured for this product type.' : 'Geen aangepaste velden geconfigureerd voor dit product type.'}
                 </div>
               )}
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* TAB 4: AUTO-MESSAGE TEMPLATES MANAGER (SECTION 2.3)       */}
+      {/* ========================================================= */}
+      {activeTab === 'Templates' && (
+        <div className="space-y-6">
+          <Card 
+            title={language === 'EN' ? 'Auto-Message Templates Manager' : 'Berichtsjablonen Beheerder'} 
+            icon={MessageSquare}
+          >
+            <div className="space-y-6 font-body text-xs">
+              <div className="p-3.5 bg-primary/10 border border-primary/20 rounded-xl text-primary font-body">
+                <p className="font-bold text-xs">💡 {language === 'EN' ? 'Dynamic Template Variables Guide' : 'Handleiding Dynamische Variabelen'}</p>
+                <p className="text-[11px] mt-1 text-dark/70">
+                  {language === 'EN'
+                    ? 'Use the following tags in your templates. They will automatically be replaced with real lead data when launching WhatsApp or Email:'
+                    : 'Gebruik de volgende tags in uw sjablonen. Deze worden automatisch vervangen door echte leadgegevens bij het starten van WhatsApp of E-mail:'}
+                </p>
+                <div className="flex flex-wrap gap-2 mt-2 font-mono text-[10px]">
+                  <span className="bg-white px-2 py-1 rounded border border-primary/20 font-bold text-primary">{'{client_name}'}</span>
+                  <span className="bg-white px-2 py-1 rounded border border-primary/20 font-bold text-primary">{'{product_category}'}</span>
+                  <span className="bg-white px-2 py-1 rounded border border-primary/20 font-bold text-primary">{'{company_name}'}</span>
+                </div>
+              </div>
+
+              {/* TEMPLATE 1 */}
+              <div className="space-y-2 bg-[#F8F7F4] p-4 rounded-xl border border-[#D6CFC2]">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-dark text-sm flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-bold">1</span>
+                    {language === 'EN' ? 'Template 1: Initial Inquiry Response' : 'Sjabloon 1: Eerste Aanvraag Reactie'}
+                  </label>
+                  <Badge variant="info">Auto-Load</Badge>
+                </div>
+                <textarea
+                  rows={3}
+                  value={messageTemplates.template1}
+                  onChange={e => setMessageTemplates(prev => ({ ...prev, template1: e.target.value }))}
+                  className="w-full p-3 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+
+              {/* TEMPLATE 2 */}
+              <div className="space-y-2 bg-[#F8F7F4] p-4 rounded-xl border border-[#D6CFC2]">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-dark text-sm flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-bold">2</span>
+                    {language === 'EN' ? 'Template 2: 1st Follow-up Message' : 'Sjabloon 2: 1e Vervolgbericht'}
+                  </label>
+                  <Badge variant="warning">Follow-up</Badge>
+                </div>
+                <textarea
+                  rows={3}
+                  value={messageTemplates.template2}
+                  onChange={e => setMessageTemplates(prev => ({ ...prev, template2: e.target.value }))}
+                  className="w-full p-3 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+
+              {/* TEMPLATE 3 */}
+              <div className="space-y-2 bg-[#F8F7F4] p-4 rounded-xl border border-[#D6CFC2]">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-dark text-sm flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-bold">3</span>
+                    {language === 'EN' ? 'Template 3: 2nd Follow-up Message' : 'Sjabloon 3: 2e Vervolgbericht'}
+                  </label>
+                  <Badge variant="primary">Final Call</Badge>
+                </div>
+                <textarea
+                  rows={3}
+                  value={messageTemplates.template3}
+                  onChange={e => setMessageTemplates(prev => ({ ...prev, template3: e.target.value }))}
+                  className="w-full p-3 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+
+              {/* SAVE BUTTON */}
+              <div className="flex justify-end pt-2 border-t border-[#D6CFC2]">
+                <Button variant="primary" icon={Save} onClick={saveMessageTemplates}>
+                  {language === 'EN' ? 'Save All Templates' : 'Alle Sjablonen Opslaan'}
+                </Button>
+              </div>
+
             </div>
           </Card>
         </div>

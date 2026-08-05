@@ -34,6 +34,7 @@ import CustomerDocuments from './pages/customer/CustomerDocuments';
 import CustomerPhotos from './pages/customer/CustomerPhotos';
 import CustomerContact from './pages/customer/CustomerContact';
 import CustomerQuotes from './pages/customer/CustomerQuotes';
+import PublicOfferte from './pages/PublicOfferte';
 
 // Protected Route
 function ProtectedRoute({ children, requiredRole }) {
@@ -64,6 +65,7 @@ function App() {
   return (
     <Routes>
       <Route path="/login" element={user ? <Navigate to={`/${user.role}/dashboard`} /> : <Login />} />
+      <Route path="/offerte/:token" element={<PublicOfferte />} />
       <Route path="/" element={user ? <Navigate to={`/${user.role}/dashboard`} replace /> : <Navigate to="/login" replace />} />
 
       {/* Admin */}

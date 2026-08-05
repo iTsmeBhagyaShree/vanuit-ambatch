@@ -34,8 +34,8 @@
     line-height: 1.6;
   }
 
-  h1, h2, h3, h4, h5, h6, .font-heading {
-    font-family: 'Cormorant Garamond', Georgia, serif !important;
+  h1, h2, h3, .font-heading {
+    font-family: 'Cormorant Garamond', Georgia, serif;
     color: var(--primary-color, #3E4E36); /* Brandbook Forest Green */
     font-weight: 700;
     line-height: 1.25;

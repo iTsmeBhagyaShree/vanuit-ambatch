@@ -26,7 +26,7 @@ export default function Table({ columns, data, keyField = 'id', getRowClassName,
           data.map((row, rIdx) => (
             <div 
               key={row[keyField] || rIdx}
-              className="p-4 bg-[#F8F7F4] border border-[#C4BEB3]/40 rounded-xl space-y-2 text-xs font-body shadow-xs"
+              className="p-4 bg-[#F8F7F4] border border-[#C4BEB3]/60 rounded-2xl space-y-2.5 text-xs font-body shadow-xs hover:border-primary/40 transition-colors"
             >
               {columns.map((col, cIdx) => {
                 const headerRaw = typeof col.header === 'string' ? col.header : '';
@@ -34,20 +34,33 @@ export default function Table({ columns, data, keyField = 'id', getRowClassName,
                 const cellContent = col.render ? col.render(row) : row[col.accessor];
                 const headerText = typeof col.header === 'string' ? tStatus(col.header) : col.header;
 
+                // 1. Actions Column: Render at bottom as clean action bar
                 if (isActions) {
                   return (
-                    <div key={cIdx} className="pt-2 mt-2 border-t border-[#C4BEB3]/30 flex flex-wrap items-center justify-end gap-2">
+                    <div key={cIdx} className="pt-2.5 mt-2.5 border-t border-[#C4BEB3]/40 flex flex-wrap items-center justify-end gap-1.5">
                       {cellContent}
                     </div>
                   );
                 }
 
+                // 2. Primary Item Column (Column 0): Render as top title header block
+                if (cIdx === 0) {
+                  return (
+                    <div key={cIdx} className="pb-2.5 mb-2.5 border-b border-[#C4BEB3]/40 flex items-center justify-between gap-3 min-w-0">
+                      <div className="min-w-0 flex-1 text-left font-semibold text-dark text-xs sm:text-sm">
+                        {cellContent}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // 3. Regular Data Columns: Render as key-value pairs
                 return (
-                  <div key={cIdx} className="flex justify-between items-center gap-2 min-w-0">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-dark/50 flex-shrink-0">
+                  <div key={cIdx} className="flex justify-between items-start gap-3 min-w-0">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-dark/50 flex-shrink-0 pt-0.5">
                       {headerText}
                     </span>
-                    <div className="text-right font-medium text-dark/90 min-w-0 truncate">
+                    <div className="text-right font-medium text-dark/90 min-w-0 break-words flex-1">
                       {cellContent}
                     </div>
                   </div>
@@ -56,7 +69,7 @@ export default function Table({ columns, data, keyField = 'id', getRowClassName,
             </div>
           ))
         ) : (
-          <div className="p-8 text-center text-xs font-body text-dark/40 rounded-xl border border-[#C4BEB3]/35 bg-[#F8F7F4]">
+          <div className="p-8 text-center text-xs font-body text-dark/40 rounded-2xl border border-[#C4BEB3]/35 bg-[#F8F7F4]">
             {language === 'NL' ? 'Geen gegevens beschikbaar' : 'No data available'}
           </div>
         )}
@@ -102,23 +115,19 @@ export default function Table({ columns, data, keyField = 'id', getRowClassName,
                       {col.render ? col.render(row) : row[col.accessor]}
                     </td>
                   ))}
-                  </tr>
-                );
-              })
-            ) : (
-              <tr>
-                <td 
-                  colSpan={columns.length} 
-                  className="px-6 py-12 text-center text-xs font-body text-dark/40 rounded-xl border border-[#C4BEB3]/35" 
-                  style={{ background: '#F8F7F4' }}
-                >
-                  {language === 'NL' ? 'Geen gegevens beschikbaar' : 'No data available'}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+                </tr>
+              );
+            })
+          ) : (
+            <tr>
+              <td colSpan={columns.length} className="px-6 py-12 text-center text-xs font-body text-dark/40 bg-[#F8F7F4] rounded-xl border border-[#C4BEB3]/30">
+                {language === 'NL' ? 'Geen gegevens gevonden.' : 'No records found.'}
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
     </>
   );
 }

@@ -20,7 +20,7 @@ export default function CustomerProject() {
 
   const timelineSteps = [
     { 
-      title: language === 'EN' ? '1. Quote Accepted' : '1. Offerte Akkoord (Quote Accepted)', 
+      title: language === 'EN' ? '1. Quote Accepted' : '1. Offerte Akkoord', 
       date: '01 Oct 2026', 
       status: 'completed', 
       desc: language === 'EN' ? 'Quote Q-4001 approved and deposit received.' : 'Offerte Q-4001 goedgekeurd en aanbetaling ontvangen.' 
@@ -32,7 +32,7 @@ export default function CustomerProject() {
       desc: language === 'EN' ? 'Solid teak wood and granite countertop delivered to workshop.' : 'Massief teak hout en granieten werkblad geleverd in werkplaats.' 
     },
     { 
-      title: language === 'EN' ? '3. Workshop Construction (In Workshop)' : '3. Werkplaats Constructie (In Workshop)', 
+      title: language === 'EN' ? '3. Workshop Construction' : '3. Werkplaats Constructie', 
       date: '15 Oct 2026', 
       status: 'active', 
       desc: language === 'EN' ? 'Craftsman Sven Hoek is currently building the teak frame and concrete slab.' : 'Vakman Sven Hoek bouwt momenteel het teakhouten frame en betonblad.' 
@@ -85,7 +85,7 @@ export default function CustomerProject() {
       </div>
 
       {/* Interactive Read-Only Project Timeline */}
-      <Card title={language === 'EN' ? 'Project Progress Timeline (Phase Tracker)' : 'Project Voortgang Timeline (Phase Tracker)'} icon={Compass}>
+      <Card title={language === 'EN' ? 'Project Progress Timeline' : 'Projectvoortgang Tijdlijn'} icon={Compass}>
         <div className="relative border-l-2 border-[#D6CFC2] ml-2.5 sm:ml-4 mt-4 mb-4 space-y-6 sm:space-y-8">
           {timelineSteps.map((step, idx) => (
             <div key={idx} className="relative pl-6 sm:pl-8">

@@ -36,6 +36,49 @@ export default function Leads() {
   // Red Warning Alert 1-Click Follow-up Modal State
   const [redAlertModalLead, setRedAlertModalLead] = useState(null);
 
+  // 7-Step Partner Price Request Wizard State
+  const [partnerWizardLead, setPartnerWizardLead] = useState(null);
+  const [partnerWizardStep, setPartnerWizardStep] = useState(1);
+  const [wizardForm, setWizardForm] = useState({
+    category: 'Outdoor Kitchen',
+    customerName: '',
+    customerEmail: '',
+    customerPhone: '',
+    address: '',
+    lengthCm: '240',
+    widthCm: '80',
+    heightCm: '95',
+    woodType: 'Thermo Fraké Wood (Recommended)',
+    countertop: 'Zwart Polijst Beton Cire (8cm)',
+    appliances: ['Kamado Big Green Egg Large', 'RVS Sink & Tap'],
+    siteAccess: 'Ground floor backyard access via side gate',
+    gardenPhotoName: 'garden_site_photo.jpg',
+    render3dName: '3d_outdoor_kitchen_render.png',
+    craftsmanPartner: 'CraftWood Veluwe (Recommended)'
+  });
+
+  const handleOpenPartnerWizard = (lead) => {
+    setPartnerWizardLead(lead);
+    setPartnerWizardStep(1);
+    setWizardForm({
+      category: lead.productType || lead.category || 'Outdoor Kitchen',
+      customerName: lead.name || '',
+      customerEmail: lead.email || `${(lead.name || 'client').toLowerCase().replace(/\s+/g, '')}@gmail.com`,
+      customerPhone: lead.phone || '+31 6 12345678',
+      address: lead.location || 'Amsterdam, Netherlands',
+      lengthCm: '240',
+      widthCm: '80',
+      heightCm: '95',
+      woodType: 'Thermo Fraké Wood (Recommended)',
+      countertop: 'Zwart Polijst Beton Cire (8cm)',
+      appliances: ['Kamado Big Green Egg Large', 'RVS Sink & Tap'],
+      siteAccess: 'Ground floor backyard access via side gate',
+      gardenPhotoName: 'garden_site_photo.jpg',
+      render3dName: '3d_outdoor_kitchen_render.png',
+      craftsmanPartner: 'CraftWood Veluwe (Recommended)'
+    });
+  };
+
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (csvDropdownRef.current && !csvDropdownRef.current.contains(e.target)) {
@@ -534,14 +577,11 @@ export default function Leads() {
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={() => {
-              showToast(language === 'NL' ? `Prijsaanvraag gestart voor ${row.name}` : `Price request initiated for ${row.name}`);
-              setActiveWorkflowLead(row);
-            }}
+            onClick={() => handleOpenPartnerWizard(row)}
             className="text-[10px] py-1 px-2 text-primary border-primary/20 hover:bg-primary/5 font-semibold"
-            title={language === 'NL' ? 'Prijsaanvraag partner (7-step wizard)' : 'Request price from partner'}
+            title={language === 'NL' ? 'Prijsaanvraag partner (7-step wizard)' : 'Partner Price Request (7-step wizard)'}
           >
-            Prijsaanvraag
+            {language === 'EN' ? 'Partner Inquiry' : 'Prijsaanvraag'}
           </Button>
           <Button 
             variant="ghost" 
@@ -1013,6 +1053,336 @@ export default function Leads() {
                 >
                   {language === 'EN' ? '💬 Send via WhatsApp' : '💬 Verstuur via WhatsApp'}
                 </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* SIMPLIFIED 7-STEP PARTNER PRICE REQUEST WIZARD MODAL */}
+      <AnimatePresence>
+        {partnerWizardLead && (
+          <div className="fixed inset-0 z-[85] flex items-center justify-center p-2 sm:p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-dark/80 backdrop-blur-xs"
+              onClick={() => setPartnerWizardLead(null)}
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-2xl bg-white border border-[#D6CFC2] rounded-2xl p-5 sm:p-7 shadow-2xl z-10 space-y-5 max-h-[92vh] overflow-y-auto"
+            >
+              {/* Modal Header */}
+              <div className="flex justify-between items-start border-b border-[#D6CFC2] pb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="bg-primary/10 text-primary font-bold text-xs font-mono px-2.5 py-0.5 rounded-md">
+                      {language === 'EN' ? `Step ${partnerWizardStep} of 7` : `Stap ${partnerWizardStep} van 7`}
+                    </span>
+                    <h3 className="text-lg font-heading font-bold text-primary">
+                      {language === 'EN' ? 'Partner Price Request Wizard' : 'Prijsaanvraag Partner Wizard'}
+                    </h3>
+                  </div>
+                  <p className="text-xs text-dark/60 font-body mt-1">
+                    {language === 'EN' ? `Inquiry request for ${partnerWizardLead.name}` : `Prijsaanvraag voor ${partnerWizardLead.name}`}
+                  </p>
+                </div>
+                <button onClick={() => setPartnerWizardLead(null)} className="p-1 text-dark/40 hover:text-dark rounded-lg hover:bg-dark/5">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* 7-Step Horizontal Progress Bar */}
+              <div className="flex items-center justify-between gap-1 overflow-x-auto pb-2 border-b border-[#D6CFC2]/60 text-[10px] font-mono font-bold">
+                {[
+                  { step: 1, label: language === 'EN' ? '1. Category' : '1. Categorie' },
+                  { step: 2, label: language === 'EN' ? '2. Info' : '2. Gegevens' },
+                  { step: 3, label: language === 'EN' ? '3. Dimensions' : '3. Maten' },
+                  { step: 4, label: language === 'EN' ? '4. Materials' : '4. Materialen' },
+                  { step: 5, label: language === 'EN' ? '5. Location' : '5. Locatie' },
+                  { step: 6, label: language === 'EN' ? '6. Photos' : '6. Foto\'s' },
+                  { step: 7, label: language === 'EN' ? '7. Review' : '7. Verstuur' }
+                ].map((s) => (
+                  <button
+                    key={s.step}
+                    onClick={() => setPartnerWizardStep(s.step)}
+                    className={`px-2 py-1 rounded-md transition-all whitespace-nowrap ${
+                      partnerWizardStep === s.step 
+                        ? 'bg-primary text-cream shadow-xs' 
+                        : partnerWizardStep > s.step 
+                        ? 'bg-emerald-100 text-emerald-800' 
+                        : 'bg-[#EDE8DF]/50 text-dark/40'
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* WIZARD STEP CONTENT */}
+              <div className="space-y-4 py-2 font-body text-xs text-dark/80">
+
+                {/* STEP 1: CATEGORY */}
+                {partnerWizardStep === 1 && (
+                  <div className="space-y-3">
+                    <label className="block font-bold text-dark text-sm mb-2">
+                      {language === 'EN' ? 'Step 1: Select Product Category' : 'Stap 1: Selecteer Projecttype'}
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { title: 'Outdoor Kitchen', nl: 'Buitenkeuken', desc: 'Custom teak wood frames & granite tops' },
+                        { title: 'Canopy', nl: 'Overkapping', desc: 'Wooden veranda & garden covers' },
+                        { title: 'Bin Storage', nl: 'Kliko Ombouw', desc: 'Wooden waste bin enclosure' },
+                        { title: 'Terrace & Decking', nl: 'Terrassen', desc: 'Hardwood garden decks & paving' }
+                      ].map((item) => (
+                        <div
+                          key={item.title}
+                          onClick={() => setWizardForm(prev => ({ ...prev, category: item.title }))}
+                          className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
+                            wizardForm.category === item.title 
+                              ? 'bg-primary/10 border-primary text-primary shadow-sm font-bold' 
+                              : 'bg-[#F8F7F4] border-[#D6CFC2] hover:bg-[#EDE8DF]'
+                          }`}
+                        >
+                          <p className="font-bold text-xs">{language === 'EN' ? item.title : item.nl}</p>
+                          <p className="text-[10px] text-dark/50 mt-1 font-normal">{item.desc}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 2: BASIC DETAILS */}
+                {partnerWizardStep === 2 && (
+                  <div className="space-y-3">
+                    <label className="block font-bold text-dark text-sm mb-2">
+                      {language === 'EN' ? 'Step 2: Customer Basic Information' : 'Stap 2: Basisgegevens Klant'}
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-dark/60 uppercase">Customer Name</label>
+                        <input 
+                          type="text" 
+                          value={wizardForm.customerName}
+                          onChange={e => setWizardForm(prev => ({ ...prev, customerName: e.target.value }))}
+                          className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-dark/60 uppercase">Email Address</label>
+                        <input 
+                          type="email" 
+                          value={wizardForm.customerEmail}
+                          onChange={e => setWizardForm(prev => ({ ...prev, customerEmail: e.target.value }))}
+                          className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-dark/60 uppercase">Phone Number</label>
+                        <input 
+                          type="text" 
+                          value={wizardForm.customerPhone}
+                          onChange={e => setWizardForm(prev => ({ ...prev, customerPhone: e.target.value }))}
+                          className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-dark/60 uppercase">Installation Address</label>
+                        <input 
+                          type="text" 
+                          value={wizardForm.address}
+                          onChange={e => setWizardForm(prev => ({ ...prev, address: e.target.value }))}
+                          className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 3: DIMENSIONS */}
+                {partnerWizardStep === 3 && (
+                  <div className="space-y-3">
+                    <label className="block font-bold text-dark text-sm mb-2">
+                      {language === 'EN' ? 'Step 3: Design & Dimensions (cm)' : 'Stap 3: Ontwerp en Maten (cm)'}
+                    </label>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-dark/60 uppercase">Length (cm)</label>
+                        <input 
+                          type="number" 
+                          value={wizardForm.lengthCm}
+                          onChange={e => setWizardForm(prev => ({ ...prev, lengthCm: e.target.value }))}
+                          className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs font-mono font-bold text-primary"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-dark/60 uppercase">Width (cm)</label>
+                        <input 
+                          type="number" 
+                          value={wizardForm.widthCm}
+                          onChange={e => setWizardForm(prev => ({ ...prev, widthCm: e.target.value }))}
+                          className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs font-mono font-bold text-primary"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-dark/60 uppercase">Height (cm)</label>
+                        <input 
+                          type="number" 
+                          value={wizardForm.heightCm}
+                          onChange={e => setWizardForm(prev => ({ ...prev, heightCm: e.target.value }))}
+                          className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs font-mono font-bold text-primary"
+                        />
+                      </div>
+                    </div>
+                    <div className="p-3 bg-[#EDE8DF]/60 border border-[#D6CFC2] rounded-xl text-[11px] text-dark/70 font-mono">
+                      📐 Total Footprint: {wizardForm.lengthCm}cm (L) × {wizardForm.widthCm}cm (W) × {wizardForm.heightCm}cm (H)
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 4: MATERIALS */}
+                {partnerWizardStep === 4 && (
+                  <div className="space-y-3">
+                    <label className="block font-bold text-dark text-sm mb-2">
+                      {language === 'EN' ? 'Step 4: Execution & Materials' : 'Stap 4: Uitvoering en Materialen'}
+                    </label>
+                    <div className="space-y-2">
+                      <div>
+                        <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">Wood Type</label>
+                        <select 
+                          value={wizardForm.woodType}
+                          onChange={e => setWizardForm(prev => ({ ...prev, woodType: e.target.value }))}
+                          className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs"
+                        >
+                          <option value="Thermo Fraké Wood (Recommended)">Thermo Fraké Wood (Recommended)</option>
+                          <option value="Massief Teak Wood (FSC)">Massief Teak Wood (FSC)</option>
+                          <option value="Douglas Wood">Douglas Wood</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">Countertop Material</label>
+                        <select 
+                          value={wizardForm.countertop}
+                          onChange={e => setWizardForm(prev => ({ ...prev, countertop: e.target.value }))}
+                          className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs"
+                        >
+                          <option value="Zwart Polijst Beton Cire (8cm)">Zwart Polijst Beton Cire (8cm)</option>
+                          <option value="Gezaagd Graniet Top">Gezaagd Graniet Top</option>
+                          <option value="RVS Metal Countertop">RVS Metal Countertop</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 5: LOCATION */}
+                {partnerWizardStep === 5 && (
+                  <div className="space-y-3">
+                    <label className="block font-bold text-dark text-sm mb-2">
+                      {language === 'EN' ? 'Step 5: Site Access & Installation Location' : 'Stap 5: Locatie en Toegankelijkheid'}
+                    </label>
+                    <div>
+                      <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">Garden Access Notes</label>
+                      <textarea 
+                        value={wizardForm.siteAccess}
+                        onChange={e => setWizardForm(prev => ({ ...prev, siteAccess: e.target.value }))}
+                        className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs min-h-[70px]"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 6: PHOTOS & RENDER */}
+                {partnerWizardStep === 6 && (
+                  <div className="space-y-3">
+                    <label className="block font-bold text-dark text-sm mb-2">
+                      {language === 'EN' ? 'Step 6: Upload Attachments (2 Files Only)' : 'Stap 6: Foto\'s en 3D Render'}
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-4 bg-[#F8F7F4] border border-dashed border-[#D6CFC2] rounded-xl text-center space-y-1">
+                        <Upload className="w-5 h-5 text-primary mx-auto" />
+                        <p className="text-xs font-bold text-dark">1. Garden Photo</p>
+                        <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-mono block truncate">
+                          ✓ {wizardForm.gardenPhotoName}
+                        </span>
+                      </div>
+                      <div className="p-4 bg-[#F8F7F4] border border-dashed border-[#D6CFC2] rounded-xl text-center space-y-1">
+                        <Upload className="w-5 h-5 text-primary mx-auto" />
+                        <p className="text-xs font-bold text-dark">2. 3D Render Design</p>
+                        <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-mono block truncate">
+                          ✓ {wizardForm.render3dName}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 7: REVIEW & DISPATCH */}
+                {partnerWizardStep === 7 && (
+                  <div className="space-y-4">
+                    <label className="block font-bold text-dark text-sm">
+                      {language === 'EN' ? 'Step 7: Review & Dispatch Price Request' : 'Stap 7: Controleren en Versturen'}
+                    </label>
+
+                    <div className="p-4 bg-[#EDE8DF]/70 border border-[#D6CFC2] rounded-xl space-y-2 text-xs">
+                      <p><strong>Customer:</strong> {wizardForm.customerName} ({wizardForm.address})</p>
+                      <p><strong>Product:</strong> {wizardForm.category} ({wizardForm.lengthCm}×{wizardForm.widthCm}×{wizardForm.heightCm} cm)</p>
+                      <p><strong>Materials:</strong> {wizardForm.woodType} • {wizardForm.countertop}</p>
+                      <p><strong>Attachments:</strong> {wizardForm.gardenPhotoName}, {wizardForm.render3dName}</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">Select Partner Craftsman</label>
+                      <select 
+                        value={wizardForm.craftsmanPartner}
+                        onChange={e => setWizardForm(prev => ({ ...prev, craftsmanPartner: e.target.value }))}
+                        className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-lg text-xs font-bold text-primary"
+                      >
+                        <option value="CraftWood Veluwe (Recommended)">CraftWood Veluwe (Recommended)</option>
+                        <option value="Timmerbedrijf Brabant">Timmerbedrijf Brabant</option>
+                        <option value="Luxe Houtbouw Utrecht">Luxe Houtbouw Utrecht</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+              </div>
+
+              {/* Modal Navigation Buttons */}
+              <div className="flex justify-between items-center pt-3 border-t border-[#D6CFC2]">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => partnerWizardStep > 1 ? setPartnerWizardStep(prev => prev - 1) : setPartnerWizardLead(null)}
+                >
+                  {partnerWizardStep > 1 ? (language === 'EN' ? '← Back' : '← Vorige') : (language === 'EN' ? 'Cancel' : 'Annuleren')}
+                </Button>
+
+                {partnerWizardStep < 7 ? (
+                  <Button 
+                    type="button" 
+                    onClick={() => setPartnerWizardStep(prev => prev + 1)}
+                  >
+                    {language === 'EN' ? 'Next Step →' : 'Volgende Stap →'}
+                  </Button>
+                ) : (
+                  <Button 
+                    type="button" 
+                    onClick={() => {
+                      showToast(language === 'EN' 
+                        ? `Price request successfully sent to ${wizardForm.craftsmanPartner}!` 
+                        : `Prijsaanvraag succesvol verzonden naar ${wizardForm.craftsmanPartner}!`);
+                      setPartnerWizardLead(null);
+                    }}
+                    className="bg-emerald-700 text-white hover:bg-emerald-800 font-bold"
+                  >
+                    {language === 'EN' ? 'Send Price Request to Partner 🚀' : 'Verstuur Prijsaanvraag Partner 🚀'}
+                  </Button>
+                )}
               </div>
             </motion.div>
           </div>

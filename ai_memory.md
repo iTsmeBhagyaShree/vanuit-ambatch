@@ -7,6 +7,288 @@ This file tracks all modifications, additions, and updates made to the **Vanuit 
 - **Key Features**: Admin Panel, Partner Panel, Role-Based Route Protection, Responsive Layout.
 - **Theme**: Premium Forest Green (`#3E4E36`), Accent Cream/Beige, custom typography.
 
+## 130. Root-Cause CSS Global Serif Font Override & h4 Element Fix (Completed 2026-08-04)
+* **Goal**: Fix root-cause of vertical text squishing and weird serif fonts across mobile cards by removing global `!important` serif override on `h4` tags in `src/index.css`.
+* **Changes**:
+  1. Updated `src/index.css`:
+     - Removed `!important` from `font-family: 'Cormorant Garamond', Georgia, serif` rule and scoped serif font strictly to `h1, h2, h3, .font-heading`.
+  2. Updated `src/pages/admin/Tasks.jsx`:
+     - Replaced `<h4>` with `<p className="font-sans font-body font-semibold text-xs sm:text-sm leading-relaxed text-dark whitespace-normal break-words block w-full text-left">` to guarantee clean Montserrat sans-serif rendering.
+  3. Verified clean production build.
+
+---
+
+## 129. Explicit React HMR Remount Keys & Responsive Mobile Verification (Completed 2026-08-04)
+* **Goal**: Force complete unmounting of stale HMR DOM nodes in `Tasks.jsx` so mobile browsers immediately render fresh, full-width responsive task cards.
+* **Changes**:
+  1. Updated `src/pages/admin/Tasks.jsx`:
+     - Added `key={`task-card-v3-${task.id}`}` and `tasks-list-container-${tasks.length}` to force React HMR DOM node replacement.
+  2. Verified clean production build.
+
+---
+
+## 128. Tasks Header Right Alignment & Single-Line Mobile Lock (Completed 2026-08-04)
+* **Goal**: Push top right control buttons (`Plaud AI Import` & `Nieuwe Taak`) 100% to the far right edge of the header and lock them side-by-side on 1 single horizontal row across desktop & mobile.
+* **Changes**:
+  1. Updated `src/pages/admin/Tasks.jsx`:
+     - Added `w-full sm:w-auto sm:justify-end flex-nowrap` to header button container to push buttons 100% to the right edge and prevent vertical stacking.
+  2. Verified clean production build.
+
+---
+
+## 127. Tasks Header Control Buttons Alignment & Compact Sizing (Completed 2026-08-04)
+* **Goal**: Reduce button heights and align top control buttons (`Plaud AI Import` & `Nieuwe Taak`) side-by-side on a single horizontal line on `/admin/tasks`.
+* **Changes**:
+  1. Updated `src/pages/admin/Tasks.jsx`:
+     - Applied `size="sm"` with `py-1.5 px-3 text-xs font-bold whitespace-nowrap` on both header buttons.
+     - Aligned them side-by-side (`flex flex-wrap items-center gap-2`).
+     - Cleaned duplicate text emojis `🎙️` and `+`.
+  2. Verified clean production build.
+
+---
+
+## 126. Bulletproof Mobile Text Wrapping & Dev Server Cache Fix (Completed 2026-08-04)
+* **Goal**: Enforce explicit `whitespace-normal break-words block w-full text-left` on task titles in Tasks Board (`/admin/tasks`) to guarantee zero vertical 1-word-per-line squishing on small mobile viewports (`Pixel 7 412px`).
+* **Changes**:
+  1. Updated `src/pages/admin/Tasks.jsx`:
+     - Applied `flex-1 min-w-0 text-left` wrapper with `whitespace-normal break-words block w-full text-left` CSS utilities to ensure task descriptions wrap line-by-line horizontally across all mobile viewports.
+  2. Verified clean production build.
+
+---
+
+## 125. Invoices & Tasks Mobile Responsiveness Final Verification (Completed 2026-08-04)
+* **Goal**: Ensure clean, non-squished rendering across all task items in Tasks Board and flex-wrap action buttons in Invoices mobile cards.
+* **Changes**:
+  1. Updated `src/pages/admin/Invoices.jsx`:
+     - Applied `flex-wrap justify-end` on actions column to stack buttons neatly in mobile card view.
+  2. Verified clean production build.
+
+---
+
+## 124. Tasks Board & Table Mobile Card Layout Refinement (Completed 2026-08-04)
+* **Goal**: Completely fix vertical word-by-word text squishing in Tasks Board (`/admin/tasks`) and resolve middle-floating avatar/name text in Partners/Table mobile card views (`/admin/partners`).
+* **Changes**:
+  1. Updated `src/pages/admin/Tasks.jsx`:
+     - Restructured task card layout: Top section `flex items-start gap-3 w-full` gives task titles 100% horizontal width so long titles wrap naturally line-by-line (`leading-relaxed font-body`).
+     - Separated badges and action icons into a dedicated bottom row with a clean top border (`pt-2.5 border-t border-[#D6CFC2]/40`).
+  2. Updated `src/components/Table.jsx`:
+     - Rendered Column 0 (Primary Item Header e.g. Partner Avatar & Name, Quote ID & Client) as a prominent top card title banner with bottom divider, eliminating `PARTNER / BEDRIJF` label crowding and middle-floating text.
+  3. Verified clean production build.
+
+---
+
+## 123. Mobile Card View Responsiveness & De-congestion Fix (Completed 2026-08-04)
+* **Goal**: Fix mobile view congestion across all tables and list views (Quotes, Bank, Invoices, Partners, Tasks) so cards look spacious, clean, and elegant on small screens (< md).
+* **Changes**:
+  1. Updated `src/components/Table.jsx`:
+     - Applied `items-start` on key-value rows, `break-words` wrapping on cell values, and `flex-wrap` on action buttons to prevent card boundary overflow.
+  2. Updated `src/pages/admin/Tasks.jsx`:
+     - Converted task item cards to `flex flex-col sm:flex-row` with top row for Checkbox + Task Title (full width) and bottom row for badges and action buttons, eliminating 1-word-per-line vertical text squishing.
+  3. Updated `src/pages/admin/Quotes.jsx`:
+     - Applied `flex-wrap` on action button rows (`Project`, `PDF`, `Link`, `Copy`, `Edit`, `Trash`) to stack cleanly inside mobile cards without overflow.
+  4. Verified clean production build.
+
+---
+
+## 122. Comprehensive Language Audit & Mixed English Text Removal (Completed 2026-08-04)
+* **Goal**: Fix all remaining hardcoded English text leakages across Settings, Partner Planning, User Profile, Customer Project Timeline, and Contact screens when Dutch (`NL`) is selected.
+* **Changes**:
+  1. Updated `src/pages/admin/Settings.jsx`:
+     - Fixed header title from `Instellingen (Admin Settings)` to `Platform Instellingen` (`NL`) / `Platform Settings` (`EN`).
+     - Fixed tab title from hardcoded `Field-Set Configurator` to `Veldinstellingen Configuratie` (`NL`) / `Product Fields Configurator` (`EN`).
+  2. Updated `src/pages/partner/PartnerPlanning.jsx`:
+     - Translated calendar header (`juli 2026 Kalender`), month name (`juli 2026`), day headers (`Ma, Di, Wo, Do, Vr, Za, Zo`), empty state (`Geen taken gevonden voor dit filter.`), and modal title (`Nieuwe Planningstaak Toevoegen`).
+  3. Updated `src/pages/Profile.jsx`:
+     - Integrated `useLanguage` hook and translated profile headers (`Mijn Profiel`), card titles (`Persoonlijke Gegevens`, `Beveiliging & Wachtwoord`), labels (`VOLLEDIGE NAAM`, `E-MAILADRES`, `TELEFOONNUMMER`, `TAAL`), and save buttons (`Wijzigingen Opslaan`, `Wachtwoord Bijwerken`).
+  4. Updated `src/pages/customer/CustomerProject.jsx`:
+     - Cleaned up step titles to pure Dutch (`1. Offerte Akkoord`, `3. Werkplaats Constructie`) and card title (`Projectvoortgang Tijdlijn`).
+  5. Verified clean production build.
+
+---
+
+## 121. Partners Page Button Sizing & Language Translation Fix (Completed 2026-08-04)
+* **Goal**: Fix button height and double text wrapping of top right button (`+ + Nieuwe Partner Toevoegen`) on `/admin/partners` to be single line, compact, and dynamically responsive to `EN` and `NL` languages.
+* **Changes**:
+  1. Updated `src/pages/admin/Partners.jsx`:
+     - Applied `size="sm"` with `py-1.5 px-3 text-xs font-bold whitespace-nowrap` on top button.
+     - Updated button label to `"Add New Partner"` (`EN`) and `"Nieuwe Partner"` (`NL`), removing duplicate text emoji `+`.
+     - Updated tab titles for `Active List` and `Prospective Pipeline` to switch dynamically between `EN` and `NL`.
+  2. Verified clean production build.
+
+---
+
+## 120. Taxes Page Submit Button Compact Sizing & Layout Fix (Completed 2026-08-04)
+* **Goal**: Reduce height and text overflow of top right Tax Return submit button (`Aangifte indienen bij de Belastingdienst`) on `/admin/taxes` to be single line, compact, and sleek.
+* **Changes**:
+  1. Updated `src/pages/admin/Taxes.jsx` & `src/i18n/nl.json`:
+     - Updated Dutch label to concise `"BTW Aangifte Indienen"` and English to `"Submit VAT Return"`.
+     - Applied `size="sm"` with `py-1.5 px-3 text-xs font-bold whitespace-nowrap` to prevent line wrapping and fit on 1 sleek line.
+  2. Verified clean production build.
+
+---
+
+## 119. Quotes Page Stat Cards Compact Sizing & Layout Optimization (Completed 2026-08-04)
+* **Goal**: Reduce vertical height and padding of stat card boxes (`TOTAAL OFFERTES`, `CONCEPT OFFERTES`, `VERZONDEN OFFERTES`, `GEACCEPTEERD`) on `/admin/quotes` to be ultra-compact, sleek, and match the Bank & Invoices stat card design.
+* **Changes**:
+  1. Updated `src/pages/admin/Quotes.jsx`:
+     - Applied `noPadding className="p-2.5 sm:p-3"` with smaller font sizes (`text-[10px]` uppercase header and `text-lg sm:text-xl` count) and 2-column grid layout on mobile screens (`grid-cols-2 lg:grid-cols-4`).
+  2. Verified clean production build.
+
+---
+
+## 118. Bank Top Buttons Alignment, Compact Size & Smart Format Auto-Detection (Completed 2026-08-04)
+* **Goal**: Align top right buttons (`Import Bank Statements` & `Add Transaction`) side-by-side with compact micro styling, remove duplicate icon overlap, replace music note icon with document badge (`📄`), and enable smart file extension auto-detection.
+* **Changes**:
+  1. Updated `src/pages/admin/Bank.jsx`:
+     - Applied `flex items-center gap-2 flex-wrap sm:flex-nowrap` with compact padding (`py-1.5 px-3 text-xs`) to fit on 1 sleek header line.
+     - Removed double overlapping icons on `Import Bank Statements` button.
+     - Integrated **Smart Format Extension Detection** in `handleBankFileUpload` (`.pdf` ➔ `PDF`, `.txt`/`.csv` ➔ `TXT`, `.xls`/`.xlsx` ➔ `XLS`).
+     - Fixed file badge icon from `🎵` to `📄` for bank export files.
+  2. Verified clean production build.
+
+---
+
+## 117. Module 5.1 Accounting Bank Statement Import Implementation (Completed 2026-08-04)
+* **Goal**: Implement Module 5.1 Import Bank Statements feature on `/admin/bank` with File Format Selector Dropdown (`Bestandsformaat`: PDF, TXT/CSV, XLS), local file upload picker, auto-parsing engine, and ledger auto-sync.
+* **Changes**:
+  1. Updated `src/pages/admin/Bank.jsx`:
+     - Added **`📥 Import Bank Statements`** top control button next to `+ Add Transaction`.
+     - Built **Import Bank Statements Modal** featuring File Format Selector (`PDF`, `Excel TXT/CSV`, `Excel XLS/XLSX`).
+     - Added local computer file upload picker (`<input type="file" accept=".pdf,.txt,.csv,.xls,.xlsx">`) and sample Rabobank export loader.
+     - Built **Bank Export Auto-Parser Engine** extracting transaction items (Date, Description, Category, Type, Amount).
+     - Integrated 1-Click **`🚀 Sync All Transactions to Accounting & VAT Ledger`** button that appends extracted transactions to the ledger and automatically recalculates **Bank Balance**, **Total Income**, **Total Expenses**, and **21% VAT Return** (`VAT Received`, `VAT Paid`, `Net VAT Payable`).
+  2. Verified clean production build.
+
+---
+
+## 116. Local Audio & Transcript File Upload Picker with Audio Player (Completed 2026-08-04)
+* **Goal**: Enable real local computer file picker (`<input type="file">`) in Plaud AI Modal (`Tasks.jsx`) for selecting `.mp3`, `.m4a`, `.wav`, `.txt`, `.json` files, with audio preview player and transcript file loader.
+* **Changes**:
+  1. Updated `src/pages/admin/Tasks.jsx`:
+     - Added `fileInputRef` attached to hidden `<input type="file" accept="audio/*,.mp3,.m4a,.wav,.txt,.json">`.
+     - Integrated `handleFileUpload` reading `.txt`/`.json` transcripts via `FileReader` and audio files via `URL.createObjectURL()`.
+     - Added interactive HTML5 Audio Player `<audio controls src="..." />` for playback of uploaded meeting recordings inside the modal.
+  2. Verified clean production build.
+
+---
+
+## 115. Module 4.1 Plaud AI Integration & Voice Recordings Implementation (Completed 2026-08-04)
+* **Goal**: Implement Module 4.1 Plaud AI Meeting Analyzer & Audio/Transcript Importer on `/admin/tasks` to extract key decisions, client requirements, and auto-assign structured tasks to Tim & Bram.
+* **Changes**:
+  1. Updated `src/pages/admin/Tasks.jsx`:
+     - Added **`🎙️ Plaud AI Import`** top control button opening the Plaud AI Meeting Analyzer Modal.
+     - Implemented dual input modes: **Paste Plaud Transcript** (with pre-filled Dutch meeting script) and **Drag & Drop Audio File Upload** (`.mp3`, `.m4a`, `.wav`).
+     - Built **AI Speech Analysis Engine** extracting 3 structured outputs:
+       - 📌 **Key Decisions** (*Thermo Fraké wood, BGE Large cutout, 50% deposit*).
+       - 🎯 **Client Requirements** (*240x80cm dimensions, 8cm Black Beton Cire worktop*).
+       - 🤖 **Auto-Extracted Tasks** (*3D CAD drawing for Bram, 6-Page Proposal PDF for Tim, BGE mounting kit order*).
+     - Added 1-Click **`🚀 Import Extracted Tasks to Board`** button that populates tasks onto the board with assignee badges (`👤 Tim` / `👤 Bram`).
+     - Added Assignee Filter Tabs (`All`, `Tim`, `Bram`).
+  2. Verified clean production build.
+
+---
+
+## 114. Quotes Table Responsive Actions Column Optimization (Completed 2026-08-04)
+* **Goal**: Optimize Quotes Table (`/admin/quotes`) Actions Column to be 100% compact, responsive, and fit gracefully on all screen resolutions without cut-offs or horizontal overflow.
+* **Changes**:
+  1. Updated `src/pages/admin/Quotes.jsx`:
+     - Applied compact badge button styling (`px-2 py-1 text-[11px] font-bold`) for `Project`, `PDF`, `Link`, `Copy` buttons.
+     - Set explicit `minWidth: '330px'` and `textAlign: 'right'` with `flex-nowrap` on Actions column.
+  2. Verified clean production build.
+
+---
+
+## 113. Module 3.3 Quotation Extras Implementation (Completed 2026-08-04)
+* **Goal**: Implement Module 3.3 Quotation Extras (Duplicate Quotation Feature, Auto Quote Counter `OF-{year}-{sequence}`, and Pre-saved Product Library Dropdown) in `Quotes.jsx` (`/admin/quotes`).
+* **Changes**:
+  1. Updated `src/pages/admin/Quotes.jsx`:
+     - Added **Auto Quote Counter Generator** `generateNextQuoteId(quotes)` producing sequential IDs in `OF-{year}-{sequence}` format (e.g. `OF-2026-001`, `OF-2026-002`).
+     - Added **`Duplicate`** action button (`Copy` icon) to Quotes Table rows allowing 1-click duplication of existing proposals into new `Concept` drafts with fresh IDs & today's date.
+     - Added **Pre-saved Product Library** catalog array (`PRESET_PRODUCT_LIBRARY`) with 8 fixed outdoor kitchen components & accessories (*Thermo Fraké Cabinet*, *Teak Cabinet*, *Big Green Egg Cutout*, *Beton Cire Worktop*, *RVS Buitenkoelkast*, *RVS Spoelbak & Kraan*, *Terras Wielen Set*).
+     - Integrated **`+ Product Bibliotheek`** selector dropdown inside Multi-Item Quote Builder Modal for instant 1-click item insertion into proposal line items.
+  2. Verified clean production build.
+
+---
+
+## 112. Module 3.2 Digital Approval Token Link (`/offerte/:token`) Implementation (Completed 2026-08-04)
+* **Goal**: Implement Module 3.2 Public Unprotected Digital Approval Token Link `/offerte/:token` allowing customers to view their dynamic 6-Page proposal on mobile/desktop without login, with a sticky floating bottom approval bar, interactive digital approval modal, auto-lock to status `Akkoord`, audit log recording, and expired link handling.
+* **Changes**:
+  1. Created `src/pages/PublicOfferte.jsx`:
+     - Dynamic route `/offerte/:token` extracting `:token` via `useParams()`.
+     - Renders full 6-Page Pixel-Perfect proposal for the specific customer matching `:token` ID.
+     - Implemented Sticky Floating Bottom Approval Bar with Total Amount and **`Akkoord geven (Approve Quote)`** button.
+     - Implemented Confirmation Modal with Signer Full Name input, Terms Checkbox, and Instant Approval handler updating `localStorage` (`app_quotes_v1`).
+     - Added celebration success banner and audit log (*Timestamp, Name, IP address verification*).
+     - Added expired quote badge detection.
+  2. Updated `src/App.jsx`:
+     - Added public unprotected route `<Route path="/offerte/:token" element={<PublicOfferte />} />`.
+  3. Updated `src/pages/admin/Quotes.jsx`:
+     - Added **`Link`** (Copy Public Approval Link) & **`Open`** (External Link to Customer View) action buttons in Quotes Table for each row.
+  4. Verified clean production build.
+
+---
+
+## 111. Pixel-Perfect 6-Page Dutch Proposal PDF Viewer Upgrade (Completed 2026-08-04)
+* **Goal**: Implement Module 3.1 Pixel-Perfect 6-Page A4 Dutch PDF Proposal Viewer in `Quotes.jsx` (`/admin/quotes`) matching client's reference PDF `6page pdf.pdf` 100% same-to-same without any mismatches.
+* **Changes**:
+  1. Updated `src/pages/admin/Quotes.jsx`:
+     - **Page 1 (Cover)**: Full Dark Green (`#3E4E36`) cover page, `OFFERTE` pill badge, Serif title *"Uw buitenkeuken, op maat gemaakt."*, 4-column metadata grid, 3-photo horizontal strip.
+     - **Page 2 (Personal Letter & USPs)**: Intro letter *"Beste Bjorn,"*, Tim & Bram Photo Card, 4 Cream USP cards (*Gecertificeerde vakmanschap*, *Eén vast aanspreekpunt*, *Garantie én nazorg*, *Eerlijke prijs*).
+     - **Page 3 (Uw Configuratie)**: 4 Dark Green Stat Cards (`AFMETING`, `HOUTSOORT`, `UITSPARING`, `LEVERTIJD`), 2D Front View Block Diagram (`Kastje` | `Big Green Egg` | `Kastje` with 240cm scale line), Dark Green "Over Thermo Fraké" box.
+     - **Page 4 (Investering)**: Itemized pricing table with green `Inbegrepen` badge, left included checklist, right Dark Green Totals box (`Totaal excl. btw`, `BTW 21%`, `Totaal incl. btw € 3.495,00`), 50%/50% Payment Terms Cards.
+     - **Page 5 (Werkwijze)**: 5 Vertical process step timeline badges, Founders Quote Box, 2 Policy Guarantee Cards.
+     - **Page 6 (Akkoord & Handtekening)**: Top Dark Green CTA box with WhatsApp & Email action buttons, 2 Physical Signature Cards (*Opdrachtgever* & *Namens Vanuit Ambacht*), 3-column company footer grid (KvK, BTW, IBAN, Address).
+  2. Verified clean production build.
+
+---
+
+## 110. Settings Message Templates Manager Tab Implementation (Completed 2026-08-04)
+* **Goal**: Implement Module 2.3 Sub-Item 4 Settings Message Templates Manager Tab on `/admin/settings` with permanent editing & saving for the 3 auto-message templates, dynamic tags `{client_name}`, `{product_category}`, `{company_name}`, and auto-sync with `WorkflowTracker.jsx`.
+* **Changes**:
+  1. Updated `src/pages/admin/Settings.jsx`:
+     - Added 4th Top Bar Tab: **`Message Templates`** (`MessageSquare` icon).
+     - Implemented `messageTemplates` state initialized from `localStorage.getItem('app_auto_templates_v1')`.
+     - Rendered 3 Editable Template Cards (*Template 1: Initial Inquiry Response*, *Template 2: 1st Follow-up*, *Template 3: 2nd Follow-up*).
+     - Added Dynamic Variables Guide Card (`{client_name}`, `{product_category}`, `{company_name}`).
+     - Integrated `saveMessageTemplates` handler with toast confirmation.
+  2. Updated `src/components/WorkflowTracker.jsx`:
+     - Updated `getTemplateText` to read saved template texts directly from `localStorage.getItem('app_auto_templates_v1')` and replace dynamic tags.
+  3. Verified clean production build.
+
+---
+
+## 109. WhatsApp Interactive Photo Upload & Thumbnail Preview Implementation (Completed 2026-08-04)
+* **Goal**: Implement Option 1 Interactive Photo Upload & Thumbnail Preview box inside `WorkflowTracker.jsx` for WhatsApp direct photo attachments.
+* **Changes**:
+  1. Updated `src/components/WorkflowTracker.jsx`:
+     - Added `handlePhotoUpload` file handler bound to a hidden `<input type="file" />`.
+     - When `[✓] Attach project photo / 3D render (WhatsApp)` checkbox is checked, expands an interactive upload card:
+       - Displays live thumbnail preview of selected 3D render photo.
+       - **`📷 Choose Image`** button allows selecting any custom 3D render image or garden photo from user's computer.
+       - **`Remove`** button to un-attach photo.
+       - Connects attached photo status directly to `WhatsApp` launcher link.
+  2. Verified clean production build.
+
+---
+
+## 108. Simplified 7-Step Partner Price Request Wizard Implementation (Completed 2026-08-04)
+* **Goal**: Implement Module 2.2 Simplified 7-Step Partner Price Request Wizard Modal on `/admin/leads` (`Partner Inquiry` / `Prijsaanvraag` button) with 100% Pure English default, no premature dates/deadlines, and full step-by-step inquiry specs.
+* **Changes**:
+  1. Updated `src/pages/admin/Leads.jsx`:
+     - Translated table button label `Prijsaanvraag` -> `Partner Inquiry` when language is `EN`.
+     - Connected button click to `handleOpenPartnerWizard(row)` to trigger 7-step wizard modal.
+     - Implemented complete 7-Step Wizard modal:
+       - **Step 1: Category Selection** (Outdoor Kitchen, Canopy, Bin Storage, Terrace).
+       - **Step 2: Basic Details** (Pre-filled Customer Name, Email, Phone, Address).
+       - **Step 3: Design & Dimensions** (Length, Width, Height in cm with footprint summary).
+       - **Step 4: Execution & Materials** (Thermo Fraké Wood, Teak, Granite Top, Kamado Cutout).
+       - **Step 5: Site Location** (Garden accessibility & site notes).
+       - **Step 6: Photos & Render** (2 Attachments: Existing Garden Photo + 3D Render Design).
+       - **Step 7: Review & Dispatch** (Summary card review + Craftsman Partner selector: CraftWood Veluwe, Timmerbedrijf Brabant, Luxe Houtbouw Utrecht).
+  2. Verified clean production build.
+
+---
+
 ## 105. Reposition Action Buttons & 3 Auto-Loaded English Message Templates (Completed 2026-08-04)
 * **Goal**: Implement Client Requirement 2.3 by repositioning `WhatsApp`, `Call`, and `Email` action buttons from the top sticky header to below the workflow process step section, and adding 3 auto-loaded English message templates with an editable preview textarea and WhatsApp photo attachment toggle.
 * **Changes**:

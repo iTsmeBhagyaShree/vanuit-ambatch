@@ -347,7 +347,7 @@
     "taxes": {
       "title": "Btw & belastingen",
       "description": "Kwartalaangifte omzetbelasting en overzicht van de Belastingdienst.",
-      "submit": "Aangifte indienen bij de Belastingdienst",
+      "submit": "BTW Aangifte Indienen",
       "revenueExcl": "Omzet excl. btw",
       "taxedRate": "Belast met het tarief van 21%",
       "vatReceived": "Btw ontvangen (verkoop)",

@@ -174,7 +174,7 @@ export default function Invoices() {
     {
       header: t('screens.invoices.actions'),
       render: (row) => (
-        <div className="flex items-center gap-1.5 whitespace-nowrap">
+        <div className="flex flex-wrap items-center justify-end gap-1.5">
           {row.status !== 'Betaald' && (
             <Button
               variant="custom"

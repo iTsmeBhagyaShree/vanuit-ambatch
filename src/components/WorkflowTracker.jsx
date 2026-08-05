@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Card from './Card';
 import Button from './Button';
@@ -58,21 +58,41 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus }) {
 
   const translatedCat = translateCategory(lead?.productType || customerCategory);
 
-  // Section 2.3: Auto-Loaded Message Templates (English)
+  // Section 2.3: Auto-Loaded Message Templates & WhatsApp Photo Attachment
   const [selectedTemplate, setSelectedTemplate] = useState('template1');
   const [attachPhotos, setAttachPhotos] = useState(false);
+  const [attachedPhotoName, setAttachedPhotoName] = useState('3d_outdoor_kitchen_render.png');
+  const [attachedPhotoUrl, setAttachedPhotoUrl] = useState('/dasbordes images.png');
+  const fileInputRef = useRef(null);
+
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setAttachedPhotoName(file.name);
+      setAttachedPhotoUrl(URL.createObjectURL(file));
+      showToast(`Photo "${file.name}" attached for WhatsApp!`);
+    }
+  };
 
   const getTemplateText = (tmplId) => {
-    switch (tmplId) {
-      case 'template1':
-        return `Dear ${customerName}, thank you for reaching out to Vanuit Ambacht regarding your ${translatedCat} inquiry. We would love to discuss your requirements in detail. When would it suit you to talk? Kind regards, Tim & Bram - Vanuit Ambacht`;
-      case 'template2':
-        return `Dear ${customerName}, we wanted to follow up regarding your ${translatedCat} inquiry. Please let us know if you have any questions or when you would be available for a brief phone call. Kind regards, Tim & Bram - Vanuit Ambacht`;
-      case 'template3':
-        return `Dear ${customerName}, following up regarding your ${translatedCat} project with Vanuit Ambacht. We are happy to help you finalize the specifications whenever you are ready. Best regards, Tim & Bram - Vanuit Ambacht`;
-      default:
-        return '';
-    }
+    let savedTemplates = null;
+    try {
+      const stored = localStorage.getItem('app_auto_templates_v1');
+      if (stored) savedTemplates = JSON.parse(stored);
+    } catch(e) {}
+
+    let rawText = (savedTemplates && savedTemplates[tmplId]) 
+      ? savedTemplates[tmplId] 
+      : (tmplId === 'template1'
+        ? `Dear {client_name}, thank you for reaching out to Vanuit Ambacht regarding your {product_category} inquiry. We would love to discuss your requirements in detail. When would it suit you to talk? Kind regards, Tim & Bram - Vanuit Ambacht`
+        : tmplId === 'template2'
+        ? `Dear {client_name}, we wanted to follow up regarding your {product_category} inquiry. Please let us know if you have any questions or when you would be available for a brief phone call. Kind regards, Tim & Bram - Vanuit Ambacht`
+        : `Dear {client_name}, following up regarding your {product_category} project with Vanuit Ambacht. We are happy to help you finalize the specifications whenever you are ready. Best regards, Tim & Bram - Vanuit Ambacht`);
+
+    return rawText
+      .replace(/\{client_name\}/g, customerName)
+      .replace(/\{product_category\}/g, translatedCat)
+      .replace(/\{company_name\}/g, 'Vanuit Ambacht');
   };
 
   const [customMessageText, setCustomMessageText] = useState(() => getTemplateText('template1'));
@@ -622,42 +642,91 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus }) {
                 </div>
 
                 {/* Bottom Row: Attach photos toggle & Action Buttons */}
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-                  <label className="flex items-center gap-1.5 text-[11px] text-dark/70 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={attachPhotos}
-                      onChange={(e) => setAttachPhotos(e.target.checked)}
-                      className="rounded border-[#D6CFC2] text-primary focus:ring-primary/20"
-                    />
-                    <Paperclip className="w-3.5 h-3.5 text-primary" />
-                    <span>Attach project photos & 3D render (WhatsApp)</span>
-                  </label>
+                <div className="space-y-2 pt-1">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <label className="flex items-center gap-1.5 text-[11px] text-dark/70 cursor-pointer select-none font-bold">
+                      <input
+                        type="checkbox"
+                        checked={attachPhotos}
+                        onChange={(e) => setAttachPhotos(e.target.checked)}
+                        className="rounded border-[#D6CFC2] text-primary focus:ring-primary/20"
+                      />
+                      <Paperclip className="w-3.5 h-3.5 text-primary" />
+                      <span>{language === 'EN' ? 'Attach project photo / 3D render (WhatsApp)' : 'Projectfoto / 3D-render bijvoegen (WhatsApp)'}</span>
+                    </label>
 
-                  <div className="flex gap-2 flex-wrap">
-                    <a
-                      href={`https://wa.me/${customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(customMessageText + (attachPhotos ? '\n\n[Attached: Project Photos & 3D Render]' : ''))}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-lg transition-all duration-200 shadow-xs"
-                    >
-                      <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
-                    </a>
-                    <a
-                      href={`tel:${customerPhone}`}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-all duration-200 shadow-xs"
-                    >
-                      <Phone className="w-3.5 h-3.5" /> Call
-                    </a>
-                    <a
-                      href={`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(customerEmail)}&su=${encodeURIComponent(`Vanuit Ambacht — ${translatedCat} for ${customerName}`)}&body=${encodeURIComponent(customMessageText)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-[#3E4E36] hover:bg-[#2e3a28] text-white text-xs font-bold rounded-lg transition-all duration-200 shadow-xs"
-                    >
-                      <Mail className="w-3.5 h-3.5" /> E-mail
-                    </a>
+                    <div className="flex gap-2 flex-wrap">
+                      <a
+                        href={`https://wa.me/${customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(customMessageText + (attachPhotos ? `\n\n[Attached Photo: ${attachedPhotoName}]` : ''))}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-lg transition-all duration-200 shadow-xs"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                      </a>
+                      <a
+                        href={`tel:${customerPhone}`}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-all duration-200 shadow-xs"
+                      >
+                        <Phone className="w-3.5 h-3.5" /> Call
+                      </a>
+                      <a
+                        href={`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(customerEmail)}&su=${encodeURIComponent(`Vanuit Ambacht — ${translatedCat} for ${customerName}`)}&body=${encodeURIComponent(customMessageText)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#3E4E36] hover:bg-[#2e3a28] text-white text-xs font-bold rounded-lg transition-all duration-200 shadow-xs"
+                      >
+                        <Mail className="w-3.5 h-3.5" /> E-mail
+                      </a>
+                    </div>
                   </div>
+
+                  {/* Option 1: Expanded Photo Upload & Thumbnail Preview */}
+                  {attachPhotos && (
+                    <div className="p-3 bg-white rounded-xl border border-[#D6CFC2] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fadeIn">
+                      <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        onChange={handlePhotoUpload} 
+                        accept="image/*" 
+                        className="hidden" 
+                      />
+                      <div className="flex items-center gap-3 min-w-0">
+                        <img 
+                          src={attachedPhotoUrl} 
+                          alt="Attachment Preview" 
+                          className="w-11 h-11 object-cover rounded-lg border border-[#D6CFC2] flex-shrink-0 shadow-xs" 
+                        />
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-emerald-800 truncate">
+                            ✓ {attachedPhotoName}
+                          </p>
+                          <p className="text-[10px] text-dark/50 font-mono">
+                            {language === 'EN' ? 'Ready to send via WhatsApp' : 'Klaar om te verzenden via WhatsApp'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => fileInputRef.current?.click()} 
+                          className="text-[11px] py-1 px-2.5 bg-[#EDE8DF] border-[#C4BEB3] text-primary hover:bg-[#D6CFC2]"
+                        >
+                          📷 {language === 'EN' ? 'Choose Image' : 'Kies Afbeelding'}
+                        </Button>
+                        <button 
+                          type="button" 
+                          onClick={() => setAttachPhotos(false)} 
+                          className="text-xs text-red-600 font-bold hover:underline px-1"
+                        >
+                          {language === 'EN' ? 'Remove' : 'Verwijderen'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

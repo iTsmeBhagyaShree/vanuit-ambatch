@@ -133,48 +133,44 @@ export default function PartnerPlanning() {
           {/* Events List */}
           <div className="space-y-3">
             {filteredEvents.length === 0 ? (
-              <div className="p-8 text-center bg-[#EDE8DF] rounded-2xl border border-[#D6CFC2]/60">
-                <p className="text-dark/40 font-body text-sm">No tasks matching this filter.</p>
-              </div>
+              <Card className="text-center py-8 text-dark/40 text-xs font-body">
+                {language === 'NL' ? 'Geen taken gevonden voor dit filter.' : 'No tasks matching this filter.'}
+              </Card>
             ) : (
               filteredEvents.map(event => (
-                <Card key={event.id} className="transition-all hover:border-primary/30">
-                  <div className="flex items-start gap-4">
-                    <button 
-                      onClick={() => toggleEventStatus(event.id)}
-                      className="mt-1 text-primary hover:scale-110 transition-transform"
-                    >
-                      {event.status === 'Completed' ? (
-                        <CheckCircle2 className="w-5 h-5 text-green-600" />
-                      ) : (
-                        <Circle className="w-5 h-5 text-dark/30 hover:text-primary" />
-                      )}
-                    </button>
-
-                    <div className="flex-1 min-w-0 space-y-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <h4 className={`font-heading font-bold text-sm text-dark ${event.status === 'Completed' ? 'line-through text-dark/40' : ''}`}>
-                          {event.title}
-                        </h4>
-                        <Badge variant={event.status === 'Completed' ? 'success' : 'primary'} className="flex-shrink-0">
-                          {event.type}
-                        </Badge>
+                <Card key={event.id} className="hover:border-primary/40 transition-colors">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <button 
+                        onClick={() => toggleEventStatus(event.id)}
+                        className="mt-0.5 text-primary hover:text-primary-dark transition-colors"
+                      >
+                        {event.status === 'Completed' 
+                          ? <CheckCircle2 className="w-5 h-5 text-green-600 fill-green-100" />
+                          : <Circle className="w-5 h-5 text-dark/30" />
+                        }
+                      </button>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className={`font-heading font-bold text-sm text-dark ${event.status === 'Completed' ? 'line-through text-dark/40' : ''}`}>
+                            {event.title}
+                          </h4>
+                          <Badge variant={event.type === 'Site Visit' ? 'warning' : event.type === 'Delivery' ? 'primary' : 'success'}>
+                            {event.type}
+                          </Badge>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-dark/60 font-body">
+                          <span className="flex items-center gap-1"><User className="w-3.5 h-3.5 text-accent" /> {event.client}</span>
+                          <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-accent" /> {event.location}</span>
+                          <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-accent" /> {event.time}</span>
+                        </div>
                       </div>
+                    </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-dark/60 font-body">
-                        <span className="flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5 text-accent" />
-                          {event.time} ({event.date})
-                        </span>
-                        <span className="flex items-center gap-1.5">
-                          <User className="w-3.5 h-3.5 text-accent" />
-                          {event.client}
-                        </span>
-                        <span className="flex items-center gap-1.5 truncate">
-                          <MapPin className="w-3.5 h-3.5 text-accent" />
-                          {event.location}
-                        </span>
-                      </div>
+                    <div className="flex items-center gap-2 self-end sm:self-center">
+                      <span className="text-[11px] font-mono font-semibold px-2.5 py-1 bg-cream-dark/60 rounded-md text-dark/70">
+                        {event.date}
+                      </span>
                     </div>
                   </div>
                 </Card>
@@ -185,10 +181,10 @@ export default function PartnerPlanning() {
 
         {/* Calendar Sidebar Widget */}
         <div className="space-y-5">
-          <Card title="July 2026 Calendar">
+          <Card title={language === 'NL' ? 'juli 2026 Kalender' : 'July 2026 Calendar'}>
             <div className="space-y-4">
               <div className="flex items-center justify-between text-xs font-body font-bold text-dark px-1">
-                <span>July 2026</span>
+                <span>{language === 'NL' ? 'juli 2026' : 'July 2026'}</span>
                 <div className="flex gap-1">
                   <button className="p-1 hover:bg-cream-dark rounded"><ChevronLeft className="w-3.5 h-3.5" /></button>
                   <button className="p-1 hover:bg-cream-dark rounded"><ChevronRight className="w-3.5 h-3.5" /></button>
@@ -196,7 +192,11 @@ export default function PartnerPlanning() {
               </div>
 
               <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-body text-dark/40 uppercase font-semibold">
-                <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+                {language === 'NL' ? (
+                  <><span>Ma</span><span>Di</span><span>Wo</span><span>Do</span><span>Vr</span><span>Za</span><span>Zo</span></>
+                ) : (
+                  <><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span></>
+                )}
               </div>
 
               <div className="grid grid-cols-7 gap-1 text-center text-xs font-body">
@@ -231,7 +231,9 @@ export default function PartnerPlanning() {
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-[#EDE8DF] border border-[#D6CFC2] rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl">
-            <h3 className="text-lg font-heading font-bold text-primary">Add New Planning Task</h3>
+            <h3 className="text-lg font-heading font-bold text-primary">
+              {language === 'NL' ? 'Nieuwe Planningstaak Toevoegen' : 'Add New Planning Task'}
+            </h3>
             <form onSubmit={handleAddEvent} className="space-y-3 font-body text-xs">
               <div>
                 <label className="block text-dark/70 font-semibold mb-1">Task Title</label>
