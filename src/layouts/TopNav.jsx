@@ -89,7 +89,7 @@ export default function TopNav() {
   };
 
   return (
-    <header className="h-14 bg-[#EDE8DF] border-b border-[#D6CFC2] flex items-center justify-between px-4 lg:px-6 z-10 flex-shrink-0 relative">
+    <header className="h-14 bg-[#EDE8DF] border-b border-[#D6CFC2] flex items-center justify-between px-4 lg:px-6 z-40 flex-shrink-0 relative">
       {/* Breadcrumb with Mini Brand Monogram */}
       <div className="flex items-center gap-2 text-xs text-dark/50 font-body ml-[72px] sm:ml-20 lg:ml-0 min-w-0 truncate">
         <img 
@@ -111,7 +111,7 @@ export default function TopNav() {
       {/* Right Controls */}
       <div className="flex items-center gap-2.5">
         {/* Language Switcher — compact globe icon with dropdown */}
-        <div className="relative" ref={langDropdownRef}>
+        <div className="relative z-50" ref={langDropdownRef}>
           <button
             onClick={() => setLangDropdownOpen(!langDropdownOpen)}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[#D6CFC2] bg-[#F8F7F4] hover:bg-[#EDE8DF] text-dark/80 text-xs font-semibold font-body transition-all"
@@ -124,7 +124,7 @@ export default function TopNav() {
 
           {/* Language dropdown */}
           {langDropdownOpen && (
-            <div className="absolute right-0 top-full mt-2 w-36 bg-[#F2EDE4] border border-[#D6CFC2] rounded-xl shadow-card z-50 overflow-hidden font-body text-xs">
+            <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5 w-36 bg-[#F8F7F4] border border-[#C4BEB3] rounded-xl shadow-2xl z-[9999] overflow-hidden font-body text-xs">
               <div className="px-3 py-2 border-b border-[#D6CFC2] text-[10px] font-bold text-dark/40 uppercase tracking-wider">
                 Taal / Language
               </div>

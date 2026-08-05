@@ -558,23 +558,23 @@ export default function Quotes() {
       header: language === 'EN' ? 'Actions' : 'Acties',
       style: { minWidth: '420px', textAlign: 'right' },
       render: (row) => (
-        <div className="flex flex-wrap md:flex-nowrap items-center justify-end gap-1.5 md:whitespace-nowrap max-w-full">
+        <div className="flex items-center justify-end gap-1 sm:gap-1.5 max-w-full overflow-x-auto no-scrollbar whitespace-nowrap py-0.5">
           {row.status !== 'Geaccepteerd' && row.status !== 'Accepted' && (
             <button 
               onClick={() => handleConvertToProject(row)}
-              className="px-2.5 py-1 bg-primary text-cream hover:bg-primary-dark rounded-lg text-[11px] font-bold inline-flex items-center gap-1 transition-all shadow-xs flex-shrink-0 cursor-pointer"
+              className="px-2 py-1 sm:px-2.5 sm:py-1 bg-primary text-cream hover:bg-primary-dark rounded-lg text-[10px] sm:text-[11px] font-bold inline-flex items-center gap-1 transition-all shadow-xs flex-shrink-0 cursor-pointer"
               title={language === 'EN' ? 'Accept & Convert to Project' : 'Accepteer & Omzetten naar Project'}
             >
-              <Briefcase className="w-3.5 h-3.5" />
+              <Briefcase className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               <span>Project</span>
             </button>
           )}
           <button 
             onClick={() => setPdfPreviewQuote(row)}
-            className="px-2.5 py-1 bg-[#EDE8DF] hover:bg-[#D6CFC2] text-primary rounded-lg text-[11px] font-bold inline-flex items-center gap-1 transition-colors flex-shrink-0 cursor-pointer"
+            className="px-2 py-1 sm:px-2.5 sm:py-1 bg-[#EDE8DF] hover:bg-[#D6CFC2] text-primary rounded-lg text-[10px] sm:text-[11px] font-bold inline-flex items-center gap-1 transition-colors flex-shrink-0 cursor-pointer"
             title="Preview / Export PDF"
           >
-            <Printer className="w-3.5 h-3.5" /> PDF
+            <Printer className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> PDF
           </button>
           <button 
             onClick={async () => {
@@ -582,37 +582,37 @@ export default function Quotes() {
               await copyTextToClipboard(publicUrl);
               setToastMsg(language === 'EN' ? `Public Offerte link copied: ${publicUrl}` : `Offerte link gekopieerd: ${publicUrl}`);
             }}
-            className="px-2.5 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-lg text-[11px] font-bold inline-flex items-center gap-1 transition-colors flex-shrink-0 cursor-pointer"
+            className="px-2 py-1 sm:px-2.5 sm:py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-lg text-[10px] sm:text-[11px] font-bold inline-flex items-center gap-1 transition-colors flex-shrink-0 cursor-pointer"
             title="Copy Public Digital Approval Link"
           >
-            <Share2 className="w-3.5 h-3.5 text-emerald-700" /> Link
+            <Share2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-700" /> Link
           </button>
           <a
             href={`/offerte/${row.id}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors inline-flex items-center justify-center flex-shrink-0 cursor-pointer"
+            className="p-1 sm:p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors inline-flex items-center justify-center flex-shrink-0 cursor-pointer"
             title="Open Customer Online View"
           >
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
           <button 
             onClick={() => handleDuplicateQuote(row)}
-            className="px-2.5 py-1 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-lg text-[11px] font-bold inline-flex items-center gap-1 transition-colors flex-shrink-0 cursor-pointer"
+            className="px-2 py-1 sm:px-2.5 sm:py-1 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-lg text-[10px] sm:text-[11px] font-bold inline-flex items-center gap-1 transition-colors flex-shrink-0 cursor-pointer"
             title={language === 'EN' ? 'Duplicate Quote (Create copy)' : 'Offerte Kopiëren'}
           >
-            <Copy className="w-3.5 h-3.5 text-amber-700" /> Copy
+            <Copy className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-700" /> Copy
           </button>
           <button 
             onClick={() => handleOpenEditModal(row)}
-            className="p-1.5 text-dark/70 hover:text-dark hover:bg-dark/10 rounded-lg transition-colors inline-flex items-center justify-center flex-shrink-0 cursor-pointer"
+            className="p-1 sm:p-1.5 text-dark/70 hover:text-dark hover:bg-dark/10 rounded-lg transition-colors inline-flex items-center justify-center flex-shrink-0 cursor-pointer"
             title="Edit Quote"
           >
             <Edit2 className="w-3.5 h-3.5" />
           </button>
           <button 
             onClick={() => handleDeleteQuote(row.id, row.customer)}
-            className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors inline-flex items-center justify-center flex-shrink-0 cursor-pointer"
+            className="p-1 sm:p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors inline-flex items-center justify-center flex-shrink-0 cursor-pointer"
             title="Delete Quote"
           >
             <Trash2 className="w-3.5 h-3.5" />

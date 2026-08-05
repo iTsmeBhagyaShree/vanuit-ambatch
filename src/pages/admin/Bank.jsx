@@ -27,8 +27,8 @@ export default function Bank() {
   const sampleBankImportData = [
     {
       id: `TXN-IMP-${Date.now().toString().slice(-4)}-1`,
-      description: 'Rabobank Ontvangst: Bjorn Valk (Offerte OF-2026-003)',
-      category: 'Verkoop / Omzet',
+      description: language === 'EN' ? 'Rabobank Receipt: Bjorn Valk (Quote OF-2026-003)' : 'Rabobank Ontvangst: Bjorn Valk (Offerte OF-2026-003)',
+      category: language === 'EN' ? 'Sales / Revenue' : 'Verkoop / Omzet',
       type: 'Income',
       amount: '€ 3,495',
       numericAmount: 3495,
@@ -36,8 +36,8 @@ export default function Bank() {
     },
     {
       id: `TXN-IMP-${Date.now().toString().slice(-4)}-2`,
-      description: 'ING Afschrijving: Houtleverancier B.V. (Thermo Fraké Hout Inkoop)',
-      category: 'Materiaal Inkoop',
+      description: language === 'EN' ? 'ING Debit: Timber Supplier Ltd. (Thermo Fraké Wood Purchase)' : 'ING Afschrijving: Houtleverancier B.V. (Thermo Fraké Hout Inkoop)',
+      category: language === 'EN' ? 'Material Purchasing' : 'Materiaal Inkoop',
       type: 'Expense',
       amount: '€ 850',
       numericAmount: 850,
@@ -45,8 +45,8 @@ export default function Bank() {
     },
     {
       id: `TXN-IMP-${Date.now().toString().slice(-4)}-3`,
-      description: 'ABN AMRO Ontvangst: Peter de Jong (Aanbetaling Keuken)',
-      category: 'Verkoop / Omzet',
+      description: language === 'EN' ? 'ABN AMRO Receipt: Peter de Jong (Kitchen Down Payment)' : 'ABN AMRO Ontvangst: Peter de Jong (Aanbetaling Keuken)',
+      category: language === 'EN' ? 'Sales / Revenue' : 'Verkoop / Omzet',
       type: 'Income',
       amount: '€ 1,250',
       numericAmount: 1250,
@@ -54,8 +54,8 @@ export default function Bank() {
     },
     {
       id: `TXN-IMP-${Date.now().toString().slice(-4)}-4`,
-      description: 'Rabobank Afschrijving: RVS Spoelbakken & Kranen B.V.',
-      category: 'Materiaal Inkoop',
+      description: language === 'EN' ? 'Rabobank Debit: Stainless Steel Sinks & Taps Ltd.' : 'Rabobank Afschrijving: RVS Spoelbakken & Kranen B.V.',
+      category: language === 'EN' ? 'Material Purchasing' : 'Materiaal Inkoop',
       type: 'Expense',
       amount: '€ 390',
       numericAmount: 390,
@@ -107,6 +107,15 @@ export default function Bank() {
   const translateBankText = (str) => {
     if (language !== 'EN' || !str) return str;
     return str
+      .replace(/Rabobank Ontvangst/g, 'Rabobank Receipt')
+      .replace(/ING Afschrijving/g, 'ING Debit')
+      .replace(/ABN AMRO Ontvangst/g, 'ABN AMRO Receipt')
+      .replace(/Rabobank Afschrijving/g, 'Rabobank Debit')
+      .replace(/Offerte/g, 'Quote')
+      .replace(/Houtleverancier B.V./g, 'Timber Supplier Ltd.')
+      .replace(/Thermo Fraké Hout Inkoop/g, 'Thermo Fraké Wood Purchase')
+      .replace(/Aanbetaling Keuken/g, 'Kitchen Down Payment')
+      .replace(/RVS Spoelbakken & Kranen B.V./g, 'Stainless Steel Sinks & Taps Ltd.')
       .replace(/Aanbetaling Ontvangen/g, 'Deposit Received')
       .replace(/Betaling Kliko Ombouw/g, 'Payment Bin Storage')
       .replace(/Inkoop Teak Hout & Granieten Bladen/g, 'Purchase Teak Wood & Granite Slabs')

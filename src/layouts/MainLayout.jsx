@@ -7,10 +7,12 @@ export default function MainLayout({ role }) {
     <div className="flex h-screen bg-light overflow-hidden">
       <Sidebar role={role} />
       
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <TopNav />
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+        <div className="relative z-50">
+          <TopNav />
+        </div>
         
-        <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 lg:p-6">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 lg:p-6 relative z-0">
           <div className="max-w-7xl mx-auto w-full">
             <Outlet />
           </div>

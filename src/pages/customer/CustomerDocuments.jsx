@@ -46,30 +46,34 @@ export default function CustomerDocuments() {
       </div>
 
       {/* AutoCAD Interactive Blueprint Box */}
-      <div className="p-4 bg-slate-900 text-cyan-400 rounded-2xl border border-cyan-800 space-y-3 font-mono text-xs shadow-md">
-        <div className="flex justify-between items-center text-[10px] text-cyan-300 border-b border-cyan-800 pb-2">
-          <span className="flex items-center gap-1.5"><Compass className="w-4 h-4 text-cyan-400" /> OFFICIAL SCHEMATIC BLUEPRINT (AUTOCAD SPEC)</span>
-          <span>SCALE 1:20</span>
+      <div className="p-4 bg-slate-900 text-cyan-400 rounded-2xl border border-cyan-800 space-y-3 font-mono text-xs shadow-md max-w-full overflow-hidden">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 text-[10px] text-cyan-300 border-b border-cyan-800 pb-2">
+          <span className="flex items-center gap-1.5 font-bold"><Compass className="w-4 h-4 text-cyan-400 flex-shrink-0" /> OFFICIAL SCHEMATIC BLUEPRINT (AUTOCAD SPEC)</span>
+          <span className="bg-cyan-950 text-cyan-400 px-2 py-0.5 rounded border border-cyan-800 font-bold self-end sm:self-auto">SCALE 1:20</span>
         </div>
 
-        <div className="py-6 text-center border border-dashed border-cyan-700 rounded-xl bg-slate-950/70 space-y-2">
-          <p className="text-cyan-200 font-bold text-sm">┌────────────────────────────────────────────────────────┐</p>
-          <p className="text-cyan-300">[ 3.5m TEAK FRAME ] ═══ [ CONCRETE SLAB ] ═══ [ SINK CUTOUT ]</p>
-          <p className="text-cyan-200 font-bold text-sm">└────────────────────────────────────────────────────────┘</p>
-          <p className="text-[10px] text-cyan-500">
+        <div className="py-4 sm:py-6 px-2 text-center border border-dashed border-cyan-700/80 rounded-xl bg-slate-950/70 space-y-3 max-w-full overflow-x-auto no-scrollbar">
+          <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-2 border border-cyan-500/40 rounded-lg bg-cyan-950/50 text-[10px] sm:text-xs font-bold whitespace-nowrap">
+            <span className="bg-cyan-900/60 text-cyan-200 px-2 py-1 rounded border border-cyan-700/70">3.5m TEAK FRAME</span>
+            <span className="text-cyan-400 font-extrabold">═══</span>
+            <span className="bg-cyan-900/60 text-cyan-200 px-2 py-1 rounded border border-cyan-700/70">CONCRETE SLAB</span>
+            <span className="text-cyan-400 font-extrabold">═══</span>
+            <span className="bg-cyan-900/60 text-cyan-200 px-2 py-1 rounded border border-cyan-700/70">SINK CUTOUT</span>
+          </div>
+          <p className="text-[10px] text-cyan-400/90 leading-tight">
             {language === 'EN' 
               ? 'Verified by Tim & Bram • Includes cutout for Kamado Joe Ceramic Grill' 
               : 'Geverifieerd door Tim & Bram • Inclusief uitsparing voor Kamado Joe Ceramic Grill'}
           </p>
         </div>
 
-        <div className="flex justify-between items-center pt-1 text-[11px]">
-          <span className="text-cyan-300 font-bold">BLU-P2001-AUTOCAD-SPEC-V2.pdf</span>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 pt-1 text-[11px]">
+          <span className="text-cyan-300 font-bold truncate max-w-full">BLU-P2001-AUTOCAD-SPEC-V2.pdf</span>
           <button
             onClick={() => handleDownload('BLU-P2001-AUTOCAD-SPEC-V2.pdf')}
-            className="px-3.5 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold rounded-lg text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="w-full sm:w-auto px-3.5 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer flex-shrink-0"
           >
-            <Download className="w-3.5 h-3.5" /> {language === 'EN' ? 'Download Blueprint (PDF)' : 'Download Teckening (PDF)'}
+            <Download className="w-3.5 h-3.5" /> {language === 'EN' ? 'Download Blueprint (PDF)' : 'Download Tekening (PDF)'}
           </button>
         </div>
       </div>

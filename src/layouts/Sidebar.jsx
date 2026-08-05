@@ -232,10 +232,10 @@ export default function Sidebar({ role }) {
         <button
           onClick={handleLogout}
           className={`flex items-center gap-2.5 ${collapsed ? 'w-9 h-9 justify-center rounded-lg' : 'w-full px-2.5 py-2 rounded-lg'} text-white/60 hover:bg-red-500/20 hover:text-red-200 transition-colors text-xs font-body`}
-          title="Logout"
+          title={t('common.logout') || (language === 'NL' ? 'Uitloggen' : 'Logout')}
         >
           <LogOut className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
-          {!collapsed && <span>Logout</span>}
+          {!collapsed && <span>{t('common.logout') || (language === 'NL' ? 'Uitloggen' : 'Logout')}</span>}
         </button>
       </div>
     </div>
@@ -251,7 +251,7 @@ export default function Sidebar({ role }) {
       {/* Mobile toggle button */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="sm:hidden fixed top-2.5 left-3 z-50 h-9 px-2.5 bg-primary rounded-lg flex items-center justify-center gap-1.5 text-white shadow-card border border-white/10"
+        className="sm:hidden fixed top-2.5 left-3 z-[100] h-9 px-2.5 bg-primary rounded-lg flex items-center justify-center gap-1.5 text-white shadow-card border border-white/10 cursor-pointer"
         title="Open Navigation"
       >
         <img src="/mini logo2.png" alt="VA" className="w-5 h-5 object-contain rounded-sm" />

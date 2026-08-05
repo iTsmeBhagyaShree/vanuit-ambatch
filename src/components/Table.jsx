@@ -37,7 +37,7 @@ export default function Table({ columns, data, keyField = 'id', getRowClassName,
                 // 1. Actions Column: Render at bottom as clean action bar
                 if (isActions) {
                   return (
-                    <div key={cIdx} className="pt-2.5 mt-2.5 border-t border-[#C4BEB3]/40 flex flex-wrap items-center justify-end gap-1.5 w-full min-w-0">
+                    <div key={cIdx} className="pt-2.5 mt-2.5 border-t border-[#C4BEB3]/40 flex items-center justify-end gap-1.5 w-full min-w-0 overflow-x-auto no-scrollbar">
                       {cellContent}
                     </div>
                   );

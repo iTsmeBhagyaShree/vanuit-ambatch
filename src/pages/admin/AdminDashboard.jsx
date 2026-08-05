@@ -243,7 +243,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Right Top Action Buttons — Compact & Sleek Sizing */}
-        <div className="absolute top-3.5 right-3.5 sm:top-4 sm:right-5 md:top-5 md:right-6 flex flex-wrap gap-2 z-20">
+        <div className="absolute top-3.5 right-3.5 sm:top-4 sm:right-5 md:top-5 md:right-6 flex flex-wrap gap-2 z-10">
           <Button 
             variant="custom" 
             icon={Plus} 
