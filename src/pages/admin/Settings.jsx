@@ -397,19 +397,19 @@ export default function Settings() {
           </Card>
 
           {/* Brand Logo & Colors */}
-          <Card title="Merkidentiteit & Huisstijl" icon={Palette}>
+          <Card title={language === 'EN' ? 'Brand Identity & Style' : 'Merkidentiteit & Huisstijl'} icon={Palette}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
               <div>
-                <label className="block font-semibold text-dark/60 mb-2 uppercase">Bedrijfslogo</label>
+                <label className="block font-semibold text-dark/60 mb-2 uppercase">{language === 'EN' ? 'Company Logo' : 'Bedrijfslogo'}</label>
                 <div className="p-4 bg-[#F8F7F4] border-2 border-dashed border-[#D6CFC2] rounded-xl text-center cursor-pointer hover:bg-[#EDE8DF]/40 transition-colors" onClick={() => fileInputRef.current?.click()}>
                   <Upload className="w-6 h-6 text-primary mx-auto mb-2" />
-                  <p className="font-bold text-dark">Klik om logo te uploaden</p>
-                  <p className="text-[10px] text-dark/50 mt-1">PNG, SVG of JPG (max 2MB)</p>
+                  <p className="font-bold text-dark">{language === 'EN' ? 'Click to upload logo' : 'Klik om logo te uploaden'}</p>
+                  <p className="text-[10px] text-dark/50 mt-1">{language === 'EN' ? 'PNG, SVG or JPG (max 2MB)' : 'PNG, SVG of JPG (max 2MB)'}</p>
                   <input type="file" ref={fileInputRef} onChange={e => { if(e.target.files[0]) { setLogo(URL.createObjectURL(e.target.files[0])); showToast('Logo geladen!'); } }} className="hidden" accept="image/*" />
                 </div>
               </div>
               <div className="space-y-3">
-                <label className="block font-semibold text-dark/60 uppercase">Thema Kleuren</label>
+                <label className="block font-semibold text-dark/60 uppercase">{language === 'EN' ? 'Theme Colors' : 'Thema Kleuren'}</label>
                 <div className="grid grid-cols-3 gap-2">
                   <div className="p-2 bg-[#F8F7F4] rounded-lg border text-center">
                     <span className="text-[10px] font-bold block mb-1">Primary</span>
@@ -683,21 +683,21 @@ export default function Settings() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-dark/60 backdrop-blur-sm" onClick={() => setInviteModalOpen(false)} />
             <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="relative w-full max-w-md bg-[#EDE8DF] border border-[#C4BEB3] rounded-2xl p-6 shadow-2xl z-10 space-y-4 text-xs">
               <div className="flex items-center justify-between border-b border-cream-dark/60 pb-3">
-                <h3 className="text-lg font-heading font-bold text-primary">Nieuwe Gebruiker Uitnodigen</h3>
+                <h3 className="text-lg font-heading font-bold text-primary">{language === 'EN' ? 'Invite New User' : 'Nieuwe Gebruiker Uitnodigen'}</h3>
                 <button onClick={() => setInviteModalOpen(false)} className="p-1 text-dark/40 hover:text-dark"><X className="w-5 h-5" /></button>
               </div>
 
               <form onSubmit={handleInviteSubmit} className="space-y-3 font-body">
                 <div>
-                  <label className="block font-semibold text-dark/60 mb-1 uppercase">Naam</label>
+                  <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'EN' ? 'Name' : 'Naam'}</label>
                   <input type="text" required value={inviteForm.name} onChange={e => setInviteForm(prev => ({ ...prev, name: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg" placeholder="e.g. Bram van den Berg" />
                 </div>
                 <div>
-                  <label className="block font-semibold text-dark/60 mb-1 uppercase">E-mailadres</label>
+                  <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'EN' ? 'Email Address' : 'E-mailadres'}</label>
                   <input type="email" required value={inviteForm.email} onChange={e => setInviteForm(prev => ({ ...prev, email: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg" placeholder="e.g. bram@vanuitambacht.nl" />
                 </div>
                 <div>
-                  <label className="block font-semibold text-dark/60 mb-1 uppercase">Systeem Rol</label>
+                  <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'EN' ? 'System Role' : 'Systeem Rol'}</label>
                   <select value={inviteForm.role} onChange={e => setInviteForm(prev => ({ ...prev, role: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg font-bold">
                     <option value="admin">👑 Admin Portal</option>
                     <option value="partner">🤝 Partner Portal</option>
@@ -707,7 +707,7 @@ export default function Settings() {
 
                 <div className="flex justify-end gap-2 pt-3 border-t border-cream-dark/60">
                   <Button type="button" variant="outline" onClick={() => setInviteModalOpen(false)}>{t('common.cancel')}</Button>
-                  <Button type="submit">Verstuur Uitnodiging</Button>
+                  <Button type="submit">{language === 'EN' ? 'Send Invitation' : 'Verstuur Uitnodiging'}</Button>
                 </div>
               </form>
             </motion.div>
@@ -722,23 +722,23 @@ export default function Settings() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-dark/60 backdrop-blur-sm" onClick={() => setAddFieldModalOpen(false)} />
             <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="relative w-full max-w-md bg-[#EDE8DF] border border-[#C4BEB3] rounded-2xl p-6 shadow-2xl z-10 space-y-4 text-xs">
               <div className="flex items-center justify-between border-b border-cream-dark/60 pb-3">
-                <h3 className="text-lg font-heading font-bold text-primary">Aangepast Veld Toevoegen ({selectedProductType.toUpperCase()})</h3>
+                <h3 className="text-lg font-heading font-bold text-primary">{language === 'EN' ? `Add Custom Field (${selectedProductType.toUpperCase()})` : `Aangepast Veld Toevoegen (${selectedProductType.toUpperCase()})`}</h3>
                 <button onClick={() => setAddFieldModalOpen(false)} className="p-1 text-dark/40 hover:text-dark"><X className="w-5 h-5" /></button>
               </div>
 
               <form onSubmit={handleAddFieldSubmit} className="space-y-3 font-body">
                 <div>
-                  <label className="block font-semibold text-dark/60 mb-1 uppercase">Veld Naam / Label</label>
+                  <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'EN' ? 'Field Name / Label' : 'Veld Naam / Label'}</label>
                   <input type="text" required value={newFieldForm.label} onChange={e => setNewFieldForm(prev => ({ ...prev, label: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg" placeholder="e.g. Sauna Module Integratie" />
                 </div>
                 <div>
-                  <label className="block font-semibold text-dark/60 mb-1 uppercase">Opties (komma gescheiden)</label>
+                  <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'EN' ? 'Options (comma separated)' : 'Opties (komma gescheiden)'}</label>
                   <input type="text" value={newFieldForm.optionsStr} onChange={e => setNewFieldForm(prev => ({ ...prev, optionsStr: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg" placeholder="Infrarood, Fins sauna, Geen" />
                 </div>
 
                 <div className="flex justify-end gap-2 pt-3 border-t border-cream-dark/60">
                   <Button type="button" variant="outline" onClick={() => setAddFieldModalOpen(false)}>{t('common.cancel')}</Button>
-                  <Button type="submit">Veld Opslaan</Button>
+                  <Button type="submit">{language === 'EN' ? 'Save Field' : 'Veld Opslaan'}</Button>
                 </div>
               </form>
             </motion.div>

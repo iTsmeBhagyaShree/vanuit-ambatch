@@ -164,7 +164,7 @@ export default function CustomerQuotes() {
       {/* Header Banner */}
       <div className="bg-[#EDE8DF] border border-[#C4BEB3] p-6 rounded-2xl shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <span className="text-xs font-mono font-bold text-accent uppercase tracking-wider">Klantenportaal</span>
+          <span className="text-xs font-mono font-bold text-accent uppercase tracking-wider">{language === 'NL' ? 'KLANTENPORTAAL' : 'CUSTOMER PORTAL'}</span>
           <h2 className="text-2xl font-heading font-bold text-primary mt-1">
             {language === 'EN' ? 'My Quotes & Proposals' : 'Mijn Ontvangen Offertes'}
           </h2>
@@ -211,6 +211,9 @@ export default function CustomerQuotes() {
                       ? (quote.project || '')
                           .replace(/Luxe Teak Buitenkeuken 4m/g, 'Luxury Teak Outdoor Kitchen 4m')
                           .replace(/Exclusieve Buitenkeuken - Maatwerk/g, 'Exclusive Outdoor Kitchen - Custom Build')
+                          .replace(/Exclusieve Buitenkeuken/g, 'Exclusive Outdoor Kitchen')
+                          .replace(/Kliko Ombouw Triple Antraciet/g, 'Bin Storage Triple Anthracite')
+                          .replace(/Eiken Houten Overkapping 6x4m/g, 'Oak Wooden Canopy 6x4m')
                       : quote.project}
                   </h3>
                 </div>
@@ -228,6 +231,12 @@ export default function CustomerQuotes() {
                                 .replace(/Ingebouwde Kamado BBQ RVS Uitsparing & Gasfornuis Module/g, 'Built-in Kamado BBQ Stainless Cutout & Gas Stove Module')
                                 .replace(/Luxe RVS Kraan, Zwarte Spoelbak & Slangaansluitingen/g, 'Luxury Stainless Tap, Black Sink & Hose Connections')
                                 .replace(/Offerte Inventarisatie & Maatwerk Ontwerp Buitenkeuken/g, 'Quote Inventory & Custom Outdoor Kitchen Design')
+                                .replace(/Buitenkeuken Teak Hout Frame 4m/g, 'Outdoor Kitchen Teak Wood Frame 4m')
+                                .replace(/Beton Aanrechtblad met Kamado Uitsparing/g, 'Concrete Worktop with Kamado Cutout')
+                                .replace(/Aanrechtblad & Afwerking/g, 'Worktop & Finishing')
+                                .replace(/Triple 240L Klikobox Gepoedercoat Stalen Frame/g, 'Triple 240L Bin Storage Powder Coated Steel Frame')
+                                .replace(/Rustiek Eiken Gebint Constructie/g, 'Rustic Oak Truss Construction')
+                                .replace(/EPDM Daksysteem & Zinken Hemelwaterafvoer/g, 'EPDM Roofing System & Zinc Rainwater Drainage')
                             : item.description}
                         </span>
                       </div>

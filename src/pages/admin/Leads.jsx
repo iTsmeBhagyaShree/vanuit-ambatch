@@ -114,9 +114,9 @@ export default function Leads() {
     status: 'Nieuw'
   });
 
-  // Load leads from localStorage on mount
-  useEffect(() => {
-    const savedLeads = localStorage.getItem('app_leads_v3');
+  // Load leads from localStorage on mount & listen to app_data_changed
+  const loadLeadsData = () => {
+    const savedLeads = localStorage.getItem('app_leads_v5');
     if (savedLeads) {
       try {
         const parsed = JSON.parse(savedLeads);
@@ -127,7 +127,13 @@ export default function Leads() {
       } catch (e) {}
     }
     setLeads(defaultLeads);
-    localStorage.setItem('app_leads_v3', JSON.stringify(defaultLeads));
+    localStorage.setItem('app_leads_v5', JSON.stringify(defaultLeads));
+  };
+
+  useEffect(() => {
+    loadLeadsData();
+    window.addEventListener('app_data_changed', loadLeadsData);
+    return () => window.removeEventListener('app_data_changed', loadLeadsData);
   }, []);
 
   const showToast = (msg) => {
@@ -155,11 +161,18 @@ export default function Leads() {
     setModalOpen(true);
   };
 
+  const saveLeadsToStorage = (updated) => {
+    localStorage.setItem('app_leads_v5', JSON.stringify(updated));
+    localStorage.setItem('app_leads_v3', JSON.stringify(updated));
+    localStorage.setItem('app_leads_v2', JSON.stringify(updated));
+    localStorage.setItem('app_leads', JSON.stringify(updated));
+    window.dispatchEvent(new Event('app_data_changed'));
+  };
+
   const handleDeleteLead = (id, name) => {
     const updatedLeads = leads.filter(l => l.id !== id);
     setLeads(updatedLeads);
-    localStorage.setItem('app_leads_v2', JSON.stringify(updatedLeads));
-    localStorage.setItem('app_leads', JSON.stringify(updatedLeads));
+    saveLeadsToStorage(updatedLeads);
     showToast(`Lead "${name}" deleted successfully!`);
   };
 
@@ -175,8 +188,7 @@ export default function Leads() {
         }
         return l;
       });
-      localStorage.setItem('app_leads_v2', JSON.stringify(updated));
-      localStorage.setItem('app_leads', JSON.stringify(updated));
+      saveLeadsToStorage(updated);
       return updated;
     });
     setStatusPortalPos(null);
@@ -192,8 +204,7 @@ export default function Leads() {
         }
         return l;
       });
-      localStorage.setItem('app_leads_v2', JSON.stringify(updated));
-      localStorage.setItem('app_leads', JSON.stringify(updated));
+      saveLeadsToStorage(updated);
       return updated;
     });
     showToast(language === 'NL' ? 'Toegewezen eigenaar gewijzigd' : 'Assignee updated');
@@ -234,8 +245,7 @@ export default function Leads() {
         }
         return l;
       });
-      localStorage.setItem('app_leads_v3', JSON.stringify(updated));
-      localStorage.setItem('app_leads', JSON.stringify(updated));
+      saveLeadsToStorage(updated);
       return updated;
     });
 
@@ -298,9 +308,7 @@ export default function Leads() {
     }
 
     setLeads(updatedLeads);
-    localStorage.setItem('app_leads_v2', JSON.stringify(updatedLeads));
-    localStorage.setItem('app_leads', JSON.stringify(updatedLeads));
-    window.dispatchEvent(new Event('app_data_changed'));
+    saveLeadsToStorage(updatedLeads);
     setModalOpen(false);
     setLostReasonModalOpen(false);
     setPendingFormSubmit(null);
@@ -369,8 +377,7 @@ export default function Leads() {
         });
         const updatedLeads = [...newLeads, ...leads];
         setLeads(updatedLeads);
-        localStorage.setItem('app_leads_v2', JSON.stringify(updatedLeads));
-        localStorage.setItem('app_leads', JSON.stringify(updatedLeads));
+        saveLeadsToStorage(updatedLeads);
         showToast(`✅ ${newLeads.length} leads imported successfully!`);
       } catch (err) {
         showToast('Import failed. Please check your CSV format.');
@@ -557,7 +564,7 @@ export default function Leads() {
           >
             {isRedFlag && <AlertTriangle className="w-3.5 h-3.5 text-red-600" />}
             {diffDays === 0 ? 'Today' : `${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`}
-            {isRedFlag && <span className="text-[9px] underline ml-0.5">Volg op</span>}
+            {isRedFlag && <span className="text-[9px] underline ml-0.5">{language === 'NL' ? 'Volg op' : 'Follow up'}</span>}
           </button>
         );
       }
@@ -581,7 +588,7 @@ export default function Leads() {
             className="text-[10px] py-1 px-2 text-primary border-primary/20 hover:bg-primary/5 font-semibold"
             title={language === 'NL' ? 'Prijsaanvraag partner (7-step wizard)' : 'Partner Price Request (7-step wizard)'}
           >
-            {language === 'EN' ? 'Partner Inquiry' : 'Prijsaanvraag'}
+            {language === 'NL' ? 'Prijsaanvraag' : 'Partner Inquiry'}
           </Button>
           <Button 
             variant="ghost" 
@@ -738,12 +745,12 @@ export default function Leads() {
                     onChange={e => setStatusFilter(e.target.value)}
                     className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs font-body focus:outline-none text-[#4A4A43]"
                   >
-                    <option value="All">Alle (All)</option>
-                    <option value="Nieuw">Nieuw</option>
-                    <option value="In gesprek">In gesprek</option>
-                    <option value="Offerte verstuurd">Offerte verstuurd</option>
-                    <option value="Gewonnen">Gewonnen</option>
-                    <option value="Verloren">Verloren</option>
+                    <option value="All">{language === 'NL' ? 'Alle (All)' : 'All Statuses'}</option>
+                    <option value="Nieuw">{language === 'NL' ? 'Nieuw' : 'New'}</option>
+                    <option value="In gesprek">{language === 'NL' ? 'In gesprek' : 'In Conversation'}</option>
+                    <option value="Offerte verstuurd">{language === 'NL' ? 'Offerte verstuurd' : 'Quote Sent'}</option>
+                    <option value="Gewonnen">{language === 'NL' ? 'Gewonnen' : 'Won'}</option>
+                    <option value="Verloren">{language === 'NL' ? 'Verloren' : 'Lost'}</option>
                   </select>
                 </div>
 
@@ -755,12 +762,12 @@ export default function Leads() {
                     onChange={e => setProductTypeFilter(e.target.value)}
                     className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs font-body focus:outline-none text-[#4A4A43]"
                   >
-                    <option value="All">Alle (All)</option>
-                    <option value="buitenkeuken">Buitenkeuken</option>
-                    <option value="buitenverblijf">Buitenverblijf</option>
-                    <option value="overkapping">Overkapping</option>
-                    <option value="poolhouse">Poolhouse</option>
-                    <option value="kliko">Kliko</option>
+                    <option value="All">{language === 'NL' ? 'Alle (All)' : 'All Products'}</option>
+                    <option value="buitenkeuken">{language === 'NL' ? 'Buitenkeuken' : 'Outdoor Kitchen'}</option>
+                    <option value="buitenverblijf">{language === 'NL' ? 'Buitenverblijf' : 'Outdoor Living'}</option>
+                    <option value="overkapping">{language === 'NL' ? 'Overkapping' : 'Canopy'}</option>
+                    <option value="poolhouse">{language === 'NL' ? 'Poolhouse' : 'Poolhouse'}</option>
+                    <option value="kliko">{language === 'NL' ? 'Kliko-ombouw' : 'Bin Storage'}</option>
                   </select>
                 </div>
 
