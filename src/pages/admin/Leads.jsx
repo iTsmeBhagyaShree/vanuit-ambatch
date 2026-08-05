@@ -555,16 +555,16 @@ export default function Leads() {
         return (
           <button
             onClick={() => isRedFlag && setRedAlertModalLead(row)}
-            className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-colors ${
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs transition-colors whitespace-nowrap flex-shrink-0 ${
               isRedFlag 
                 ? 'bg-red-50 text-red-700 font-bold border border-red-200 hover:bg-red-100 cursor-pointer animate-pulse' 
-                : 'text-dark/60 font-medium'
+                : 'text-dark/60 font-medium bg-[#EDE8DF]/50 border border-[#D6CFC2]/40'
             }`}
             title={isRedFlag ? (language === 'NL' ? 'Klik om direct 1st Follow-up te sturen' : 'Click to send 1st follow-up') : ''}
           >
-            {isRedFlag && <AlertTriangle className="w-3.5 h-3.5 text-red-600" />}
-            {diffDays === 0 ? 'Today' : `${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`}
-            {isRedFlag && <span className="text-[9px] underline ml-0.5">{language === 'NL' ? 'Volg op' : 'Follow up'}</span>}
+            {isRedFlag && <AlertTriangle className="w-3.5 h-3.5 text-red-600 flex-shrink-0" />}
+            <span>{diffDays === 0 ? 'Today' : `${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`}</span>
+            {isRedFlag && <span className="text-[9px] underline ml-0.5 whitespace-nowrap flex-shrink-0">{language === 'NL' ? 'Volg op' : 'Follow up'}</span>}
           </button>
         );
       }
@@ -572,12 +572,12 @@ export default function Leads() {
     {
       header: t('common.actions'),
       render: (row) => (
-        <div className="flex items-center gap-1.5 flex-nowrap whitespace-nowrap">
+        <div className="flex flex-wrap md:flex-nowrap items-center justify-end gap-1.5 md:whitespace-nowrap max-w-full">
           <Button 
             variant="primary"
             size="sm" 
             onClick={() => setActiveWorkflowLead(row)}
-            className="text-[11px] py-1 px-2.5 shadow-xs"
+            className="text-[11px] py-1 px-2.5 shadow-xs flex-shrink-0"
           >
             <GitCommit className="w-3 h-3 mr-1" /> Workflow
           </Button>
@@ -585,7 +585,7 @@ export default function Leads() {
             variant="outline" 
             size="sm" 
             onClick={() => handleOpenPartnerWizard(row)}
-            className="text-[10px] py-1 px-2 text-primary border-primary/20 hover:bg-primary/5 font-semibold"
+            className="text-[10px] py-1 px-2 text-primary border-primary/20 hover:bg-primary/5 font-semibold flex-shrink-0"
             title={language === 'NL' ? 'Prijsaanvraag partner (7-step wizard)' : 'Partner Price Request (7-step wizard)'}
           >
             {language === 'NL' ? 'Prijsaanvraag' : 'Partner Inquiry'}
@@ -594,7 +594,7 @@ export default function Leads() {
             variant="ghost" 
             size="sm" 
             onClick={() => handleOpenEditModal(row)}
-            className="text-primary hover:bg-[#D6CFC2]/40"
+            className="text-primary hover:bg-[#D6CFC2]/40 flex-shrink-0"
           >
             <Edit2 className="w-3.5 h-3.5" />
           </Button>
@@ -602,7 +602,7 @@ export default function Leads() {
             variant="custom" 
             size="sm" 
             onClick={() => handleDeleteLead(row.id, row.name)}
-            className="text-red-600 hover:bg-red-50"
+            className="text-red-600 hover:bg-red-50 flex-shrink-0"
           >
             <Trash2 className="w-3.5 h-3.5" />
           </Button>
