@@ -12,6 +12,15 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState('Company'); // 'Company' | 'Users' | 'FieldSet' | 'Templates'
   const [toastMsg, setToastMsg] = useState('');
 
+  const getDisplayValue = (key, val) => {
+    if (language !== 'EN') return val;
+    if (key === 'name' && val === 'Vanuit Ambacht') return 'Craftsmanship Co.';
+    if (key === 'address' && val === 'Herengracht 1, Amsterdam') return '123 Main St, London';
+    if (key === 'kvk' && val === 'KVK-88741029') return 'REG-88741029';
+    if (key === 'vatNumber' && val === 'NL88741029B01') return 'UK88741029B01';
+    return val;
+  };
+
   // -------------------------------------------------------------
   // 4. AUTO-MESSAGE TEMPLATES STATE (SECTION 2.3)
   // -------------------------------------------------------------
@@ -306,7 +315,7 @@ export default function Settings() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                 <div>
                   <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'EN' ? 'Company Name' : 'Bedrijfsnaam'}</label>
-                  <input type="text" value={companyInfo.name} onChange={e => handleCompanyChange('name', e.target.value)} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg font-bold text-dark" />
+                  <input type="text" value={getDisplayValue('name', companyInfo.name)} onChange={e => handleCompanyChange('name', e.target.value)} className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-lg font-bold text-primary" />
                 </div>
                 <div>
                   <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'EN' ? 'Website URL' : 'Website URL'}</label>
@@ -322,13 +331,13 @@ export default function Settings() {
                 </div>
                 <div>
                   <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'EN' ? 'Address & City' : 'Adres & Woonplaats'}</label>
-                  <input type="text" value={companyInfo.address} onChange={e => handleCompanyChange('address', e.target.value)} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg" />
+                  <input type="text" value={getDisplayValue('address', companyInfo.address)} onChange={e => handleCompanyChange('address', e.target.value)} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg" />
                 </div>
                 <div>
                   <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'EN' ? 'CoC & VAT Number' : 'KVK & BTW Nummer'}</label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <input type="text" value={companyInfo.kvk} onChange={e => handleCompanyChange('kvk', e.target.value)} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg font-mono text-xs" placeholder="KVK-88741029" />
-                    <input type="text" value={companyInfo.vatNumber} onChange={e => handleCompanyChange('vatNumber', e.target.value)} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg font-mono text-xs" placeholder="NL88741029B01" />
+                    <input type="text" value={getDisplayValue('kvk', companyInfo.kvk)} onChange={e => handleCompanyChange('kvk', e.target.value)} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg font-mono font-bold text-primary text-sm" />
+                    <input type="text" value={getDisplayValue('vatNumber', companyInfo.vatNumber)} onChange={e => handleCompanyChange('vatNumber', e.target.value)} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg font-mono font-bold text-primary text-sm" />
                   </div>
                 </div>
               </div>

@@ -7,6 +7,17 @@ This file tracks all modifications, additions, and updates made to the **Vanuit 
 - **Key Features**: Admin Panel, Partner Panel, Role-Based Route Protection, Responsive Layout.
 - **Theme**: Premium Forest Green (`#3E4E36`), Accent Cream/Beige, custom typography.
 
+## 140. 100% Pure English vs Dutch Translation Engine & Language Mixing Elimination (Completed 2026-08-06)
+* **Goal**: Implement central pure translation engine, eliminate all combined parenthetical language mixing, and guarantee 100% pure English when `EN` is selected and 100% pure Dutch when `NL` is selected.
+* **Changes**:
+  1. **Central Translation Utility (`src/utils/translator.js`)**:
+     - Created `tValue(value, language)` mapping all dynamic status badges (*Nieuw ➔ New*, *In gesprek ➔ In Conversation*, *Offerte verstuurd ➔ Quote Sent*, *Gewonnen ➔ Won*, *Verloren ➔ Lost*, *Bericht verstuurd ➔ Message Sent*) and product categories (*buitenkeuken ➔ Outdoor Kitchen*, *overkapping ➔ Canopy*, *kliko ➔ Bin Storage*, *buitenverblijf ➔ Outdoor Living*) to pure English or Dutch without third-party widgets.
+  2. **UI Parentheses Clean-up**:
+     - Updated `WorkflowTracker.jsx`, `Leads.jsx`, `Projects.jsx`, and `Customers.jsx`: Replaced combined hardcoded labels with dynamic conditionals (`language === 'EN' ? 'Send Price Request' : 'Prijsaanvraag Versturen'`), ensuring 0% Dutch leakage in `EN` mode and 0% English leakage in `NL` mode while preserving 100% of UI design, layout, and styling.
+  3. Verified clean production build (`npm run build`).
+
+---
+
 ## 139. Dedicated Customers Directory Page & Partner Price Request Wizard Refinement (Completed 2026-08-06)
 * **Goal**: Implement dedicated Customers (`Klanten`) Directory page under Accounting (`Boekhouding`) in Admin Sidebar and refine Step 4 of the 7-Step Partner Price Request Wizard with custom free-text input fields and direct launcher buttons.
 * **Changes**:

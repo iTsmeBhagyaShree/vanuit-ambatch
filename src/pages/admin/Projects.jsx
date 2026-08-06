@@ -7,6 +7,7 @@ import { Plus, Search, Filter, Trash2, Edit2, X, CheckCircle, RotateCcw, Compass
 import { mockProjects, mockLeads, mockPartners } from '../../utils/mockData';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../../context/LanguageContext';
+import { tValue } from '../../utils/translator';
 
 export default function Projects() {
   const { t, language } = useLanguage();
@@ -366,8 +367,8 @@ export default function Projects() {
     { 
       header: 'Status', 
       render: (row) => (
-        <Badge variant={row.status === 'Completed' ? 'success' : row.status === 'In Progress' ? 'primary' : 'warning'}>
-          {row.status}
+        <Badge variant={row.status === 'Completed' || row.status === 'Afgerond' ? 'success' : row.status === 'In Progress' || row.status === 'In uitvoering' ? 'primary' : 'warning'}>
+          {tValue(row.status, language)}
         </Badge>
       )
     },

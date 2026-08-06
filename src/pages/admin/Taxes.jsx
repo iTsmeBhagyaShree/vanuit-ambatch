@@ -302,7 +302,7 @@ export default function Taxes() {
             <Percent className="w-4 h-4 text-primary" /> {t('screens.taxes.scheme')} {selectedQuarter.replace('-', ' ')}
           </h3>
           <Badge variant={currentData.status === 'Ingediend' ? 'success' : 'warning'}>
-            {currentData.status}
+            {language === 'EN' ? (currentData.status === 'Ingediend' ? 'Submitted' : 'Not yet submitted') : currentData.status}
           </Badge>
         </div>
         <div className="space-y-2 pt-3 text-xs">

@@ -743,8 +743,8 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
                 <div className="space-y-4">
                   <div className="p-4 bg-[#EDE8DF]/50 rounded-xl border border-[#D6CFC2]/60 space-y-4">
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#D6CFC2]/60 pb-3">
-                      <h4 className="font-bold text-dark flex items-center gap-2 text-sm">
-                        <Send className="w-4 h-4 text-primary" /> Prijsaanvraag Versturen (Send Price Request)
+                      <h4 className="font-bold text-dark flex items-center gap-2 text-sm font-heading">
+                        <Send className="w-4 h-4 text-primary" /> {language === 'EN' ? 'Send Price Request to Partner' : 'Prijsaanvraag Versturen naar Partner'}
                       </h4>
                       {onOpenPartnerWizard && (
                         <Button
@@ -760,30 +760,32 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
                     </div>
                     {/* Partner selection */}
                     <div>
-                      <label className="block text-[10px] font-bold text-dark/50 uppercase mb-1">Selecteer Partner (Pick Craftsman Partner)</label>
+                      <label className="block text-[10px] font-bold text-dark/50 uppercase mb-1">
+                        {language === 'EN' ? 'Pick Craftsman Partner' : 'Selecteer Partner'}
+                      </label>
                       <select className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20">
-                        <option>Sven Hoek (Hoek Bouw) — 2 actieve projecten</option>
-                        <option>Lars Jansen (Jansen Houtwerk) — 1 actief project</option>
-                        <option>Theo Mulder (Mulder Tuinen) — 3 actieve projecten</option>
+                        <option>Sven Hoek (Hoek Bouw) — 2 {language === 'EN' ? 'active projects' : 'actieve projecten'}</option>
+                        <option>Lars Jansen (Jansen Houtwerk) — 1 {language === 'EN' ? 'active project' : 'actief project'}</option>
+                        <option>Theo Mulder (Mulder Tuinen) — 3 {language === 'EN' ? 'active projects' : 'actieve projecten'}</option>
                       </select>
                     </div>
                     {/* Editable Free-Text Specs */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-[10px] font-bold text-dark/50 uppercase mb-1">
-                          Product Type ({language === 'EN' ? 'Free-Text' : 'Vrije tekst'})
+                          {language === 'EN' ? 'Product Type (Free-Text)' : 'Producttype (Vrije tekst)'}
                         </label>
                         <input 
                           type="text" 
                           value={step2ProductType} 
                           onChange={(e) => setStep2ProductType(e.target.value)} 
-                          placeholder="e.g. Buitenkeuken / Canopy / Custom Joinery"
+                          placeholder={language === 'EN' ? 'e.g. Outdoor Kitchen / Canopy / Custom Joinery' : 'b.v. Buitenkeuken / Overkapping / Maatwerk'}
                           className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 font-semibold" 
                         />
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-dark/50 uppercase mb-1">
-                          Gewenste Maat / Preferred Dimensions ({language === 'EN' ? 'Free-Text' : 'Vrije tekst'})
+                          {language === 'EN' ? 'Preferred Dimensions (Free-Text)' : 'Gewenste Maat (Vrije tekst)'}
                         </label>
                         <input 
                           type="text" 
@@ -796,16 +798,20 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
                     </div>
                     {/* Special requirements */}
                     <div>
-                      <label className="block text-[10px] font-bold text-dark/50 uppercase mb-1">Bijzondere Vereisten (Special Requirements)</label>
+                      <label className="block text-[10px] font-bold text-dark/50 uppercase mb-1">
+                        {language === 'EN' ? 'Special Requirements & Instructions' : 'Bijzondere Vereisten en Instructies'}
+                      </label>
                       <textarea
                         className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[70px] resize-none"
-                        placeholder="e.g. Teak hout frame, beton aanrechtblad, extra LED verlichting..."
+                        placeholder={language === 'EN' ? 'e.g. Teak wood frame, concrete countertop, LED lighting...' : 'b.v. Teakhout frame, beton aanrectblad...'}
                         defaultValue="Bespoke teak wood frame with polished concrete countertop (3.5m width)."
                       />
                     </div>
                     {/* Response deadline */}
                     <div>
-                      <label className="block text-[10px] font-bold text-dark/50 uppercase mb-1">Reactie Deadline (Response Deadline)</label>
+                      <label className="block text-[10px] font-bold text-dark/50 uppercase mb-1">
+                        {language === 'EN' ? 'Response Deadline' : 'Reactie Deadline'}
+                      </label>
                       <input
                         type="date"
                         defaultValue={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
@@ -836,7 +842,7 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
                     >
                       {isPriceRequestSent 
                         ? (language === 'EN' ? '✓ Request Sent (Green)' : '✓ Aanvraag Verzonden (Groen)') 
-                        : (language === 'EN' ? 'Prijsaanvraag Versturen →' : 'Prijsaanvraag Versturen →')}
+                        : (language === 'EN' ? 'Send Price Request →' : 'Prijsaanvraag Versturen →')}
                     </Button>
                   </div>
                 </div>
@@ -1285,7 +1291,7 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
                 <div key={item.id} className="relative">
                   <div className="absolute -left-6 top-1 w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-[#EDE8DF]" />
                   <div className="font-semibold text-dark">{item.title}</div>
-                  <div className="text-dark/60 text-[11px] mt-0.5">{item.desc}</div>
+                  <div className="text-dark/60 text-[11px] mt-0.5">{translateCategory(item.desc)}</div>
                   <div className="flex justify-between items-center text-[10px] text-dark/40 mt-1 font-mono">
                     <span>{item.time}</span>
                     <span>{item.user}</span>

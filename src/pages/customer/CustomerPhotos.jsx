@@ -14,25 +14,25 @@ export default function CustomerPhotos() {
   const photoUpdates = [
     {
       id: 1,
-      title: 'Teakhouten Frame Constructie',
-      phase: 'Werkplaats Fasedatum: 12 Okt 2026',
-      description: 'Het massieve teak houten frame is op maat gezaagd en gemonteerd door vakman Sven Hoek.',
+      title: language === 'EN' ? 'Teak Wood Frame Construction' : 'Teakhouten Frame Constructie',
+      phase: language === 'EN' ? 'Workshop Phase Date: 12 Oct 2026' : 'Werkplaats Fasedatum: 12 Okt 2026',
+      description: language === 'EN' ? 'The solid teak wood frame has been cut to size and assembled by craftsman Sven Hoek.' : 'Het massieve teak houten frame is op maat gezaagd en gemonteerd door vakman Sven Hoek.',
       img: projectImg,
       craftsman: 'Sven Hoek'
     },
     {
       id: 2,
-      title: 'Polijsten Betonblad & Grill Uitsparing',
-      phase: 'Werkplaats Fasedatum: 18 Okt 2026',
-      description: 'Het donkergrijze betonblad is gepolijst en voorzien van waterafstotende beschermlaag.',
+      title: language === 'EN' ? 'Polishing Concrete Top & Grill Cutout' : 'Polijsten Betonblad & Grill Uitsparing',
+      phase: language === 'EN' ? 'Workshop Phase Date: 18 Oct 2026' : 'Werkplaats Fasedatum: 18 Okt 2026',
+      description: language === 'EN' ? 'The dark grey concrete top has been polished and provided with a water-repellent protective layer.' : 'Het donkergrijze betonblad is gepolijst en voorzien van waterafstotende beschermlaag.',
       img: heroImg,
       craftsman: 'Sven Hoek'
     },
     {
       id: 3,
-      title: 'Eindkeuring & Kwaliteitscontrole',
-      phase: 'Werkplaats Fasedatum: 24 Okt 2026',
-      description: 'Tim & Bram hebben de lades, scharnieren en kabeldoorvoeren gecontroleerd.',
+      title: language === 'EN' ? 'Final Inspection & Quality Control' : 'Eindkeuring & Kwaliteitscontrole',
+      phase: language === 'EN' ? 'Workshop Phase Date: 24 Oct 2026' : 'Werkplaats Fasedatum: 24 Okt 2026',
+      description: language === 'EN' ? 'Tim & Bram have checked the drawers, hinges and cable ducts.' : 'Tim & Bram hebben de lades, scharnieren en kabeldoorvoeren gecontroleerd.',
       img: projectImg,
       craftsman: 'Tim & Bram'
     }
@@ -47,7 +47,7 @@ export default function CustomerPhotos() {
             {language === 'EN' ? 'Workshop Photo Updates (Build Gallery)' : 'Werkplaats Foto-Updates'}
           </h2>
         </div>
-        <p className="text-dark/60 text-sm mt-1">Volg de bouw van uw buitenkeuken live met foto updates direct uit de ambachtelijke werkplaats.</p>
+        <p className="text-dark/60 text-sm mt-1">{language === 'EN' ? 'Follow the construction of your outdoor kitchen live with photo updates directly from the craft workshop.' : 'Volg de bouw van uw buitenkeuken live met foto updates direct uit de ambachtelijke werkplaats.'}</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
@@ -58,7 +58,7 @@ export default function CustomerPhotos() {
               <div className="absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/20 to-transparent"></div>
               
               <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-lg border border-[#D6CFC2] text-[10px] font-bold text-primary flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-accent" /> Foto #{photo.id}
+                <Sparkles className="w-3 h-3 text-accent" /> {language === 'EN' ? 'Photo' : 'Foto'} #{photo.id}
               </div>
 
               <div className="absolute bottom-3 left-3 right-3">
@@ -70,8 +70,8 @@ export default function CustomerPhotos() {
             <div className="p-3.5 space-y-2 text-xs">
               <p className="text-dark/70 line-clamp-2">{photo.description}</p>
               <div className="pt-2 border-t border-[#D6CFC2]/40 flex justify-between items-center text-[10px] text-dark/50">
-                <span>Vakman: <strong className="text-primary">{photo.craftsman}</strong></span>
-                <span className="font-bold text-accent hover:underline flex items-center gap-1"><Eye className="w-3 h-3" /> Vergroten</span>
+                <span>{language === 'EN' ? 'Craftsman:' : 'Vakman:'} <strong className="text-primary">{photo.craftsman}</strong></span>
+                <span className="font-bold text-accent hover:underline flex items-center gap-1"><Eye className="w-3 h-3" /> {language === 'EN' ? 'Enlarge' : 'Vergroten'}</span>
               </div>
             </div>
           </Card>
@@ -102,7 +102,7 @@ export default function CustomerPhotos() {
 
               <div className="flex justify-end pt-1">
                 <button onClick={() => setSelectedPhoto(null)} className="px-4 py-2 bg-primary text-cream font-bold rounded-xl text-xs hover:bg-primary/90">
-                  Sluiten
+                  {language === 'EN' ? 'Close' : 'Sluiten'}
                 </button>
               </div>
             </motion.div>

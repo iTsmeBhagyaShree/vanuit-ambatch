@@ -5,6 +5,7 @@ import Button from '../../components/Button';
 import Table from '../../components/Table';
 import Badge from '../../components/Badge';
 import { useLanguage } from '../../context/LanguageContext';
+import { tValue } from '../../utils/translator';
 import { 
   Users, UserCheck, Briefcase, DollarSign, Search, Filter, 
   Mail, Phone, MapPin, Calendar, FileText, ChevronRight, X, Sparkles, Plus, Download, ArrowUpRight

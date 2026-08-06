@@ -334,7 +334,7 @@ export default function AdminDashboard() {
             </div>
             <p className="text-xl font-heading font-extrabold text-dark">{dateRange === '7days' ? '28' : dateRange === '3months' ? '340' : '122'}</p>
             <p className="text-[10px] font-body text-emerald-700 font-semibold flex items-center gap-0.5">
-              <ArrowUpRight className="w-2.5 h-2.5" /> +14% vs vorig
+              <ArrowUpRight className="w-2.5 h-2.5" /> {language === 'NL' ? '+14% vs vorig' : '+14% vs previous'}
             </p>
           </div>
 
@@ -406,7 +406,7 @@ export default function AdminDashboard() {
                 <Sparkles className="w-3.5 h-3.5" />
               </div>
             </div>
-            <p className="text-xl font-heading font-extrabold text-dark">4 <span className="text-xs font-body font-normal text-emerald-600">Actief</span></p>
+            <p className="text-xl font-heading font-extrabold text-dark">4 <span className="text-xs font-body font-normal text-emerald-600">{language === 'NL' ? 'Actief' : 'Active'}</span></p>
             <p className="text-[10px] font-body text-dark/50 truncate">Meta Suite Sync</p>
           </div>
         </div>
@@ -428,8 +428,8 @@ export default function AdminDashboard() {
                 </h4>
                 <div className="space-y-2">
                   {(mockFollowUps && mockFollowUps.length > 0 ? mockFollowUps : [
-                    { id: 'FOL-101', name: 'Sophie Bakken', type: 'Offerte Q-4002 nabellen', due: 'Vandaag' },
-                    { id: 'FOL-102', name: 'Mark de Boer', type: 'Opties overkapping bespreken', due: 'Morgen' }
+                    { id: 'FOL-101', name: 'Sophie Bakken', type: language === 'NL' ? 'Offerte Q-4002 nabellen' : 'Follow up on Quote Q-4002', due: language === 'NL' ? 'Vandaag' : 'Today' },
+                    { id: 'FOL-102', name: 'Mark de Boer', type: language === 'NL' ? 'Opties overkapping bespreken' : 'Discuss canopy options', due: language === 'NL' ? 'Morgen' : 'Tomorrow' }
                   ]).map(item => (
                     <div key={item.id} className="flex justify-between items-center gap-2 bg-white p-2.5 rounded-lg border border-[#D6CFC2]/30 shadow-sm min-w-0">
                       <div className="min-w-0 flex-1">
@@ -449,8 +449,8 @@ export default function AdminDashboard() {
                 </h4>
                 <div className="space-y-2">
                   {(mockDeliveries && mockDeliveries.length > 0 ? mockDeliveries : [
-                    { id: 'DEL-101', project: 'Luxe Teak Buitenkeuken 4m', customer: 'Jan de Vries', date: 'Vr 14 Aug', partner: 'CraftWood Veluwe' },
-                    { id: 'DEL-102', project: 'Kliko Ombouw Triple Antraciet', customer: 'Sophie Bakken', date: 'Wo 19 Aug', partner: 'StaalWerk Brabant' }
+                    { id: 'DEL-101', project: language === 'NL' ? 'Luxe Teak Buitenkeuken 4m' : 'Luxury Teak Outdoor Kitchen 4m', customer: 'Jan de Vries', date: language === 'NL' ? 'Vr 14 Aug' : 'Fri 14 Aug', partner: 'CraftWood Veluwe' },
+                    { id: 'DEL-102', project: language === 'NL' ? 'Kliko Ombouw Triple Antraciet' : 'Triple Bin Storage Anthracite', customer: 'Sophie Bakken', date: language === 'NL' ? 'Wo 19 Aug' : 'Wed 19 Aug', partner: 'StaalWerk Brabant' }
                   ]).map(item => (
                     <div key={item.id} className="flex flex-col bg-white p-2.5 rounded-lg border border-[#D6CFC2]/30 shadow-sm">
                       <div className="flex justify-between items-center mb-1">
@@ -472,7 +472,14 @@ export default function AdminDashboard() {
                   <a href="/admin/tasks" className="text-[10px] font-bold text-accent hover:underline">{language === 'NL' ? 'Bekijk Alles →' : 'View All →'}</a>
                 </div>
                 <div className="space-y-2">
-                  {dashboardTasks.slice(0, 4).map(item => (
+                  {dashboardTasks.slice(0, 4).map(item => {
+                    let displayTitle = item.title || item.task;
+                    if (language === 'EN') {
+                      if (displayTitle?.includes('Inmeten buitenkeuken')) displayTitle = 'Measure outdoor kitchen at John Miller';
+                      else if (displayTitle?.includes('Kleurstalen opsturen')) displayTitle = 'Send color samples to Sophia Taylor';
+                      else if (displayTitle?.includes('Offerte Q-4003 nabellen')) displayTitle = 'Follow up on quote Q-4003 (Mark Davis)';
+                    }
+                    return (
                     <div 
                       key={item.id} 
                       onClick={() => handleToggleDashboardTask(item.id)}
@@ -487,10 +494,10 @@ export default function AdminDashboard() {
                         className="w-3.5 h-3.5 accent-primary mt-0.5 cursor-pointer flex-shrink-0"
                       />
                       <p className={`text-[11px] font-medium leading-tight ${item.completed ? 'line-through' : 'text-dark'}`}>
-                        {item.title || item.task}
+                        {displayTitle}
                       </p>
                     </div>
-                  ))}
+                  )})}
                 </div>
               </div>
             </div>
@@ -582,7 +589,9 @@ export default function AdminDashboard() {
                   {i < mockRecentActivities.length - 1 && (
                     <div className="absolute left-[3px] top-4 bottom-[-16px] w-px bg-cream-dark/60"></div>
                   )}
-                  <p className="text-xs text-dark font-body leading-snug">{a.textKey ? t(a.textKey, a.params) : a.text}</p>
+                  <p className="text-xs text-dark font-body leading-snug">
+                    {a.textKey ? t(a.textKey, a.params) : (a.text || (language === 'NL' && a.id === 1 ? 'Nieuwe lead ontvangen - Emma Wilson (Poolhouse 8x4m)' : a.title ? `${a.title} - ${a.detail}` : ''))}
+                  </p>
                   <span className="text-[10px] text-dark/35 font-body mt-0.5 block">{a.timeKey ? t(a.timeKey) : a.time}</span>
                 </div>
               ))}

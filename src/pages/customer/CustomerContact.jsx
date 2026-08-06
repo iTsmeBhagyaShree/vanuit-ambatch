@@ -125,7 +125,7 @@ export default function CustomerContact() {
             </div>
 
             <div className="pt-3 border-t border-[#D6CFC2]/60">
-              <p className="font-bold text-dark">{language === 'EN' ? 'Werkplaats & Showroom:' : 'Werkplaats & Showroom:'}</p>
+              <p className="font-bold text-dark">{language === 'EN' ? 'Workshop & Showroom:' : 'Werkplaats & Showroom:'}</p>
               <p className="text-dark/60 mt-0.5">Herengracht 1, 1015 BK Amsterdam</p>
             </div>
           </div>

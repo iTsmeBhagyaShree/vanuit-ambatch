@@ -11,6 +11,17 @@ import { useLanguage } from '../../context/LanguageContext';
 export default function Planning() {
   const { t, language } = useLanguage();
   const label = (english, dutch) => language === 'EN' ? english : dutch;
+
+  const translateProjectName = (name) => {
+    if (language !== 'EN' || !name) return name;
+    return name
+      .replace(/Eiken Houten Overkapping/gi, 'Oak Wooden Canopy')
+      .replace(/Luxe Teak Buitenkeuken/gi, 'Luxury Teak Outdoor Kitchen')
+      .replace(/Kliko Ombouw Triple Antraciet/gi, 'Triple Bin Storage Anthracite')
+      .replace(/Luxury Buitenkeukens/gi, 'Luxury Outdoor Kitchens')
+      .replace(/Kliko Ombouw/gi, 'Bin Storage');
+  };
+
   const [projects, setProjects] = useState([]);
   const [partners, setPartners] = useState([]);
   const [selectedPartnerFilter, setSelectedPartnerFilter] = useState('All');
@@ -170,9 +181,9 @@ export default function Planning() {
                 {partnerCapacityOverloads.map((ov, i) => (
                   <div key={i} className="flex justify-between items-center bg-white/90 p-2.5 rounded-lg border border-red-200">
                     <div>
-                      <span className="font-bold text-dark">{ov.partner}</span> heeft <span className="font-bold text-red-600">{ov.count} opleveringen</span> in {ov.week}
+                      <span className="font-bold text-dark">{ov.partner}</span> {label('has', 'heeft')} <span className="font-bold text-red-600">{ov.count} {label('deliveries', 'opleveringen')}</span> in {ov.week}
                     </div>
-                    <Badge variant="danger">⚠️ Overbelast</Badge>
+                    <Badge variant="danger">⚠️ {label('Overloaded', 'Overbelast')}</Badge>
                   </div>
                 ))}
               </div>
@@ -187,15 +198,15 @@ export default function Planning() {
                   <UserX className="w-5 h-5 text-amber-700 flex-shrink-0" />
                   <span>{label(`No Partner Assigned Yet (${unassignedProjects.length} Projects)`, `Nog geen partner toegewezen (${unassignedProjects.length} projecten)`)}</span>
                 </div>
-                <span className="text-[10px] font-bold bg-amber-200/80 text-amber-900 px-2 py-0.5 rounded-full">Actie Vereist</span>
+                <span className="text-[10px] font-bold bg-amber-200/80 text-amber-900 px-2 py-0.5 rounded-full">{label('Action Required', 'Actie Vereist')}</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {unassignedProjects.map((un, i) => (
                   <div key={i} className="flex justify-between items-center bg-white/90 p-3 rounded-xl border border-amber-200 gap-2 shadow-xs">
                     <div className="min-w-0 flex-1 space-y-0.5">
-                      <p className="font-bold text-dark text-xs truncate">{un.name}</p>
-                      <p className="text-[10px] text-amber-900/80 truncate">Klant: <span className="font-semibold">{un.customer}</span></p>
+                      <p className="font-bold text-dark text-xs truncate">{translateProjectName(un.name)}</p>
+                      <p className="text-[10px] text-amber-900/80 truncate">{label('Client:', 'Klant:')} <span className="font-semibold">{un.customer}</span></p>
                       <p className="text-[10px] text-dark/50 font-mono truncate">📅 {un.deadline}</p>
                     </div>
                     <Button
@@ -204,7 +215,7 @@ export default function Planning() {
                       onClick={() => setAssignPartnerModalProject(un)}
                       className="text-[10px] py-1 px-3 flex-shrink-0 shadow-xs"
                     >
-                      Wijs Toe →
+                      {label('Assign →', 'Wijs Toe →')}
                     </Button>
                   </div>
                 ))}
@@ -310,21 +321,21 @@ export default function Planning() {
                                 ? 'bg-primary/10 text-primary' 
                                 : 'bg-amber-100 text-amber-900'
                             }`}>
-                              {proj.status === 'In Progress' ? 'Lopend' : proj.status === 'Completed' ? 'Voltooid' : 'Wachtend'}
+                              {proj.status === 'In Progress' ? label('ONGOING', 'LOPEND') : proj.status === 'Completed' ? label('COMPLETED', 'VOLTOOID') : label('PENDING', 'WACHTEND')}
                             </span>
                           </div>
 
                           <h4 className="font-heading font-bold text-xs text-primary leading-tight line-clamp-2">
-                            {proj.name}
+                            {translateProjectName(proj.name)}
                           </h4>
 
                           <p className="text-[10px] text-dark/60 truncate">
-                            Klant: <span className="font-semibold text-dark">{proj.customer}</span>
+                            {label('Client:', 'Klant:')} <span className="font-semibold text-dark">{proj.customer}</span>
                           </p>
 
                           <div className="pt-1.5 border-t border-[#D6CFC2]/40 text-[9px] space-y-0.5">
                             <p className={`font-bold truncate ${isProjUnassigned ? 'text-amber-800' : 'text-primary'}`}>
-                              {isProjUnassigned ? '⚠️ Geen Partner' : `👷 ${proj.partner}`}
+                              {isProjUnassigned ? label('⚠️ No Partner', '⚠️ Geen Partner') : `👷 ${proj.partner}`}
                             </p>
                             <p className="text-dark/50 font-mono truncate">
                               📅 {proj.deadline}

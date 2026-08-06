@@ -9,6 +9,7 @@ import WorkflowTracker from '../../components/WorkflowTracker';
 import { Plus, Search, Filter, X, CheckCircle, Trash2, Edit2, RotateCcw, AlertTriangle, ChevronDown, Download, Upload, GitCommit, Send } from 'lucide-react';
 import { mockLeads as defaultLeads } from '../../utils/mockData';
 import { useLanguage } from '../../context/LanguageContext';
+import { tValue } from '../../utils/translator';
 
 export default function Leads() {
   const { t, language } = useLanguage();
@@ -441,27 +442,11 @@ export default function Leads() {
     });
 
   const getProductTypeLabel = (type) => {
-    if (language !== 'EN') return type;
-    const lower = (type || '').toLowerCase();
-    if (lower.includes('buitenkeuken')) return 'Outdoor Kitchen';
-    if (lower.includes('buitenverblijf')) return 'Outdoor Living';
-    if (lower.includes('overkapping')) return 'Canopy';
-    if (lower.includes('poolhouse')) return 'Poolhouse';
-    if (lower.includes('kliko')) return 'Bin Storage';
-    return type;
+    return tValue(type, language);
   };
 
   const getStatusLabel = (st) => {
-    if (language !== 'EN') return st;
-    switch (st) {
-      case 'Nieuw': return 'New';
-      case 'Bericht verstuurd': return 'Message Sent';
-      case 'In gesprek': return 'In Conversation';
-      case 'Offerte verstuurd': return 'Quote Sent';
-      case 'Gewonnen': return 'Won';
-      case 'Verloren': return 'Lost';
-      default: return st;
-    }
+    return tValue(st, language);
   };
 
   const columns = [

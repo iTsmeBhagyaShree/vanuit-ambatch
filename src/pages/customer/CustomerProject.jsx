@@ -7,6 +7,14 @@ import { CheckCircle2, Circle, Clock, Calendar, MapPin, Wrench, ShieldCheck, Com
 export default function CustomerProject() {
   const { t, language } = useLanguage();
 
+  const getDisplayValue = (key, val) => {
+    if (language !== 'EN') return val;
+    if (key === 'address' && val === 'Keizersgracht 420, 1016 GC Amsterdam') return '420 King Street, 1016 GC London';
+    if (key === 'craftsman' && val === 'Sven Hoek (Hoek Bouw)') return 'Sven Hoek (Hoek Construction)';
+    if (key === 'customer' && val === 'Jan de Vries') return 'John Miller';
+    return val;
+  };
+
   const currentProject = {
     id: 'P-2001',
     name: 'Luxury Outdoor Kitchen Amsterdam',
@@ -71,14 +79,14 @@ export default function CustomerProject() {
             <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
             <div className="min-w-0">
               <span className="text-[10px] text-dark/50 font-bold uppercase block">{language === 'EN' ? 'Delivery Location' : 'Opleverlocatie'}</span>
-              <span className="font-semibold text-dark truncate block">{currentProject.address}</span>
+              <span className="font-semibold text-dark truncate block">{getDisplayValue('address', currentProject.address)}</span>
             </div>
           </div>
           <div className="flex items-center gap-2 bg-white/70 p-2 sm:p-2.5 rounded-xl border border-[#D6CFC2]/40 min-w-0">
             <Wrench className="w-4 h-4 text-primary flex-shrink-0" />
             <div className="min-w-0">
               <span className="text-[10px] text-dark/50 font-bold uppercase block">{language === 'EN' ? 'Assigned Craftsman' : 'Toegewezen Vakman'}</span>
-              <span className="font-semibold text-primary truncate block">{currentProject.craftsman}</span>
+              <span className="font-semibold text-primary truncate block">{getDisplayValue('craftsman', currentProject.craftsman)}</span>
             </div>
           </div>
         </div>

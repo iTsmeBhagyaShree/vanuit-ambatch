@@ -59,6 +59,18 @@ export default function Partners() {
     return type;
   };
 
+  const translatePartnerData = (str) => {
+    if (language !== 'EN' || !str) return str;
+    return str
+      .replace(/CraftWood Veluwe/gi, 'CraftWood Valley')
+      .replace(/StaalWerk Brabant/gi, 'SteelWork Brabant')
+      .replace(/Hout & Steen Utrecht/gi, 'Wood & Stone Utrecht')
+      .replace(/De Gelderse Ambacht/gi, 'The Gelderland Craft')
+      .replace(/Noord-Zeeland Houtbouw/gi, 'North-Zeeland Timber Construction')
+      .replace(/Gelderland/gi, 'Gelderland')
+      .replace(/Noord-Brabant/gi, 'North Brabant');
+  };
+
   // Load Data
   useEffect(() => {
     try {
@@ -68,7 +80,7 @@ export default function Partners() {
         if (Array.isArray(parsed) && parsed.length >= 5) {
           const safePartners = parsed.map(p => ({
             ...p,
-            region: p.region || 'Noord-Holland',
+            region: translatePartnerData(p.region) || 'Noord-Holland',
             productTypes: Array.isArray(p.productTypes) ? p.productTypes : ['Buitenkeukens'],
             workload: p.workload || 'Beschikbaar',
             invoices: Array.isArray(p.invoices) ? p.invoices : []
@@ -247,9 +259,9 @@ export default function Partners() {
               onClick={() => setDetailModalPartner(row)}
               className="font-semibold text-primary hover:underline leading-tight text-left text-xs"
             >
-              {row.name}
+              {translatePartnerData(row.name)}
             </button>
-            <p className="text-[10px] text-dark/50">{row.company}</p>
+            <p className="text-[10px] text-dark/50">{translatePartnerData(row.company)}</p>
           </div>
         </div>
       )
@@ -390,8 +402,8 @@ export default function Partners() {
                         {partner.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                       </div>
                       <div className="min-w-0">
-                        <h3 className="font-heading font-bold text-dark text-sm truncate leading-tight">{partner.name}</h3>
-                        <p className="text-[10px] text-dark/50 font-mono truncate">{partner.company || partner.region}</p>
+                        <h3 className="font-heading font-bold text-dark text-sm truncate leading-tight">{translatePartnerData(partner.name)}</h3>
+                        <p className="text-[10px] text-dark/50 font-mono truncate">{translatePartnerData(partner.company) || partner.region}</p>
                       </div>
                     </div>
                     <div className="flex-shrink-0">
@@ -531,10 +543,10 @@ export default function Partners() {
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="text-xl font-heading font-bold text-primary">{detailModalPartner.name}</h3>
+                      <h3 className="text-xl font-heading font-bold text-primary">{translatePartnerData(detailModalPartner.name)}</h3>
                       {getWorkloadBadge(detailModalPartner.workload)}
                     </div>
-                    <p className="text-xs font-bold text-accent">{detailModalPartner.company} — <span className="font-mono text-dark/60">{detailModalPartner.kvk || (language === 'NL' ? 'KVK-Geregistreerd' : 'CoC Registered')}</span></p>
+                    <p className="text-xs font-bold text-accent">{translatePartnerData(detailModalPartner.company)} — <span className="font-mono text-dark/60">{detailModalPartner.kvk || (language === 'NL' ? 'KVK-Geregistreerd' : 'CoC Registered')}</span></p>
                     <p className="text-[11px] text-dark/60 flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" /> {detailModalPartner.region}</p>
                   </div>
                 </div>
@@ -564,7 +576,7 @@ export default function Partners() {
                     projectsList.filter(p => (p.partner || '').toLowerCase() === detailModalPartner.name.toLowerCase()).map(p => (
                       <div key={p.id} className="p-3 flex justify-between items-center">
                         <div>
-                          <p className="font-bold text-dark">{p.name}</p>
+                          <span className="font-bold text-xs font-heading">{translatePartnerData(p.name)}</span>
                           <p className="text-[10px] text-dark/50">{language === 'NL' ? 'Klant' : 'Customer'}: {p.customer} | Deadline: {p.deadline}</p>
                         </div>
                         <Badge variant={p.status === 'Completed' ? 'success' : 'primary'}>{p.status}</Badge>
