@@ -41,6 +41,18 @@ export default function ProfitLoss() {
   const totalGrossProfit = totalRevenue - totalCosts;
   const averageMargin = totalRevenue > 0 ? (totalGrossProfit / totalRevenue) * 100 : 0;
 
+  const translateProjectName = (name) => {
+    if (language !== 'EN' || !name) return name;
+    return name
+      .replace(/Luxe Teak Buitenkeuken 4m/g, 'Luxury Teak Outdoor Kitchen 4m')
+      .replace(/Kliko Ombouw Triple Antraciet/g, 'Triple Bin Storage Anthracite')
+      .replace(/Eiken Houten Overkapping 6x4m/g, 'Oak Wooden Canopy 6x4m')
+      .replace(/Tuinterras De Luxe/g, 'Luxury Terrace Decking')
+      .replace(/Buitenkeuken/g, 'Outdoor Kitchen')
+      .replace(/Kliko Ombouw/g, 'Bin Storage')
+      .replace(/Overkapping/g, 'Canopy');
+  };
+
   const translateCategory = (cat) => {
     if (language !== 'EN' || !cat) return cat;
     return cat
@@ -56,7 +68,7 @@ export default function ProfitLoss() {
       style: { minWidth: '220px' },
       render: (row) => (
         <div>
-          <p className="font-bold text-dark text-xs sm:text-sm">{row.projectName}</p>
+          <p className="font-bold text-dark text-xs sm:text-sm">{translateProjectName(row.projectName)}</p>
           <p className="text-[11px] text-dark/50 font-mono flex items-center gap-1 mt-0.5">
             <span className="font-semibold text-primary">{row.customer}</span> • ID: {row.projectId}
           </p>
@@ -106,7 +118,7 @@ export default function ProfitLoss() {
   ];
 
   return (
-    <div className="space-y-6 font-body text-[#4A4A43]">
+    <div className="space-[#4A4A43] space-y-6 font-body">
       <div>
         <h2 className="text-2xl font-heading font-bold text-primary">
           {language === 'EN' ? 'Profit & Loss Analysis' : 'Winst & Verlies (Profit & Loss)'}
@@ -167,7 +179,9 @@ export default function ProfitLoss() {
 
         <div className="p-4 bg-[#EDE8DF] border border-[#C4BEB3] rounded-2xl shadow-sm flex items-center justify-between border-l-4 border-l-amber-600">
           <div className="space-y-1 min-w-0">
-            <p className="text-[11px] font-bold text-dark/50 uppercase tracking-wider truncate">Gemiddelde Marge</p>
+            <p className="text-[11px] font-bold text-dark/50 uppercase tracking-wider truncate">
+              {language === 'EN' ? 'Average Margin' : 'Gemiddelde Marge'}
+            </p>
             <p className="text-xl sm:text-2xl font-heading font-bold text-amber-800 truncate">{averageMargin.toFixed(1)}%</p>
             <span className="inline-flex items-center text-[10px] font-semibold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-full">
               High Margin Target

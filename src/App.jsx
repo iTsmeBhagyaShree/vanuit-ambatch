@@ -19,6 +19,7 @@ import Invoices from './pages/admin/Invoices';
 import Bank from './pages/admin/Bank';
 import Taxes from './pages/admin/Taxes';
 import ProfitLoss from './pages/admin/ProfitLoss';
+import Customers from './pages/admin/Customers';
 
 // Partner Pages
 import PartnerDashboard from './pages/partner/PartnerDashboard';
@@ -78,6 +79,7 @@ function App() {
         <Route path="documents" element={<Documents role="admin" />} />
         <Route path="finance" element={<Finance />} />
         <Route path="invoices" element={<Invoices />} />
+        <Route path="customers" element={<Customers />} />
         <Route path="bank" element={<Bank />} />
         <Route path="taxes" element={<Taxes />} />
         <Route path="profit-loss" element={<ProfitLoss />} />

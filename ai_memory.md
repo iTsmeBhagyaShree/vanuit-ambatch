@@ -1,4 +1,4 @@
-﻿# AI Memory - Changes & Updates Tracking
+# AI Memory - Changes & Updates Tracking
 
 This file tracks all modifications, additions, and updates made to the **Vanuit Ambacht** project by the AI.
 
@@ -6,6 +6,125 @@ This file tracks all modifications, additions, and updates made to the **Vanuit 
 - **Type**: React + Vite + Tailwind CSS (v3) Frontend
 - **Key Features**: Admin Panel, Partner Panel, Role-Based Route Protection, Responsive Layout.
 - **Theme**: Premium Forest Green (`#3E4E36`), Accent Cream/Beige, custom typography.
+
+## 139. Dedicated Customers Directory Page & Partner Price Request Wizard Refinement (Completed 2026-08-06)
+* **Goal**: Implement dedicated Customers (`Klanten`) Directory page under Accounting (`Boekhouding`) in Admin Sidebar and refine Step 4 of the 7-Step Partner Price Request Wizard with custom free-text input fields and direct launcher buttons.
+* **Changes**:
+  1. **Dedicated Customers Directory Page (`/admin/customers`)**:
+     - Created `src/pages/admin/Customers.jsx`: Dedicated Customers Directory UI with stat cards (*Total Customers, Active Projects, Combined Lifetime Revenue*), full-width responsive customer table (*Name, Contact, Location, Product Interest, Contract Value, Status*), search, status filters, and interactive Customer Profile Detail Modal.
+     - Updated `src/layouts/Sidebar.jsx`: Added `{ name: language === 'EN' ? 'Customers' : 'Klanten', path: '/admin/customers' }` under the `Boekhouding` (Accounting) dropdown menu.
+     - Updated `src/App.jsx`: Registered route `<Route path="customers" element={<Customers />} />`.
+  2. **Step 4 Partner Price Request Wizard Refinement**:
+     - Updated `src/components/WorkflowTracker.jsx`: Added **`🚀 Open 7-Step Partner Price Request Wizard`** button inside Step 2 ("Partner Price Request") of Lead Card modal.
+     - Updated `src/pages/admin/Leads.jsx`: Added launcher icon button in Leads table actions column and refined Step 4 ("Uitvoering en Materialen") of the 7-Step Partner Price Request Wizard modal with open free-text input fields for **Wood Type (Houtsoort)**, **Countertop Material (Werkblad)**, and **Special Execution Notes**.
+  3. Verified clean production build (`npm run build`).
+
+---
+
+## 138. Auto-Convert Lead to Live Project & Customers Directory (Completed 2026-08-05)
+* **Goal**: Automatically convert approved leads to Live Projects (`/admin/projects`) and add client details to the Customers Directory without manual re-typing when quote is approved and project/partner is setup.
+* **Changes**:
+  1. **Automated Live Project & Customer Sync in WorkflowTracker.jsx**:
+     - Updated `src/components/WorkflowTracker.jsx`: Created central `autoConvertProjectAndCustomer` pipeline connected to BOTH `handleSaveAutoProject` AND `handleSaveAutoPartner` (`Assign Partner →` button).
+     - When submitting Partner assignment or Project setup, automatically:
+       - Generates and appends a new Active Installation Project (`#P-2001` / `#P-2003`) to `app_projects` in `localStorage` with assigned craftsman partner (*Sven Hoek*), 25% progress, and delivery deadline.
+       - Appends client contact details (*Name, Email, Phone, Address, Contract Value*) to `app_customers` in `localStorage`.
+       - Dispatches global `app_data_changed` event for real-time synchronization across all Admin pages.
+  2. Verified clean production build (`npm run build`).
+
+---
+
+## 137. Direct Multi-Item Quotation Generator in Step 4 (Completed 2026-08-05)
+* **Goal**: Enable direct full multi-item quotation generation matching Bookkeeping -> Quotes directly from Step 4 ("Create Quote for Lead/Customer") inside the Lead Card modal.
+* **Changes**:
+  1. **Upgraded Quote Builder Modal in WorkflowTracker.jsx**:
+     - Updated `src/components/WorkflowTracker.jsx`: Upgraded `autoModalType === 'quote'` from simple 1-field form to complete **Direct Multi-Item Quotation Generator Modal**.
+     - Added **Pre-saved Product Library Dropdown** (`PRESET_PRODUCTS`) for 1-click catalog insertion (*Thermo Fraké, Teak Frame, Beton Cire Top, BGE Cutout, RVS Fridge, RVS Sink*).
+     - Added **Itemized Line Pricing Table** (`quoteLineItems`) with quantity, unit price, item total calculation, and line item add/remove buttons.
+     - Added automatic 21% VAT calculation, localStorage database persistence (`app_quotes`), workflow step advancement, and instant opening of the 6-Page Branded PDF Proposal Viewer.
+  2. Verified clean production build (`npm run build`).
+
+---
+
+## 136. Step 3 & Step 4 Naming Updates (Completed 2026-08-05)
+* **Goal**: Rename Step 3 to "Partner Quote" and Step 4 to "Create Quote for Lead/Customer" in the 8-step Workflow Tracker stepper and stage headers.
+* **Changes**:
+  1. **Step 3 & Step 4 Renaming in WORKFLOW_STEPS**:
+     - Updated `src/components/WorkflowTracker.jsx`: Renamed Step 3 from `'Quote Prepared'` to **`'Partner Quote'`** and Step 4 from `'Quote Approved'` to **`'Create Quote for Lead/Customer'`**.
+  2. Verified clean production build (`npm run build`).
+
+---
+
+## 135. Smart Step 2 Green Color Conditional Logic (Completed 2026-08-05)
+* **Goal**: Ensure Step 2 (Partner Price Request) turns Green (Completed) ONLY when a price request is explicitly submitted to a partner via the "Prijsaanvraag Versturen" button. If a direct quote is generated without sending a partner inquiry, Step 2 remains Open/Uncompleted.
+* **Changes**:
+  1. **Strict Green Color Rule in getStepStatus**:
+     - Updated `src/components/WorkflowTracker.jsx`: Added `isPriceRequestSent` state variable and updated `getStepStatus` so Step 2 requires `isPriceRequestSent === true` to display the Green Completed badge.
+  2. **Interactive "Prijsaanvraag Versturen" Submit Button**:
+     - Updated `src/components/WorkflowTracker.jsx`: Added interactive button to Step 2 form that triggers `setIsPriceRequestSent(true)` and displays a green success confirmation pill (`✓ Aanvraag Verzonden (Groen)`).
+  3. Verified clean production build (`npm run build`).
+
+---
+
+## 134. Step 2 Renaming to "Partner Price Request" & Editable Free-Text Fields (Completed 2026-08-05)
+* **Goal**: Rename Step 2 from "Requirement Discussion" to "Partner Price Request" and convert Product Type & Preferred Dimensions (Gewenste Maat) from read-only dropdowns to 100% Editable Free-Text Fields.
+* **Changes**:
+  1. **Step 2 Renaming in WORKFLOW_STEPS**:
+     - Updated `src/components/WorkflowTracker.jsx`: Renamed Step 2 from `'Requirement Discussion'` to **`'Partner Price Request'`** (Dutch: **`'Prijsaanvraag Partner'`**), updating the Stepper progress bar and stage headers.
+  2. **Product Type & Preferred Dimensions Editable Free-Text Fields**:
+     - Updated `src/components/WorkflowTracker.jsx`: Converted `Product Type` and `Gewenste Maat / Preferred Dimensions` from read-only dropdowns to interactive **`<input type="text">`** free-text fields bound to `step2ProductType` and `step2Size` state variables.
+  3. Verified clean production build (`npm run build`).
+
+---
+
+## 133. Lead Quotation Visibility & 6-Page PDF Proposal Integration (Completed 2026-08-05)
+* **Goal**: Display linked submitted quotation badges and interactive 6-Page PDF Proposal Viewer on `/admin/leads` and inside `WorkflowTracker.jsx`.
+* **Changes**:
+  1. **Lead Card Submitted Quotation Card**:
+     - Updated `src/components/WorkflowTracker.jsx`: Added **`📄 Gekoppelde Offerte / Submitted Quotation`** card directly below Customer Details displaying Quote ID (`#Q-4001`), Total Amount (`€12,500`), Status Badge (`Offerte verstuurd`), Issue Date, and **`👁️ Bekijk Officiële 6-Page Offerte`** button.
+  2. **6-Page Dutch PDF Proposal Viewer Modal**:
+     - Added `quoteViewModalOpen` viewer modal inside `WorkflowTracker.jsx` featuring full branded cover page, intro letter, product specs grid (Thermo Fraké, Beton Cire, Kamado BBQ), itemized pricing breakdown, and PDF download trigger.
+  3. **Leads Table Overview Quote Badge**:
+     - Updated `src/pages/admin/Leads.jsx`: Added visible quote pill (`📄 #Q-4001 (€12.5k)`) directly in the Customer Name table column.
+  4. Verified clean production build (`npm run build`).
+
+---
+
+## 132. Lead Card Auto-Open, Commercial Actions, Plaud & Claude AI Integration (Completed 2026-08-05)
+* **Goal**: Implement row-click auto-open, action buttons, Commercial Actions section, Easy Back Navigation, Multiple Project Photos Upload gallery, Plaud AI Audio Import, and Claude AI Draft Proposal Engine on `/admin/leads` and `WorkflowTracker.jsx`.
+* **Changes**:
+  1. **Lead Row Click Auto-Open & Clean Actions**:
+     - Updated `src/pages/admin/Leads.jsx`: Removed old `Workflow` and `Price Request` buttons from table actions column. Passed `onRowClick={(row) => setActiveWorkflowLead(row)}` to `<Table>` for auto-opening Lead Card when clicking anywhere on a row.
+  2. **Lead Card Header Action Buttons**:
+     - Updated `src/components/WorkflowTracker.jsx`: Added **`Send Message`**, **`+ Add Commercial Action`**, and **`🎙️ Plaud AI Import`** header action buttons.
+  3. **New Commercial Actions Section**:
+     - Added `Commercial Actions` card section positioned **directly above Activity Lifecycle History** in `WorkflowTracker.jsx`, logging sales notes with user badges & date timestamps. Built **Add Commercial Action Free-Text Modal**.
+  4. **Easy Navigation Back to Leads Overview**:
+     - Updated `src/layouts/Sidebar.jsx`: Dispatched `app_reset_leads_view` custom event when clicking `Leads` link.
+     - Updated `src/pages/admin/Leads.jsx`: Listened to `app_reset_leads_view` event to reset `activeWorkflowLead` to `null`.
+     - Updated `src/components/WorkflowTracker.jsx`: Added **`← Back to Leads Overview`** button to Lead Card header.
+  5. **Multiple Project Photos Upload**:
+     - Updated `src/components/WorkflowTracker.jsx`: Converted photo input to `<input type="file" multiple />` for selecting multiple garden photos & 3D renders. Built **Thumbnail Gallery Grid** with preview images, filenames, and individual `X` delete buttons.
+  6. **Plaud AI Audio Import Integration**:
+     - Added `plaudRecordings` state, **Plaud AI Voice Notes Card** (with audio play/pause controls `▶️`/`⏸️`, filename, duration, date, and `🤖 Plaud AI Transcript Summary`), and **Plaud AI Audio Import Modal**.
+  7. **Claude AI Draft Proposal Integration**:
+     - Added **`✨ Generate Claude AI Proposal`** button to Plaud AI notes.
+     - Built **Claude AI Draft Proposal Engine** generating formal proposals in Vanuit Ambacht brand tone with personalized cover letter and itemized pricing breakdown (€13.600 total).
+     - Added 1-Click **`✨ Omzetten naar Officiële Offerte (#Q-4002)`** export handler saving generated proposals directly to Quotes system.
+  8. Verified clean production build (`npm run build`).
+
+---
+
+## 131. Leads Table Column Filtering Implementation (Completed 2026-08-05)
+* **Goal**: Implement multi-column table header filtering for the 5 green circled columns (`Product Type`, `Bron / Campagne`, `Status`, `Eigenaar / Assignee`, `Laatste Contact / Last Contact`) on the Leads page (`/admin/leads`).
+* **Changes**:
+  1. Updated `src/pages/admin/Leads.jsx`:
+     - Added `assigneeFilter` (`All`, `Tim`, `Bram`) and `lastContactFilter` (`All`, `RedFlag - 3+ days ago`, `Recent`) states to `processedLeads` filter pipeline.
+     - Upgraded the 5 column headers (`PRODUCT TYPE`, `BRON / CAMPAGNE`, `STATUS`, `EIGENAAR`, `LAATSTE CONTACT`) to be interactive filter triggers with visual filter indicator icons (`Filter`).
+     - Added 5-column filter controls grid in `showFilterPanel` for instant multi-attribute lead filtering.
+  2. Verified clean production build (`npm run build`).
+
+---
 
 ## 130. Root-Cause CSS Global Serif Font Override & h4 Element Fix (Completed 2026-08-04)
 * **Goal**: Fix root-cause of vertical text squishing and weird serif fonts across mobile cards by removing global `!important` serif override on `h4` tags in `src/index.css`.

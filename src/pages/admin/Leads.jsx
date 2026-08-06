@@ -6,7 +6,7 @@ import Table from '../../components/Table';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
 import WorkflowTracker from '../../components/WorkflowTracker';
-import { Plus, Search, Filter, X, CheckCircle, Trash2, Edit2, RotateCcw, AlertTriangle, ChevronDown, Download, Upload, GitCommit } from 'lucide-react';
+import { Plus, Search, Filter, X, CheckCircle, Trash2, Edit2, RotateCcw, AlertTriangle, ChevronDown, Download, Upload, GitCommit, Send } from 'lucide-react';
 import { mockLeads as defaultLeads } from '../../utils/mockData';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -21,6 +21,8 @@ export default function Leads() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [productTypeFilter, setProductTypeFilter] = useState('All');
   const [sourceFilter, setSourceFilter] = useState('All');
+  const [assigneeFilter, setAssigneeFilter] = useState('All');
+  const [lastContactFilter, setLastContactFilter] = useState('All');
   const [sortBy, setSortBy] = useState('newest');
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -78,6 +80,14 @@ export default function Leads() {
       craftsmanPartner: 'CraftWood Veluwe (Recommended)'
     });
   };
+
+  useEffect(() => {
+    const handleResetLeadsView = () => {
+      setActiveWorkflowLead(null);
+    };
+    window.addEventListener('app_reset_leads_view', handleResetLeadsView);
+    return () => window.removeEventListener('app_reset_leads_view', handleResetLeadsView);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -319,6 +329,8 @@ export default function Leads() {
     setStatusFilter('All');
     setProductTypeFilter('All');
     setSourceFilter('All');
+    setAssigneeFilter('All');
+    setLastContactFilter('All');
     setSortBy('newest');
     setSearchQuery('');
   };
@@ -358,23 +370,22 @@ export default function Leads() {
         if (lines.length < 2) return showToast('CSV file is empty or invalid.');
         const rows = lines.slice(1); // Skip header row
         const newLeads = rows.map((line, idx) => {
-          const cols = line.split(';').map(v => v.replace(/^"|"$/g, '').replace(/""/g, '"').trim());
+          const cols = line.split(';').map(c => c.replace(/^"|"$/g, '').trim());
           return {
-            id: cols[0] || `L-IMP-${Date.now()}-${idx}`,
-            name: cols[1] || 'Onbekend',
+            id: cols[0] || `L-IMP-${Date.now().toString().slice(-4)}-${idx}`,
+            name: cols[1] || 'Imported Lead',
             phone: cols[2] || '-',
             email: cols[3] || '-',
             productType: cols[4] || 'buitenkeuken',
             size: cols[5] || '-',
-            source: cols[6] || 'Import',
+            source: cols[6] || 'CSV Import',
             status: cols[7] || 'Nieuw',
             lastContactDate: cols[8] || new Date().toISOString().split('T')[0],
             lostReason: cols[9] || '',
-            workflowStep: 1,
-            assignedTo: 'Admin',
             date: new Date().toISOString().split('T')[0]
           };
         });
+
         const updatedLeads = [...newLeads, ...leads];
         setLeads(updatedLeads);
         saveLeadsToStorage(updatedLeads);
@@ -405,10 +416,23 @@ export default function Leads() {
       // 4. Source filter
       const matchesSource = sourceFilter === 'All' || lead.source === sourceFilter;
 
-      return matchesSearch && matchesStatus && matchesProduct && matchesSource;
+      // 5. Assignee filter
+      const matchesAssignee = assigneeFilter === 'All' || (lead.assignedTo || 'Tim') === assigneeFilter;
+
+      // 6. Last Contact filter
+      let matchesLastContact = true;
+      if (lastContactFilter === 'RedFlag') {
+        const diffDays = Math.floor(Math.abs(new Date() - new Date(lead.lastContactDate)) / (1000 * 60 * 60 * 24));
+        matchesLastContact = diffDays >= 2;
+      } else if (lastContactFilter === 'Recent') {
+        const diffDays = Math.floor(Math.abs(new Date() - new Date(lead.lastContactDate)) / (1000 * 60 * 60 * 24));
+        matchesLastContact = diffDays < 2;
+      }
+
+      return matchesSearch && matchesStatus && matchesProduct && matchesSource && matchesAssignee && matchesLastContact;
     })
     .sort((a, b) => {
-      // 3. Sorting
+      // Sorting
       if (sortBy === 'newest') return new Date(b.date) - new Date(a.date);
       if (sortBy === 'oldest') return new Date(a.date) - new Date(b.date);
       if (sortBy === 'name-asc') return a.name.localeCompare(b.name);
@@ -444,10 +468,22 @@ export default function Leads() {
     { 
       header: language === 'EN' ? 'Customer Name' : 'Klantnaam', 
       accessor: 'name', 
-      render: (row) => <span className="font-bold text-dark">{row.name}</span> 
+      render: (row) => (
+        <div className="flex flex-col gap-0.5">
+          <span className="font-bold text-dark">{row.name}</span>
+          <span className="inline-flex items-center gap-1 text-[9.5px] font-mono font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded w-max">
+            📄 #Q-4001 (€12.5k)
+          </span>
+        </div>
+      ) 
     },
     { 
-      header: language === 'EN' ? 'Product Type' : 'Product Type', 
+      header: (
+        <button onClick={() => setShowFilterPanel(prev => !prev)} className="flex items-center gap-1.5 font-bold hover:text-primary transition-colors text-left focus:outline-none cursor-pointer" title="Filter by Product Type">
+          <span>{language === 'EN' ? 'Product Type' : 'Product Type'}</span>
+          <Filter className={`w-3 h-3 ${productTypeFilter !== 'All' ? 'text-primary fill-primary' : 'text-dark/40'}`} />
+        </button>
+      ), 
       accessor: 'productType',
       render: (row) => {
         const type = row.productType || row.category || 'buitenkeuken';
@@ -468,7 +504,12 @@ export default function Leads() {
     },
     { header: language === 'EN' ? 'Desired Size' : 'Gewenste Maat', accessor: 'size', render: (row) => <span className="text-dark/70 text-xs">{row.size}</span> },
     { 
-      header: language === 'EN' ? 'Source / Campaign' : 'Bron / Campagne', 
+      header: (
+        <button onClick={() => setShowFilterPanel(prev => !prev)} className="flex items-center gap-1.5 font-bold hover:text-primary transition-colors text-left focus:outline-none cursor-pointer" title="Filter by Source">
+          <span>{language === 'EN' ? 'Source / Campaign' : 'Bron / Campagne'}</span>
+          <Filter className={`w-3 h-3 ${sourceFilter !== 'All' ? 'text-primary fill-primary' : 'text-dark/40'}`} />
+        </button>
+      ), 
       accessor: 'source', 
       render: (row) => {
         const src = row.source || 'Direct';
@@ -483,7 +524,12 @@ export default function Leads() {
       } 
     },
     { 
-      header: language === 'EN' ? 'Status' : 'Status', 
+      header: (
+        <button onClick={() => setShowFilterPanel(prev => !prev)} className="flex items-center gap-1.5 font-bold hover:text-primary transition-colors text-left focus:outline-none cursor-pointer" title="Filter by Status">
+          <span>{language === 'EN' ? 'Status' : 'Status'}</span>
+          <Filter className={`w-3 h-3 ${statusFilter !== 'All' ? 'text-primary fill-primary' : 'text-dark/40'}`} />
+        </button>
+      ), 
       accessor: 'status',
       render: (row) => {
         let variant = 'default';
@@ -525,7 +571,12 @@ export default function Leads() {
       }
     },
     {
-      header: language === 'NL' ? 'Eigenaar' : 'Assignee',
+      header: (
+        <button onClick={() => setShowFilterPanel(prev => !prev)} className="flex items-center gap-1.5 font-bold hover:text-primary transition-colors text-left focus:outline-none cursor-pointer" title="Filter by Assignee">
+          <span>{language === 'NL' ? 'Eigenaar' : 'Assignee'}</span>
+          <Filter className={`w-3 h-3 ${assigneeFilter !== 'All' ? 'text-primary fill-primary' : 'text-dark/40'}`} />
+        </button>
+      ),
       accessor: 'assignedTo',
       render: (row) => {
         const owner = row.assignedTo === 'Bram' ? 'Bram' : 'Tim';
@@ -544,13 +595,18 @@ export default function Leads() {
       }
     },
     { 
-      header: language === 'NL' ? 'Laatste Contact' : 'Last Contact', 
+      header: (
+        <button onClick={() => setShowFilterPanel(prev => !prev)} className="flex items-center gap-1.5 font-bold hover:text-primary transition-colors text-left focus:outline-none cursor-pointer" title="Filter by Follow-up Alert">
+          <span>{language === 'NL' ? 'Laatste Contact' : 'Last Contact'}</span>
+          <Filter className={`w-3 h-3 ${lastContactFilter !== 'All' ? 'text-primary fill-primary' : 'text-dark/40'}`} />
+        </button>
+      ), 
       accessor: 'lastContactDate',
       render: (row) => {
         if (!row.lastContactDate) return <span className="text-dark/40">-</span>;
         const diffTime = Math.abs(new Date() - new Date(row.lastContactDate));
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        const isRedFlag = diffDays >= 2;
+        const isRedFlag = diffDays >= 3;
         
         return (
           <button
@@ -574,27 +630,23 @@ export default function Leads() {
       render: (row) => (
         <div className="flex flex-wrap md:flex-nowrap items-center justify-end gap-1.5 md:whitespace-nowrap max-w-full">
           <Button 
-            variant="primary"
+            variant="ghost" 
             size="sm" 
-            onClick={() => setActiveWorkflowLead(row)}
-            className="text-[11px] py-1 px-2.5 shadow-xs flex-shrink-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenPartnerWizard(row);
+            }}
+            className="text-primary hover:bg-primary/10 flex-shrink-0"
+            title="Partner Price Request Wizard"
           >
-            <GitCommit className="w-3 h-3 mr-1" /> Workflow
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => handleOpenPartnerWizard(row)}
-            className="text-[10px] py-1 px-2 text-primary border-primary/20 hover:bg-primary/5 font-semibold flex-shrink-0"
-            title={language === 'NL' ? 'Prijsaanvraag partner (7-step wizard)' : 'Partner Price Request (7-step wizard)'}
-          >
-            {language === 'NL' ? 'Prijsaanvraag' : 'Partner Inquiry'}
+            <Send className="w-3.5 h-3.5" />
           </Button>
           <Button 
             variant="ghost" 
             size="sm" 
             onClick={() => handleOpenEditModal(row)}
-            className="text-primary hover:bg-[#D6CFC2]/40 flex-shrink-0"
+            className="text-dark/70 hover:bg-black/5 flex-shrink-0"
+            title="Edit Lead"
           >
             <Edit2 className="w-3.5 h-3.5" />
           </Button>
@@ -603,6 +655,7 @@ export default function Leads() {
             size="sm" 
             onClick={() => handleDeleteLead(row.id, row.name)}
             className="text-red-600 hover:bg-red-50 flex-shrink-0"
+            title="Delete Lead"
           >
             <Trash2 className="w-3.5 h-3.5" />
           </Button>
@@ -611,7 +664,7 @@ export default function Leads() {
     }
   ];
 
-  const hasActiveFilters = statusFilter !== 'All' || productTypeFilter !== 'All' || sourceFilter !== 'All' || sortBy !== 'newest' || searchQuery !== '';
+  const hasActiveFilters = statusFilter !== 'All' || productTypeFilter !== 'All' || sourceFilter !== 'All' || assigneeFilter !== 'All' || lastContactFilter !== 'All' || sortBy !== 'newest' || searchQuery !== '';
 
   return (
     <div className="space-y-6 relative">
@@ -635,6 +688,10 @@ export default function Leads() {
         <WorkflowTracker
           lead={activeWorkflowLead}
           onClose={() => setActiveWorkflowLead(null)}
+          onOpenPartnerWizard={(targetLead) => {
+            const target = targetLead || activeWorkflowLead;
+            handleOpenPartnerWizard(target);
+          }}
           onUpdateStatus={(id, newStep) => {
             const updatedLeads = leads.map(l => l.id === id ? { ...l, workflowStep: newStep } : l);
             setLeads(updatedLeads);
@@ -735,8 +792,8 @@ export default function Leads() {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden border-t border-[#D6CFC2]/50 pt-4 grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-3"
-            >
+                className="overflow-hidden border-t border-[#D6CFC2]/50 pt-4 grid grid-cols-1 xs:grid-cols-2 md:grid-cols-5 gap-3"
+              >
                 {/* Status Filter */}
                 <div className="min-w-0">
                   <label className="block text-xs font-semibold text-dark/60 mb-1.5 font-body uppercase tracking-wider">Status</label>
@@ -773,17 +830,46 @@ export default function Leads() {
 
                 {/* Source Filter */}
                 <div className="min-w-0">
-                  <label className="block text-xs font-semibold text-dark/60 mb-1.5 font-body uppercase tracking-wider">Bron</label>
+                  <label className="block text-xs font-semibold text-dark/60 mb-1.5 font-body uppercase tracking-wider">{language === 'EN' ? 'Source / Campaign' : 'Bron / Campagne'}</label>
                   <select
                     value={sourceFilter}
                     onChange={e => setSourceFilter(e.target.value)}
                     className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs font-body focus:outline-none text-[#4A4A43]"
                   >
-                    <option value="All">Alle (All)</option>
+                    <option value="All">{language === 'NL' ? 'Alle (All)' : 'All Sources'}</option>
                     <option value="Google Ads">Google Ads</option>
                     <option value="Facebook">Facebook</option>
+                    <option value="Meta Ads">Meta Ads</option>
                     <option value="Direct">Direct</option>
                     <option value="Referral">Referral</option>
+                  </select>
+                </div>
+
+                {/* Assignee Filter */}
+                <div className="min-w-0">
+                  <label className="block text-xs font-semibold text-dark/60 mb-1.5 font-body uppercase tracking-wider">{language === 'NL' ? 'Eigenaar' : 'Assignee'}</label>
+                  <select
+                    value={assigneeFilter}
+                    onChange={e => setAssigneeFilter(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs font-body focus:outline-none text-[#4A4A43]"
+                  >
+                    <option value="All">{language === 'NL' ? 'Alle Eigenaren (All)' : 'All Assignees'}</option>
+                    <option value="Tim">Tim</option>
+                    <option value="Bram">Bram</option>
+                  </select>
+                </div>
+
+                {/* Last Contact Filter */}
+                <div className="min-w-0">
+                  <label className="block text-xs font-semibold text-dark/60 mb-1.5 font-body uppercase tracking-wider">{language === 'NL' ? 'Laatste Contact' : 'Last Contact'}</label>
+                  <select
+                    value={lastContactFilter}
+                    onChange={e => setLastContactFilter(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs font-body focus:outline-none text-[#4A4A43]"
+                  >
+                    <option value="All">{language === 'NL' ? 'Alle Contact Datums' : 'All Contact Dates'}</option>
+                    <option value="RedFlag">{language === 'NL' ? '⚠️ Follow-up Nodig (3+ dagen)' : '⚠️ Needs Follow-up (3+ days)'}</option>
+                    <option value="Recent">{language === 'NL' ? '🟢 Recent Gecontacteerd' : '🟢 Contacted Recently'}</option>
                   </select>
                 </div>
               </motion.div>
@@ -794,7 +880,8 @@ export default function Leads() {
         <Table 
           columns={columns} 
           data={processedLeads} 
-          getRowClassName={(row) => statusPortalPos?.leadId === row.id ? 'z-50 relative' : 'z-1 relative'}
+          onRowClick={(row) => setActiveWorkflowLead(row)}
+          getRowClassName={(row) => statusPortalPos?.leadId === row.id ? 'z-50 relative hover:bg-[#EDE8DF]/60' : 'z-1 relative hover:bg-[#EDE8DF]/60'}
           getRowStyle={(row) => statusPortalPos?.leadId === row.id ? { zIndex: 50, position: 'relative' } : { zIndex: 1, position: 'relative' }}
         />
       </Card>
@@ -1065,6 +1152,8 @@ export default function Leads() {
           </div>
         )}
       </AnimatePresence>
+      </>
+      )}
 
       {/* SIMPLIFIED 7-STEP PARTNER PRICE REQUEST WIZARD MODAL */}
       <AnimatePresence>
@@ -1122,7 +1211,7 @@ export default function Leads() {
                         ? 'bg-primary text-cream shadow-xs' 
                         : partnerWizardStep > s.step 
                         ? 'bg-emerald-100 text-emerald-800' 
-                        : 'bg-[#EDE8DF]/50 text-dark/40'
+                        : 'bg-[#EDE8DF] text-dark/40'
                     }`}
                   >
                     {s.label}
@@ -1130,33 +1219,33 @@ export default function Leads() {
                 ))}
               </div>
 
-              {/* WIZARD STEP CONTENT */}
-              <div className="space-y-4 py-2 font-body text-xs text-dark/80">
-
+              {/* Step Dynamic Content */}
+              <div className="py-2 text-xs font-body">
+                
                 {/* STEP 1: CATEGORY */}
                 {partnerWizardStep === 1 && (
                   <div className="space-y-3">
                     <label className="block font-bold text-dark text-sm mb-2">
-                      {language === 'EN' ? 'Step 1: Select Product Category' : 'Stap 1: Selecteer Projecttype'}
+                      {language === 'EN' ? 'Step 1: Select Product Category' : 'Stap 1: Selecteer Product Categorie'}
                     </label>
                     <div className="grid grid-cols-2 gap-3">
                       {[
-                        { title: 'Outdoor Kitchen', nl: 'Buitenkeuken', desc: 'Custom teak wood frames & granite tops' },
-                        { title: 'Canopy', nl: 'Overkapping', desc: 'Wooden veranda & garden covers' },
-                        { title: 'Bin Storage', nl: 'Kliko Ombouw', desc: 'Wooden waste bin enclosure' },
-                        { title: 'Terrace & Decking', nl: 'Terrassen', desc: 'Hardwood garden decks & paving' }
+                        { title: 'Buitenkeuken', desc: 'Custom Teak / Outdoor Kitchen' },
+                        { title: 'Overkapping', desc: 'Oak / Douglas Wooden Canopy' },
+                        { title: 'Kliko-ombouw', desc: 'Bin Storage Triple 240L' },
+                        { title: 'Buitenverblijf', desc: 'Terrace & Garden Building' }
                       ].map((item) => (
-                        <div
+                        <div 
                           key={item.title}
                           onClick={() => setWizardForm(prev => ({ ...prev, category: item.title }))}
-                          className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
+                          className={`p-3 rounded-xl border cursor-pointer transition-all ${
                             wizardForm.category === item.title 
-                              ? 'bg-primary/10 border-primary text-primary shadow-sm font-bold' 
-                              : 'bg-[#F8F7F4] border-[#D6CFC2] hover:bg-[#EDE8DF]'
+                              ? 'border-primary bg-primary/5 text-primary font-bold shadow-xs' 
+                              : 'border-[#D6CFC2] hover:border-primary/40 text-dark/80'
                           }`}
                         >
-                          <p className="font-bold text-xs">{language === 'EN' ? item.title : item.nl}</p>
-                          <p className="text-[10px] text-dark/50 mt-1 font-normal">{item.desc}</p>
+                          <p className="font-bold text-xs">{item.title}</p>
+                          <p className="text-[10px] text-dark/50 mt-0.5">{item.desc}</p>
                         </div>
                       ))}
                     </div>
@@ -1167,11 +1256,11 @@ export default function Leads() {
                 {partnerWizardStep === 2 && (
                   <div className="space-y-3">
                     <label className="block font-bold text-dark text-sm mb-2">
-                      {language === 'EN' ? 'Step 2: Customer Basic Information' : 'Stap 2: Basisgegevens Klant'}
+                      {language === 'EN' ? 'Step 2: Customer Contact & Delivery Details' : 'Stap 2: Klantgegevens en Leveradres'}
                     </label>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[10px] font-bold text-dark/60 uppercase">Customer Name</label>
+                        <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">Customer Name</label>
                         <input 
                           type="text" 
                           value={wizardForm.customerName}
@@ -1180,16 +1269,16 @@ export default function Leads() {
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-dark/60 uppercase">Email Address</label>
+                        <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">Email</label>
                         <input 
-                          type="email" 
+                          type="text" 
                           value={wizardForm.customerEmail}
                           onChange={e => setWizardForm(prev => ({ ...prev, customerEmail: e.target.value }))}
                           className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs"
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-dark/60 uppercase">Phone Number</label>
+                        <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">Phone</label>
                         <input 
                           type="text" 
                           value={wizardForm.customerPhone}
@@ -1198,7 +1287,7 @@ export default function Leads() {
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-dark/60 uppercase">Installation Address</label>
+                        <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">Address / City</label>
                         <input 
                           type="text" 
                           value={wizardForm.address}
@@ -1214,11 +1303,11 @@ export default function Leads() {
                 {partnerWizardStep === 3 && (
                   <div className="space-y-3">
                     <label className="block font-bold text-dark text-sm mb-2">
-                      {language === 'EN' ? 'Step 3: Design & Dimensions (cm)' : 'Stap 3: Ontwerp en Maten (cm)'}
+                      {language === 'EN' ? 'Step 3: Design & Dimensions (cm)' : 'Stap 3: Afmetingen en Ontwerp (cm)'}
                     </label>
                     <div className="grid grid-cols-3 gap-3">
                       <div>
-                        <label className="block text-[10px] font-bold text-dark/60 uppercase">Length (cm)</label>
+                        <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">Length (cm)</label>
                         <input 
                           type="number" 
                           value={wizardForm.lengthCm}
@@ -1227,7 +1316,7 @@ export default function Leads() {
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-dark/60 uppercase">Width (cm)</label>
+                        <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">Width (cm)</label>
                         <input 
                           type="number" 
                           value={wizardForm.widthCm}
@@ -1236,51 +1325,13 @@ export default function Leads() {
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-dark/60 uppercase">Height (cm)</label>
+                        <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">Height (cm)</label>
                         <input 
                           type="number" 
                           value={wizardForm.heightCm}
                           onChange={e => setWizardForm(prev => ({ ...prev, heightCm: e.target.value }))}
                           className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs font-mono font-bold text-primary"
                         />
-                      </div>
-                    </div>
-                    <div className="p-3 bg-[#EDE8DF]/60 border border-[#D6CFC2] rounded-xl text-[11px] text-dark/70 font-mono">
-                      📐 Total Footprint: {wizardForm.lengthCm}cm (L) × {wizardForm.widthCm}cm (W) × {wizardForm.heightCm}cm (H)
-                    </div>
-                  </div>
-                )}
-
-                {/* STEP 4: MATERIALS */}
-                {partnerWizardStep === 4 && (
-                  <div className="space-y-3">
-                    <label className="block font-bold text-dark text-sm mb-2">
-                      {language === 'EN' ? 'Step 4: Execution & Materials' : 'Stap 4: Uitvoering en Materialen'}
-                    </label>
-                    <div className="space-y-2">
-                      <div>
-                        <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">Wood Type</label>
-                        <select 
-                          value={wizardForm.woodType}
-                          onChange={e => setWizardForm(prev => ({ ...prev, woodType: e.target.value }))}
-                          className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs"
-                        >
-                          <option value="Thermo Fraké Wood (Recommended)">Thermo Fraké Wood (Recommended)</option>
-                          <option value="Massief Teak Wood (FSC)">Massief Teak Wood (FSC)</option>
-                          <option value="Douglas Wood">Douglas Wood</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">Countertop Material</label>
-                        <select 
-                          value={wizardForm.countertop}
-                          onChange={e => setWizardForm(prev => ({ ...prev, countertop: e.target.value }))}
-                          className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs"
-                        >
-                          <option value="Zwart Polijst Beton Cire (8cm)">Zwart Polijst Beton Cire (8cm)</option>
-                          <option value="Gezaagd Graniet Top">Gezaagd Graniet Top</option>
-                          <option value="RVS Metal Countertop">RVS Metal Countertop</option>
-                        </select>
                       </div>
                     </div>
                   </div>
@@ -1297,107 +1348,71 @@ export default function Leads() {
                       <textarea 
                         value={wizardForm.siteAccess}
                         onChange={e => setWizardForm(prev => ({ ...prev, siteAccess: e.target.value }))}
-                        className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs min-h-[70px]"
+                        className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs min-h-[80px] resize-none"
                       />
                     </div>
                   </div>
                 )}
 
-                {/* STEP 6: PHOTOS & RENDER */}
+                {/* STEP 6: PHOTOS */}
                 {partnerWizardStep === 6 && (
                   <div className="space-y-3">
                     <label className="block font-bold text-dark text-sm mb-2">
-                      {language === 'EN' ? 'Step 6: Upload Attachments (2 Files Only)' : 'Stap 6: Foto\'s en 3D Render'}
+                      {language === 'EN' ? 'Step 6: Photos & 3D Render Attachments' : 'Stap 6: Foto\'s en 3D Ontwerp Bijlagen'}
                     </label>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="p-4 bg-[#F8F7F4] border border-dashed border-[#D6CFC2] rounded-xl text-center space-y-1">
-                        <Upload className="w-5 h-5 text-primary mx-auto" />
-                        <p className="text-xs font-bold text-dark">1. Garden Photo</p>
-                        <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-mono block truncate">
-                          ✓ {wizardForm.gardenPhotoName}
-                        </span>
-                      </div>
-                      <div className="p-4 bg-[#F8F7F4] border border-dashed border-[#D6CFC2] rounded-xl text-center space-y-1">
-                        <Upload className="w-5 h-5 text-primary mx-auto" />
-                        <p className="text-xs font-bold text-dark">2. 3D Render Design</p>
-                        <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-mono block truncate">
-                          ✓ {wizardForm.render3dName}
-                        </span>
-                      </div>
+                    <div className="p-4 bg-[#EDE8DF]/50 border border-dashed border-primary/30 rounded-xl text-center space-y-2">
+                      <Upload className="w-6 h-6 text-primary mx-auto" />
+                      <p className="font-bold text-xs text-primary">2 Files Attached</p>
+                      <p className="text-[10px] text-dark/50">existing_garden_photo_01.jpg • 3d_render_model_v2.png</p>
                     </div>
                   </div>
                 )}
 
                 {/* STEP 7: REVIEW & DISPATCH */}
                 {partnerWizardStep === 7 && (
-                  <div className="space-y-4">
-                    <label className="block font-bold text-dark text-sm">
-                      {language === 'EN' ? 'Step 7: Review & Dispatch Price Request' : 'Stap 7: Controleren en Versturen'}
+                  <div className="space-y-3">
+                    <label className="block font-bold text-dark text-sm mb-2">
+                      {language === 'EN' ? 'Step 7: Review & Assign Partner' : 'Stap 7: Overzicht en Partner Toewijzen'}
                     </label>
-
-                    <div className="p-4 bg-[#EDE8DF]/70 border border-[#D6CFC2] rounded-xl space-y-2 text-xs">
-                      <p><strong>Customer:</strong> {wizardForm.customerName} ({wizardForm.address})</p>
-                      <p><strong>Product:</strong> {wizardForm.category} ({wizardForm.lengthCm}×{wizardForm.widthCm}×{wizardForm.heightCm} cm)</p>
-                      <p><strong>Materials:</strong> {wizardForm.woodType} • {wizardForm.countertop}</p>
-                      <p><strong>Attachments:</strong> {wizardForm.gardenPhotoName}, {wizardForm.render3dName}</p>
+                    <div className="p-3.5 bg-primary/5 border border-primary/20 rounded-xl space-y-2 text-xs">
+                      <p className="font-bold text-primary">Inquiry Summary:</p>
+                      <div className="grid grid-cols-2 gap-2 text-[11px]">
+                        <div><span className="text-dark/50">Client:</span> <span className="font-bold">{wizardForm.customerName}</span></div>
+                        <div><span className="text-dark/50">Category:</span> <span className="font-bold">{wizardForm.category}</span></div>
+                        <div><span className="text-dark/50">Dimensions:</span> <span className="font-bold">{wizardForm.lengthCm}x{wizardForm.widthCm}x{wizardForm.heightCm} cm</span></div>
+                        <div><span className="text-dark/50">Wood:</span> <span className="font-bold">{wizardForm.woodType}</span></div>
+                      </div>
                     </div>
-
                     <div>
-                      <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">Select Partner Craftsman</label>
+                      <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">Select Craftsman Partner</label>
                       <select 
                         value={wizardForm.craftsmanPartner}
                         onChange={e => setWizardForm(prev => ({ ...prev, craftsmanPartner: e.target.value }))}
                         className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-lg text-xs font-bold text-primary"
                       >
-                        <option value="CraftWood Veluwe (Recommended)">CraftWood Veluwe (Recommended)</option>
+                        <option value="CraftWood Veluwe">CraftWood Veluwe</option>
                         <option value="Timmerbedrijf Brabant">Timmerbedrijf Brabant</option>
-                        <option value="Luxe Houtbouw Utrecht">Luxe Houtbouw Utrecht</option>
                       </select>
                     </div>
                   </div>
                 )}
-
               </div>
 
-              {/* Modal Navigation Buttons */}
+              {/* Modal Navigation */}
               <div className="flex justify-between items-center pt-3 border-t border-[#D6CFC2]">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => partnerWizardStep > 1 ? setPartnerWizardStep(prev => prev - 1) : setPartnerWizardLead(null)}
-                >
-                  {partnerWizardStep > 1 ? (language === 'EN' ? '← Back' : '← Vorige') : (language === 'EN' ? 'Cancel' : 'Annuleren')}
+                <Button variant="outline" onClick={() => partnerWizardStep > 1 ? setPartnerWizardStep(prev => prev - 1) : setPartnerWizardLead(null)}>
+                  {partnerWizardStep > 1 ? '← Back' : 'Cancel'}
                 </Button>
-
                 {partnerWizardStep < 7 ? (
-                  <Button 
-                    type="button" 
-                    onClick={() => setPartnerWizardStep(prev => prev + 1)}
-                  >
-                    {language === 'EN' ? 'Next Step →' : 'Volgende Stap →'}
-                  </Button>
+                  <Button onClick={() => setPartnerWizardStep(prev => prev + 1)}>Next Step →</Button>
                 ) : (
-                  <Button 
-                    type="button" 
-                    onClick={() => {
-                      showToast(language === 'EN' 
-                        ? `Price request successfully sent to ${wizardForm.craftsmanPartner}!` 
-                        : `Prijsaanvraag succesvol verzonden naar ${wizardForm.craftsmanPartner}!`);
-                      setPartnerWizardLead(null);
-                    }}
-                    className="bg-emerald-700 text-white hover:bg-emerald-800 font-bold"
-                  >
-                    {language === 'EN' ? 'Send Price Request to Partner 🚀' : 'Verstuur Prijsaanvraag Partner 🚀'}
-                  </Button>
+                  <Button onClick={() => { showToast("Price request sent!"); setPartnerWizardLead(null); }} className="bg-emerald-600">Send Request 🚀</Button>
                 )}
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
-
-      </>
-      )}
 
       {/* REACT PORTAL STATUS DROPDOWN — Rendered at body level (z-[99999]) to guarantee 100% ZERO clipping or table row overlapping */}
       {statusPortalPos && createPortal(

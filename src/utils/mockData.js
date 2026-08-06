@@ -149,7 +149,7 @@ export const mockQuotes = [
   {
     id: 'Q-4002',
     customer: 'Sophia Taylor',
-    project: 'Bin Storage Triple Anthracite',
+    project: 'Triple Bin Storage Anthracite',
     amount: '€ 1,850',
     date: getRelativeDate(8),
     status: 'Sent',
@@ -188,7 +188,7 @@ export const mockProjects = [
   },
   {
     id: 'PRJ-102',
-    name: 'Bin Storage Triple Anthracite',
+    name: 'Triple Bin Storage Anthracite',
     customer: 'Sophia Taylor',
     partner: 'StaalWerk Brabant',
     progress: 20,
@@ -287,9 +287,9 @@ export const mockWarnings = [
 export const mockProfitLossData = [
   {
     projectId: 'PRJ-101',
-    projectName: 'Luxe Teak Buitenkeuken 4m',
+    projectName: 'Luxury Teak Outdoor Kitchen 4m',
     customer: 'John Miller',
-    category: 'Buitenkeukens',
+    category: 'Outdoor Kitchens',
     revenue: 11300,
     partnerCost: 3200,
     materialCost: 1650,
@@ -297,9 +297,9 @@ export const mockProfitLossData = [
   },
   {
     projectId: 'PRJ-102',
-    projectName: 'Kliko Ombouw Triple Antraciet',
+    projectName: 'Triple Bin Storage Anthracite',
     customer: 'Sophia Taylor',
-    category: 'Kliko Ombouwen',
+    category: 'Bin Storage',
     revenue: 1850,
     partnerCost: 520,
     materialCost: 300,
@@ -307,9 +307,9 @@ export const mockProfitLossData = [
   },
   {
     projectId: 'PRJ-103',
-    projectName: 'Eiken Houten Overkapping 6x4m',
+    projectName: 'Oak Wooden Canopy 6x4m',
     customer: 'Mark Davis',
-    category: 'Overkappingen',
+    category: 'Canopies',
     revenue: 14500,
     partnerCost: 4500,
     materialCost: 2300,
@@ -317,9 +317,9 @@ export const mockProfitLossData = [
   },
   {
     projectId: 'PRJ-104',
-    projectName: 'Tuinterras De Luxe',
+    projectName: 'Luxury Terrace Decking',
     customer: 'Emma Wilson',
-    category: 'Terrassen',
+    category: 'Terraces',
     revenue: 8900,
     partnerCost: 2400,
     materialCost: 1200,
@@ -330,8 +330,8 @@ export const mockProfitLossData = [
 export const mockBankTransactions = [
   {
     id: 'TXN-9001',
-    description: '50% Aanbetaling Ontvangen - Jan de Vries (INV-4001-A)',
-    category: 'Verkoop / Omzet',
+    description: '50% Deposit Received - John Miller (INV-4001-A)',
+    category: 'Sales / Revenue',
     type: 'Income',
     amount: '€ 5,650',
     numericAmount: 5650,
@@ -339,8 +339,8 @@ export const mockBankTransactions = [
   },
   {
     id: 'TXN-9002',
-    description: 'Betaling Kliko Ombouw - Sophie Bakken (INV-4002-A)',
-    category: 'Verkoop / Omzet',
+    description: 'Payment Bin Storage - Sophia Taylor (INV-4002-A)',
+    category: 'Sales / Revenue',
     type: 'Income',
     amount: '€ 1,850',
     numericAmount: 1850,
@@ -348,8 +348,8 @@ export const mockBankTransactions = [
   },
   {
     id: 'TXN-9003',
-    description: 'Inkoop Teak Hout & Granieten Bladen - CraftWood Veluwe',
-    category: 'Materiaal Inkoop',
+    description: 'Purchase Teak Wood & Granite Slabs - CraftWood Veluwe',
+    category: 'Material Purchasing',
     type: 'Expense',
     amount: '€ 2,400',
     numericAmount: 2400,
@@ -357,8 +357,8 @@ export const mockBankTransactions = [
   },
   {
     id: 'TXN-9004',
-    description: 'Uitbetaling Vakman Voorschot - Sven Hoek (Hoek Bouw)',
-    category: 'Onderaanneming / Partner',
+    description: 'Payout Craftsman Advance - Erik van den Berg (CraftWood)',
+    category: 'Subcontracting / Partner',
     type: 'Expense',
     amount: '€ 1,500',
     numericAmount: 1500,
@@ -366,8 +366,8 @@ export const mockBankTransactions = [
   },
   {
     id: 'TXN-9005',
-    description: 'Aanbetaling Houten Overkapping - Mark de Boer',
-    category: 'Verkoop / Omzet',
+    description: 'Deposit Wooden Canopy - Mark Davis',
+    category: 'Sales / Revenue',
     type: 'Income',
     amount: '€ 4,200',
     numericAmount: 4200,

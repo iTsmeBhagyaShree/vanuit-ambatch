@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 
-export default function Table({ columns, data, keyField = 'id', getRowClassName, getRowStyle }) {
+export default function Table({ columns, data, keyField = 'id', getRowClassName, getRowStyle, onRowClick }) {
   const { t, tStatus, language } = useLanguage();
   const scrollRef = useRef(null);
 
@@ -26,7 +26,11 @@ export default function Table({ columns, data, keyField = 'id', getRowClassName,
           data.map((row, rIdx) => (
             <div 
               key={row[keyField] || rIdx}
-              className="p-4 bg-[#F8F7F4] border border-[#C4BEB3]/60 rounded-2xl space-y-2.5 text-xs font-body shadow-xs hover:border-primary/40 transition-colors"
+              onClick={(e) => {
+                if (e.target.closest('button, input, select, a, option')) return;
+                if (onRowClick) onRowClick(row);
+              }}
+              className={`p-4 bg-[#F8F7F4] border border-[#C4BEB3]/60 rounded-2xl space-y-2.5 text-xs font-body shadow-xs hover:border-primary/40 transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
             >
               {columns.map((col, cIdx) => {
                 const headerRaw = typeof col.header === 'string' ? col.header : '';
@@ -103,6 +107,10 @@ export default function Table({ columns, data, keyField = 'id', getRowClassName,
                 return (
                   <tr
                     key={row[keyField] || rIdx}
+                    onClick={(e) => {
+                      if (e.target.closest('button, input, select, a, option')) return;
+                      if (onRowClick) onRowClick(row);
+                    }}
                     className={`transition-colors duration-200 group cursor-pointer ${rowClass}`}
                     style={{ position: 'relative', ...rowStyle }}
                   >

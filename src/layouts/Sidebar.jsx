@@ -43,6 +43,7 @@ export default function Sidebar({ role }) {
       children: [
         { name: t('common.quotes'), path: '/admin/quotes' },
         { name: t('common.invoices'), path: '/admin/invoices' },
+        { name: language === 'EN' ? 'Customers' : 'Klanten', path: '/admin/customers' },
         { name: t('common.bank'), path: '/admin/bank' },
         { name: t('common.taxes'), path: '/admin/taxes' },
         { name: t('common.profitLoss'), path: '/admin/profit-loss' },
@@ -77,6 +78,13 @@ export default function Sidebar({ role }) {
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const handleNavLinkClick = (path) => {
+    setMobileOpen(false);
+    if (path === '/admin/leads') {
+      window.dispatchEvent(new Event('app_reset_leads_view'));
+    }
   };
 
   const SidebarContent = ({ collapsed = false, isMobile = false }) => (
@@ -185,6 +193,7 @@ export default function Sidebar({ role }) {
               <div key={link.name} className="flex justify-center my-0.5">
                 <NavLink
                   to={link.path}
+                  onClick={() => handleNavLinkClick(link.path)}
                   className={({ isActive }) =>
                     `w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
                       isActive
@@ -206,7 +215,7 @@ export default function Sidebar({ role }) {
             <NavLink
               key={link.name}
               to={link.path}
-              onClick={() => setMobileOpen(false)}
+              onClick={() => handleNavLinkClick(link.path)}
               className={({ isActive }) =>
                 `flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all duration-150 ${
                   isActive

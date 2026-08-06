@@ -512,6 +512,17 @@ export default function Quotes() {
     showToast(language === 'EN' ? `Quote converted to Project for ${quote.customer}!` : `Offerte omgezet naar Project voor ${quote.customer}!`);
   };
 
+  const translateProjectName = (name) => {
+    if (language !== 'EN' || !name) return name;
+    return name
+      .replace(/Luxe Teak Buitenkeuken 4m/g, 'Luxury Teak Outdoor Kitchen 4m')
+      .replace(/Kliko Ombouw Triple Antraciet/g, 'Triple Bin Storage Anthracite')
+      .replace(/Eiken Houten Overkapping 6x4m/g, 'Oak Wooden Canopy 6x4m')
+      .replace(/Buitenkeuken/g, 'Outdoor Kitchen')
+      .replace(/Kliko Ombouw/g, 'Bin Storage')
+      .replace(/Overkapping/g, 'Canopy');
+  };
+
   const columns = [
     { header: language === 'EN' ? 'Quote ID' : 'Offerte ID', accessor: 'id' },
     { 
@@ -543,7 +554,7 @@ export default function Quotes() {
       }
     },
     { header: language === 'EN' ? 'Customer' : 'Klantnaam', accessor: 'customer' },
-    { header: language === 'EN' ? 'Project' : 'Project', accessor: 'project' },
+    { header: language === 'EN' ? 'Project' : 'Project', render: (row) => <span>{translateProjectName(row.project)}</span> },
     { header: language === 'EN' ? 'Amount' : 'Bedrag', accessor: 'amount' },
     { 
       header: language === 'EN' ? 'Status' : 'Status', 

@@ -9,8 +9,28 @@ import { mockInvoices as defaultInvoices } from '../../utils/mockData';
 import { useLanguage } from '../../context/LanguageContext';
 
 export default function Invoices() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [invoices, setInvoices] = useState([]);
+
+  const translateInvoiceType = (typeStr) => {
+    if (language !== 'EN' || !typeStr) return typeStr;
+    return typeStr
+      .replace(/Aanbetaling/g, 'Down Payment')
+      .replace(/Eindfactuur/g, 'Final Invoice')
+      .replace(/Factuur Betaling/g, 'Invoice Payment')
+      .replace(/Factuur Opbrengst/g, 'Invoice Revenue');
+  };
+
+  const translateInvoiceStatus = (statusStr) => {
+    if (language !== 'EN' || !statusStr) return statusStr;
+    switch (statusStr) {
+      case 'Betaald': return 'Paid';
+      case 'Openstaand': return 'Pending';
+      case 'Vervallen': return 'Overdue';
+      default: return statusStr;
+    }
+  };
+
   const [searchQuery, setSearchQuery] = useState('');
   
   // Filter States
@@ -26,7 +46,7 @@ export default function Invoices() {
   // Form State for Manual Invoice Creation
   const [form, setForm] = useState({
     customer: '',
-    type: '50% Aanbetaling (Upfront)',
+    type: '50% Down Payment (Upfront)',
     amount: '',
     status: 'Openstaand',
     dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
@@ -136,9 +156,9 @@ export default function Invoices() {
 
   // Calculate Summary Stats
   const totalCount = invoices.length;
-  const paidInvoices = invoices.filter(i => i.status === 'Betaald');
-  const openInvoices = invoices.filter(i => i.status === 'Openstaand');
-  const overdueInvoices = invoices.filter(i => i.status === 'Vervallen');
+  const paidInvoices = invoices.filter(i => i.status === 'Betaald' || i.status === 'Paid');
+  const openInvoices = invoices.filter(i => i.status === 'Openstaand' || i.status === 'Pending');
+  const overdueInvoices = invoices.filter(i => i.status === 'Vervallen' || i.status === 'Overdue');
 
   const totalPaidSum = paidInvoices.reduce((acc, i) => acc + getNumericAmount(i.amount, i.numericAmount), 0);
   const totalOpenSum = openInvoices.reduce((acc, i) => acc + getNumericAmount(i.amount, i.numericAmount), 0);
@@ -147,10 +167,13 @@ export default function Invoices() {
   const getBadgeVariant = (status) => {
     switch (status) {
       case 'Betaald':
+      case 'Paid':
         return 'success';
       case 'Openstaand':
+      case 'Pending':
         return 'warning';
       case 'Vervallen':
+      case 'Overdue':
         return 'danger';
       default:
         return 'default';
@@ -160,13 +183,13 @@ export default function Invoices() {
   const columns = [
     { header: t('screens.invoices.number'), accessor: 'id' },
     { header: t('screens.invoices.customer'), accessor: 'customer' },
-    { header: t('screens.invoices.typeDescription'), accessor: 'type' },
+    { header: t('screens.invoices.typeDescription'), render: (row) => <span>{translateInvoiceType(row.type)}</span> },
     { header: t('screens.invoices.amount'), accessor: 'amount' },
     { 
       header: 'Status', 
       render: (row) => (
         <Badge variant={getBadgeVariant(row.status)}>
-          {row.status}
+          {translateInvoiceStatus(row.status)}
         </Badge>
       )
     },

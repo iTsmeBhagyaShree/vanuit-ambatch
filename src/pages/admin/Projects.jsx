@@ -267,6 +267,26 @@ export default function Projects() {
     });
 
   // Dynamic columns: Hide partner assignment column for Kliko Orders & use Webshop order statuses
+  const translateProjectName = (name) => {
+    if (language !== 'EN' || !name) return name;
+    return name
+      .replace(/Luxe Teak Buitenkeuken 4m/g, 'Luxury Teak Outdoor Kitchen 4m')
+      .replace(/Kliko Ombouw Triple Antraciet/g, 'Triple Bin Storage Anthracite')
+      .replace(/Eiken Houten Overkapping 6x4m/g, 'Oak Wooden Canopy 6x4m')
+      .replace(/Buitenkeuken/g, 'Outdoor Kitchen')
+      .replace(/Kliko Ombouw/g, 'Bin Storage')
+      .replace(/Overkapping/g, 'Canopy');
+  };
+
+  const translateCategory = (cat) => {
+    if (language !== 'EN' || !cat) return cat;
+    return cat
+      .replace(/Buitenkeukens/g, 'Outdoor Kitchens')
+      .replace(/Kliko-ombouw/g, 'Bin Storage')
+      .replace(/Overkappingen/g, 'Canopies')
+      .replace(/Snijplanken/g, 'Cutting Boards');
+  };
+
   const mainColumns = [
     { header: 'ID', accessor: 'id' },
     { 
@@ -288,7 +308,7 @@ export default function Projects() {
               className="h-6 max-w-[70px] object-contain mix-blend-multiply flex-shrink-0"
             />
             <span className="text-[10px] font-bold text-primary font-body bg-primary/10 px-2 py-0.5 rounded-md whitespace-nowrap">
-              {cat}
+              {translateCategory(cat)}
             </span>
           </div>
         );
@@ -302,7 +322,7 @@ export default function Projects() {
           className="font-bold text-primary hover:underline text-left text-xs"
           title="Click to view technical blueprint modal"
         >
-          {row.name}
+          {translateProjectName(row.name)}
         </button>
       )
     },
@@ -390,16 +410,22 @@ export default function Projects() {
     { 
       header: language === 'EN' ? 'Product Division' : 'Product Categorie',
       style: { minWidth: '180px' },
-      render: () => (
-        <div className="flex items-center gap-2 py-0.5">
-          <img src="/logo_kliko.png" alt="Kliko-ombouw" className="h-6 max-w-[70px] object-contain mix-blend-multiply flex-shrink-0" />
-          <span className="text-[10px] font-bold text-primary font-body bg-primary/10 px-2 py-0.5 rounded-md">{language === 'EN' ? 'Bin Storage' : 'Kliko-ombouw'}</span>
-        </div>
-      )
+      render: (row) => {
+        const nameLower = (row.name || '').toLowerCase();
+        const isKliko = nameLower.includes('kliko') || nameLower.includes('bin');
+        const logoSrc = isKliko ? '/logo_kliko.png' : '/logo_buitenkeukens.png';
+        const label = language === 'EN' ? (isKliko ? 'Bin Storage' : 'Outdoor Kitchens') : (isKliko ? 'Kliko-ombouw' : 'Buitenkeukens');
+        return (
+          <div className="flex items-center gap-2 py-0.5">
+            <img src={logoSrc} alt={label} className="h-6 max-w-[70px] object-contain mix-blend-multiply flex-shrink-0" />
+            <span className="text-[10px] font-bold text-primary font-body bg-primary/10 px-2 py-0.5 rounded-md">{label}</span>
+          </div>
+        );
+      }
     },
     { 
       header: language === 'EN' ? 'Webshop Item' : 'Webshop Artikel', 
-      render: (row) => <span className="font-bold text-dark text-xs">{row.name}</span>
+      render: (row) => <span className="font-bold text-dark text-xs">{translateProjectName(row.name)}</span>
     },
     { header: language === 'EN' ? 'Customer' : 'Klant', accessor: 'customer' },
     { 

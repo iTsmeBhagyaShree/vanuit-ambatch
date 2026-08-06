@@ -27,7 +27,7 @@ export default function Bank() {
   const sampleBankImportData = [
     {
       id: `TXN-IMP-${Date.now().toString().slice(-4)}-1`,
-      description: language === 'EN' ? 'Rabobank Receipt: Bjorn Valk (Quote OF-2026-003)' : 'Rabobank Ontvangst: Bjorn Valk (Offerte OF-2026-003)',
+      description: language === 'EN' ? 'Rabobank Receipt: Bjorn Falcon (Quote Q-2026-003)' : 'Rabobank Ontvangst: Bjorn Valk (Offerte OF-2026-003)',
       category: language === 'EN' ? 'Sales / Revenue' : 'Verkoop / Omzet',
       type: 'Income',
       amount: '€ 3,495',
@@ -45,7 +45,7 @@ export default function Bank() {
     },
     {
       id: `TXN-IMP-${Date.now().toString().slice(-4)}-3`,
-      description: language === 'EN' ? 'ABN AMRO Receipt: Peter de Jong (Kitchen Down Payment)' : 'ABN AMRO Ontvangst: Peter de Jong (Aanbetaling Keuken)',
+      description: language === 'EN' ? 'ABN AMRO Receipt: Peter Young (Kitchen Down Payment)' : 'ABN AMRO Ontvangst: Peter de Jong (Aanbetaling Keuken)',
       category: language === 'EN' ? 'Sales / Revenue' : 'Verkoop / Omzet',
       type: 'Income',
       amount: '€ 1,250',
@@ -107,6 +107,14 @@ export default function Bank() {
   const translateBankText = (str) => {
     if (language !== 'EN' || !str) return str;
     return str
+      .replace(/Jan de Vries/g, 'John Miller')
+      .replace(/Sophie Bakken/g, 'Sophia Taylor')
+      .replace(/Sven Hoek \(Hoek Bouw\)/g, 'Erik van den Berg (CraftWood)')
+      .replace(/Mark de Boer/g, 'Mark Davis')
+      .replace(/Peter de Jong/g, 'Peter Young')
+      .replace(/Bjorn Valk/g, 'Bjorn Falcon')
+      .replace(/Quote OF-/g, 'Quote Q-')
+      .replace(/Offerte OF-/g, 'Quote Q-')
       .replace(/Rabobank Ontvangst/g, 'Rabobank Receipt')
       .replace(/ING Afschrijving/g, 'ING Debit')
       .replace(/ABN AMRO Ontvangst/g, 'ABN AMRO Receipt')
@@ -116,6 +124,7 @@ export default function Bank() {
       .replace(/Thermo Fraké Hout Inkoop/g, 'Thermo Fraké Wood Purchase')
       .replace(/Aanbetaling Keuken/g, 'Kitchen Down Payment')
       .replace(/RVS Spoelbakken & Kranen B.V./g, 'Stainless Steel Sinks & Taps Ltd.')
+      .replace(/50% Aanbetaling Ontvangen/g, '50% Deposit Received')
       .replace(/Aanbetaling Ontvangen/g, 'Deposit Received')
       .replace(/Betaling Kliko Ombouw/g, 'Payment Bin Storage')
       .replace(/Inkoop Teak Hout & Granieten Bladen/g, 'Purchase Teak Wood & Granite Slabs')
