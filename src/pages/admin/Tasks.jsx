@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import Card from '../../components/Card';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
@@ -334,60 +334,64 @@ export default function Tasks() {
       {/* Toast Notification */}
       <AnimatePresence>
         {toastMsg && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 10 }} exit={{ opacity: 0, y: -20 }} className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-primary text-cream px-4 py-3 rounded-xl shadow-lg text-xs font-body">
+          <motion.div initial={{ opacity: 0, x: 80 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 80 }} className="fixed top-20 right-4 z-[9999] flex items-center gap-2 bg-primary text-cream px-4 py-3 rounded-xl shadow-lg text-xs font-body">
             <CheckCircle className="w-4 h-4 text-green-400" />
             {toastMsg}
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full">
-        <div>
-          <h2 className="text-2xl font-heading font-bold text-primary">
-            {language === 'EN' ? 'Tasks & To-Do Management' : 'Taken & To-Do Beheer'}
-          </h2>
-          <p className="text-dark/60 text-sm">
-            {language === 'EN' 
-              ? 'Manage daily action items linked to leads and projects.' 
-              : 'Beheer dagelijkse actiepunten, gekoppeld aan leads en opleverprojecten.'}
-          </p>
-        </div>
+      <div className="flex flex-col gap-3 w-full">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div className="min-w-0">
+            <h2 className="text-xl sm:text-2xl font-heading font-bold text-primary">
+              {language === 'EN' ? 'Tasks & To-Do Management' : 'Taken & To-Do Beheer'}
+            </h2>
+            <p className="text-dark/60 text-xs sm:text-sm mt-0.5">
+              {language === 'EN' 
+                ? 'Manage daily action items linked to leads and projects.' 
+                : 'Beheer dagelijkse actiepunten, gekoppeld aan leads en opleverprojecten.'}
+            </p>
+          </div>
 
-        <div className="flex items-center justify-start sm:justify-end gap-2 w-full sm:w-auto flex-nowrap">
-          <Button 
-            size="sm"
-            onClick={() => setPlaudModalOpen(true)} 
-            className="bg-purple-900 hover:bg-purple-950 text-white font-bold border-none py-1.5 px-3 text-xs whitespace-nowrap"
-          >
-            <Mic className="w-3.5 h-3.5 mr-1 text-amber-300 flex-shrink-0" />
-            <span>Plaud AI Import</span>
-          </Button>
-          <Button 
-            size="sm"
-            icon={Plus} 
-            onClick={handleOpenAddModal}
-            className="py-1.5 px-3 text-xs font-bold whitespace-nowrap"
-          >
-            {language === 'EN' ? 'Add New Task' : 'Nieuwe Taak'}
-          </Button>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Button 
+              size="sm"
+              onClick={() => setPlaudModalOpen(true)} 
+              className="bg-purple-900 hover:bg-purple-950 text-white font-bold border-none py-1.5 px-2.5 sm:px-3 text-xs whitespace-nowrap"
+            >
+              <Mic className="w-3.5 h-3.5 sm:mr-1 text-amber-300 flex-shrink-0" />
+              <span className="hidden sm:inline">Plaud AI Import</span>
+            </Button>
+            <Button 
+              size="sm"
+              icon={Plus} 
+              onClick={handleOpenAddModal}
+              className="py-1.5 px-2.5 sm:px-3 text-xs font-bold whitespace-nowrap"
+            >
+              <span className="hidden sm:inline">{language === 'EN' ? 'Add New Task' : 'Nieuwe Taak'}</span>
+              <span className="sm:hidden">{language === 'EN' ? 'New Task' : 'Nieuwe'}</span>
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Filter Tabs & Search */}
-      <Card p="p-4">
-        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-4">
-          <div className="flex flex-wrap gap-2">
+      <Card p="p-3 sm:p-4">
+        <div className="flex flex-col gap-3 mb-4">
+          {/* Status Tabs */}
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
             <button
               onClick={() => setActiveTab('All')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold font-body transition-all ${
+              className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold font-body transition-all ${
                 activeTab === 'All' ? 'bg-primary text-cream shadow-xs' : 'bg-[#EDE8DF]/60 text-dark/70 hover:bg-[#EDE8DF]'
               }`}
             >
-              {language === 'EN' ? `All Tasks (${tasks.length})` : `Alle Taken (${tasks.length})`}
+              {language === 'EN' ? `All (${tasks.length})` : `Alle (${tasks.length})`}
             </button>
             <button
               onClick={() => setActiveTab('Pending')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold font-body transition-all ${
+              className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold font-body transition-all ${
                 activeTab === 'Pending' ? 'bg-primary text-cream shadow-xs' : 'bg-[#EDE8DF]/60 text-dark/70 hover:bg-[#EDE8DF]'
               }`}
             >
@@ -395,38 +399,41 @@ export default function Tasks() {
             </button>
             <button
               onClick={() => setActiveTab('Completed')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold font-body transition-all ${
+              className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold font-body transition-all ${
                 activeTab === 'Completed' ? 'bg-primary text-cream shadow-xs' : 'bg-[#EDE8DF]/60 text-dark/70 hover:bg-[#EDE8DF]'
               }`}
             >
-              {language === 'EN' ? `Completed (${tasks.filter(t => t.completed).length})` : `Afgerond (${tasks.filter(t => t.completed).length})`}
+              {language === 'EN' ? `Done (${tasks.filter(t => t.completed).length})` : `Afgerond (${tasks.filter(t => t.completed).length})`}
             </button>
-
-            {/* Assignee Filter */}
-            <div className="h-6 w-px bg-dark/20 mx-1 self-center hidden sm:block" />
-            <span className="text-[10px] font-bold text-dark/50 uppercase tracking-wider self-center ml-1">Assignee:</span>
-            {['All', 'Tim', 'Bram'].map((ass) => (
-              <button
-                key={ass}
-                onClick={() => setAssigneeFilter(ass)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                  assigneeFilter === ass ? 'bg-purple-900 text-white' : 'bg-purple-100 text-purple-900 hover:bg-purple-200'
-                }`}
-              >
-                {ass === 'All' ? 'All' : `👤 ${ass}`}
-              </button>
-            ))}
           </div>
 
-          <div className="relative max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark/40" />
-            <input
-              type="text"
-              placeholder={language === 'EN' ? 'Search by task or linked project...' : 'Zoek op taak of gekoppeld project...'}
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 bg-[#EDE8DF]/40 border border-[#D6CFC2] rounded-lg text-xs focus:outline-none"
-            />
+          {/* Assignee Filter + Search — same row or stacked on mobile */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[10px] font-bold text-dark/50 uppercase tracking-wider flex-shrink-0">Assignee:</span>
+              {['All', 'Tim', 'Bram'].map((ass) => (
+                <button
+                  key={ass}
+                  onClick={() => setAssigneeFilter(ass)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                    assigneeFilter === ass ? 'bg-purple-900 text-white' : 'bg-purple-100 text-purple-900 hover:bg-purple-200'
+                  }`}
+                >
+                  {ass === 'All' ? 'All' : `👤 ${ass}`}
+                </button>
+              ))}
+            </div>
+
+            <div className="relative flex-1 sm:max-w-xs sm:ml-auto">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark/40" />
+              <input
+                type="text"
+                placeholder={language === 'EN' ? 'Search tasks...' : 'Zoek taken...'}
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-1.5 bg-[#EDE8DF]/40 border border-[#D6CFC2] rounded-lg text-xs focus:outline-none"
+              />
+            </div>
           </div>
         </div>
 
@@ -436,18 +443,18 @@ export default function Tasks() {
             <motion.div
               key={task.id}
               initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`p-3.5 rounded-xl border transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
+              animate={{ opacity: 1, x: 0 }}
+              className={`p-3 sm:p-3.5 rounded-xl border transition-all ${
                 task.completed
                   ? 'bg-gray-50/70 border-gray-200 text-dark/50'
                   : 'bg-white border-[#D6CFC2] hover:border-primary/50 shadow-xs'
               }`}
             >
               {/* Checkbox Toggle + Title */}
-              <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1 w-full sm:w-auto">
+              <div className="flex items-start gap-2.5 sm:gap-3 min-w-0">
                 <button
                   onClick={() => handleToggleComplete(task.id)}
-                  className="text-primary hover:scale-110 transition-transform flex-shrink-0 mt-0.5 sm:mt-0"
+                  className="text-primary hover:scale-110 transition-transform flex-shrink-0 mt-0.5"
                   title={task.completed ? "Mark as pending" : "Mark as completed"}
                 >
                   {task.completed ? (
@@ -458,54 +465,54 @@ export default function Tasks() {
                 </button>
 
                 <div className="min-w-0 flex-1">
-                  <h4 className={`font-bold text-xs sm:text-sm ${task.completed ? 'line-through text-dark/40' : 'text-dark'}`}>
+                  <h4 className={`font-bold text-xs sm:text-sm leading-snug ${task.completed ? 'line-through text-dark/40' : 'text-dark'}`}>
                     {translateTaskText(task.title)}
                   </h4>
                   {task.linkedId && (
-                    <p className="text-[10px] text-primary/80 flex items-center gap-1 mt-0.5 font-semibold">
+                    <p className="text-[10px] text-primary/80 flex items-center gap-1 mt-0.5 font-semibold break-words">
                       <LinkIcon className="w-3 h-3 text-accent flex-shrink-0" /> {language === 'EN' ? 'Linked to' : 'Gekoppeld aan'}: {translateTaskText(task.linkedId)}
                     </p>
                   )}
-                </div>
-              </div>
 
-              {/* Assignee + Priority + Due Date + Actions */}
-              <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-2.5 flex-shrink-0 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-[#D6CFC2]/40">
-                <button
-                  type="button"
-                  onClick={() => handleToggleAssignee(task.id)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-purple-100 text-purple-900 border border-purple-200 hover:bg-purple-200 transition-colors shadow-2xs cursor-pointer flex-shrink-0"
-                  title={language === 'EN' ? 'Click to toggle assignee (Tim / Bram)' : 'Klik om te wisselen tussen Tim & Bram'}
-                >
-                  <User className="w-3.5 h-3.5 text-purple-700" />
-                  <span>{task.assignee || task.assignedTo || 'Tim'}</span>
-                </button>
+                  {/* Assignee + Priority + Due Date + Actions — always below title on mobile */}
+                  <div className="flex items-center flex-wrap gap-1.5 mt-2 pt-2 border-t border-[#D6CFC2]/30">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleAssignee(task.id)}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-purple-100 text-purple-900 border border-purple-200 hover:bg-purple-200 transition-colors cursor-pointer flex-shrink-0"
+                      title={language === 'EN' ? 'Click to toggle assignee (Tim / Bram)' : 'Klik om te wisselen tussen Tim & Bram'}
+                    >
+                      <User className="w-3 h-3 text-purple-700" />
+                      <span>{task.assignee || task.assignedTo || 'Tim'}</span>
+                    </button>
 
-                <Badge variant={(task.priority === 'High' || task.priority === 'Hoog') ? 'danger' : task.priority === 'Medium' ? 'warning' : 'default'} className="text-[9px] py-1 flex-shrink-0">
-                  {language === 'EN' 
-                    ? ((task.priority === 'Hoog' || task.priority === 'High') ? 'High' : task.priority === 'Medium' ? 'Medium' : 'Low')
-                    : task.priority}
-                </Badge>
+                    <Badge variant={(task.priority === 'High' || task.priority === 'Hoog') ? 'danger' : task.priority === 'Medium' ? 'warning' : 'default'} className="text-[9px] py-0.5 flex-shrink-0">
+                      {language === 'EN' 
+                        ? ((task.priority === 'Hoog' || task.priority === 'High') ? 'High' : task.priority === 'Medium' ? 'Medium' : 'Low')
+                        : task.priority}
+                    </Badge>
 
-                <span className="text-[10px] text-dark/60 font-mono flex items-center gap-1 bg-[#EDE8DF]/60 px-2 py-1 rounded-lg border border-[#D6CFC2]/50 flex-shrink-0">
-                  <Calendar className="w-3 h-3 text-dark/40" /> {task.dueDate}
-                </span>
+                    <span className="text-[10px] text-dark/60 font-mono flex items-center gap-1 bg-[#EDE8DF]/60 px-1.5 py-0.5 rounded-md border border-[#D6CFC2]/50 flex-shrink-0">
+                      <Calendar className="w-3 h-3 text-dark/40" /> {task.dueDate}
+                    </span>
 
-                <div className="flex items-center gap-1 ml-0.5 flex-shrink-0">
-                  <button
-                    onClick={() => handleOpenEditModal(task)}
-                    className="p-1.5 text-dark/50 hover:text-primary hover:bg-[#EDE8DF]/60 rounded-md transition-colors"
-                    title="Edit"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteTask(task.id, task.title)}
-                    className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
-                    title="Delete"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                    <div className="flex items-center gap-1 ml-auto flex-shrink-0">
+                      <button
+                        onClick={() => handleOpenEditModal(task)}
+                        className="p-1.5 text-dark/50 hover:text-primary hover:bg-[#EDE8DF]/60 rounded-md transition-colors"
+                        title="Edit"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTask(task.id, task.title)}
+                        className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </motion.div>

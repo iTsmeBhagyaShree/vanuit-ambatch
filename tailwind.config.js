@@ -27,6 +27,9 @@ export default {
       borderRadius: {
         'xl': '12px',
         '2xl': '16px',
+      },
+      screens: {
+        'xs': '375px',
       }
     },
   },

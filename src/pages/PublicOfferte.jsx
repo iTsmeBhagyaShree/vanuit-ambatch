@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, CheckCircle, Check, X, ShieldCheck, Clock, Download, MessageSquare, Mail, Phone, Lock, Sparkles, AlertCircle } from 'lucide-react';
@@ -19,10 +19,10 @@ export default function PublicOfferte() {
   // Load quote data dynamically from localStorage or fallback mockQuotes
   useEffect(() => {
     const loadQuote = () => {
-      const savedQuotes = localStorage.getItem('app_quotes_v1');
+      const savedQuotes = localStorage.getItem('app_quotes_v2') || localStorage.getItem('app_quotes_v1') || localStorage.getItem('app_quotes');
       const allQuotes = savedQuotes ? JSON.parse(savedQuotes) : defaultQuotes;
       
-      // Match by ID (token can be quote.id like OF-2026325 or Q-4004)
+      // Match by ID (token can be quote.id like OF-2026-4005 or Q-4004)
       const found = allQuotes.find(
         (q) => String(q.id).toLowerCase() === String(token).toLowerCase() ||
                String(q.id).replace(/[^\w]/g, '').toLowerCase() === String(token).replace(/[^\w]/g, '').toLowerCase()
@@ -44,12 +44,12 @@ export default function PublicOfferte() {
         const fallback = allQuotes[0] || defaultQuotes[0];
         setQuote({
           ...fallback,
-          id: token || 'OF-2026325',
-          customer: 'Bjorn Valk',
-          project: 'Luxe Buitenkeuken Thermo Fraké',
-          amount: '€ 3.495,00',
-          date: '21 juli 2026',
-          validUntil: '19 augustus 2026'
+          id: token || 'OF-2026-4005',
+          customer: 'Jan de Vries',
+          project: 'Exclusieve Outdoor Kitchen - Maatwerk',
+          amount: '€ 11.300',
+          date: '2026-08-04',
+          validUntil: '2026-09-03'
         });
       }
       setLoading(false);
@@ -153,7 +153,7 @@ export default function PublicOfferte() {
         {isApprovedSuccess && (
           <motion.div 
             initial={{ opacity: 0, y: -10 }} 
-            animate={{ opacity: 1, y: 0 }} 
+            animate={{ opacity: 1, x: 0 }} 
             className="p-5 bg-emerald-900 text-emerald-100 rounded-2xl border-2 border-emerald-500 shadow-xl space-y-2"
           >
             <div className="flex items-center gap-3">
@@ -217,7 +217,7 @@ export default function PublicOfferte() {
           </div>
 
           <div className="grid grid-cols-3 gap-2.5 pt-2">
-            <img src="/dasbordes images.png" alt="Buitenkeuken 1" className="h-28 sm:h-36 w-full object-cover rounded-lg border border-[#526648]" />
+            <img src={outdoorLivingLogin} alt="Buitenkeuken 1" className="h-28 sm:h-36 w-full object-cover rounded-lg border border-[#526648]" />
             <img src={outdoorProjectCard} alt="Buitenkeuken 2" className="h-28 sm:h-36 w-full object-cover rounded-lg border border-[#526648]" />
             <img src={outdoorLivingLogin} alt="Buitenkeuken 3" className="h-28 sm:h-36 w-full object-cover rounded-lg border border-[#526648]" />
           </div>

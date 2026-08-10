@@ -8,11 +8,11 @@ export default function MainLayout({ role }) {
       <Sidebar role={role} />
       
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        <div className="relative z-50">
+        <div className="relative z-[100] flex-shrink-0">
           <TopNav />
         </div>
         
-        <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 lg:p-6 relative z-0">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto p-3 sm:p-4 lg:p-6 relative z-0">
           <div className="max-w-7xl mx-auto w-full">
             <Outlet />
           </div>
@@ -21,3 +21,4 @@ export default function MainLayout({ role }) {
     </div>
   );
 }
+

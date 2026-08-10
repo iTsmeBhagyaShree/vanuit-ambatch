@@ -1,21 +1,80 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FileText, Image as ImageIcon, FileArchive, File, 
-  Upload, Search, Download, Trash2, Plus, Filter, CheckCircle, X
+  Upload, Search, Download, Trash2, Plus, Filter, CheckCircle, X, Eye
 } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Badge from '../components/Badge';
-
-import projectImg from '../assets/outdoor_project_card.png';
 import { useLanguage } from '../context/LanguageContext';
 
 // Initial Mock Documents
-const INITIAL_DOCUMENTS = [];
+const INITIAL_DOCUMENTS = [
+  {
+    id: 'doc-1',
+    name: 'BLU-P2001-AUTOCAD-SPEC-V2.pdf',
+    nameNL: 'BLU-P2001-AUTOCAD-SPEC-V2.pdf',
+    nameEN: 'BLU-P2001-AUTOCAD-SPEC-V2.pdf',
+    size: '4.2 MB',
+    type: 'pdf',
+    category: 'Designs',
+    categoryNL: 'Ontwerpen',
+    categoryEN: 'Designs',
+    date: '2026-07-29',
+    uploader: 'Bram (Head Designer)',
+    descriptionNL: 'AutoCAD 1:20 schematische bouwtekening massief teakhout frame & beton cire werkblad.',
+    descriptionEN: 'AutoCAD 1:20 schematic blueprint for solid teak frame & concrete worktop.'
+  },
+  {
+    id: 'doc-2',
+    name: 'Overeenkomst_Vanuit_Ambacht_Q4001.pdf',
+    nameNL: 'Overeenkomst_Vanuit_Ambacht_Q4001.pdf',
+    nameEN: 'Contract_Vanuit_Ambacht_Q4001.pdf',
+    size: '2.4 MB',
+    type: 'pdf',
+    category: 'Contracts',
+    categoryNL: 'Contracten',
+    categoryEN: 'Contracts',
+    date: '2026-07-28',
+    uploader: 'Admin User',
+    descriptionNL: 'Ondertekend contract voor maatwerk buitenkeuken 3.5m.',
+    descriptionEN: 'Signed contract for custom outdoor kitchen 3.5m.'
+  },
+  {
+    id: 'doc-3',
+    name: 'Materiaal_Specificatie_Thermo_Frake.xlsx',
+    nameNL: 'Materiaal_Specificatie_Thermo_Frake.xlsx',
+    nameEN: 'Material_Specs_Thermo_Frake.xlsx',
+    size: '1.8 MB',
+    type: 'excel',
+    category: 'Materials',
+    categoryNL: 'Materialen',
+    categoryEN: 'Materials',
+    date: '2026-08-01',
+    uploader: 'Sven Hoek',
+    descriptionNL: 'Inkooplijst verduurzaamd hout & RVS schroeven.',
+    descriptionEN: 'Purchase list for preserved timber & stainless steel hardware.'
+  },
+  {
+    id: 'doc-4',
+    name: 'Onderhoudsgids_Buitenkeuken_2026.pdf',
+    nameNL: 'Onderhoudsgids_Buitenkeuken_2026.pdf',
+    nameEN: 'Maintenance_Guide_Outdoor_Kitchen_2026.pdf',
+    size: '3.8 MB',
+    type: 'pdf',
+    category: 'General',
+    categoryNL: 'Algemeen',
+    categoryEN: 'General',
+    date: '2026-08-02',
+    uploader: 'Admin User',
+    descriptionNL: 'Behandelingsgids voor beton cire & teakhout olie.',
+    descriptionEN: 'Care manual for polished concrete & teak oil treatment.'
+  }
+];
 
 export default function Documents({ role }) {
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
   const [documents, setDocuments] = useState([]);
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [search, setSearch] = useState('');
@@ -28,7 +87,11 @@ export default function Documents({ role }) {
   useEffect(() => {
     const savedDocs = localStorage.getItem('app_documents');
     if (savedDocs) {
-      setDocuments(JSON.parse(savedDocs));
+      try {
+        setDocuments(JSON.parse(savedDocs));
+      } catch (e) {
+        setDocuments(INITIAL_DOCUMENTS);
+      }
     } else {
       setDocuments(INITIAL_DOCUMENTS);
       localStorage.setItem('app_documents', JSON.stringify(INITIAL_DOCUMENTS));
@@ -65,7 +128,7 @@ export default function Documents({ role }) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
   };
 
-  // Simulated upload handler - reads content asynchronously into persistent URL strings
+  // Upload handler
   const handleUpload = async (files) => {
     if (!files || files.length === 0) return;
     
@@ -88,7 +151,7 @@ export default function Documents({ role }) {
             name: file.name,
             size: formatBytes(file.size),
             type: fileType,
-            url: e.target.result, // Contains persistent base64 url or raw text
+            url: e.target.result,
             category: fileType === 'image' || fileType === 'pdf' ? 'Designs' : fileType === 'excel' || fileType === 'word' ? 'Contracts' : 'General',
             date: new Date().toISOString().split('T')[0],
             uploader: role === 'admin' ? 'Admin User' : 'Sven Hoek'
@@ -104,11 +167,9 @@ export default function Documents({ role }) {
     });
 
     const newDocs = await Promise.all(uploadPromises);
-    setDocuments(prev => {
-      const updated = [...newDocs, ...prev];
-      localStorage.setItem('app_documents', JSON.stringify(updated));
-      return updated;
-    });
+    const updated = [...newDocs, ...documents];
+    setDocuments(updated);
+    localStorage.setItem('app_documents', JSON.stringify(updated));
 
     const count = newDocs.length;
     showToast(count === 1 ? `"${newDocs[0].name}" ${language === 'NL' ? 'geüpload' : 'uploaded'}` : `${count} ${language === 'NL' ? 'documenten geüpload' : 'documents uploaded'}`);
@@ -119,17 +180,14 @@ export default function Documents({ role }) {
     setTimeout(() => setNotification(''), 3000);
   };
 
-  // Input change
   const handleFileChange = (e) => {
     handleUpload(e.target.files);
   };
 
-  // Trigger input click
   const triggerFileInput = () => {
-    fileInputRef.current.click();
+    if (fileInputRef.current) fileInputRef.current.click();
   };
 
-  // Drag handlers
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -149,18 +207,91 @@ export default function Documents({ role }) {
     }
   };
 
-  // Simulated download
-  const handleDownload = (docName) => {
-    const element = document.createElement("a");
-    const file = new Blob(["Mock file content for " + docName], {type: 'text/plain'});
-    element.href = URL.createObjectURL(file);
-    element.download = docName;
-    document.body.appendChild(element);
-    element.click();
-    showToast(`${language === 'NL' ? 'Bezig met downloaden' : 'Downloading'} ${docName}...`);
+  // Formatted PDF Printable download trigger
+  const handleDownload = (doc) => {
+    showToast(`${language === 'NL' ? 'Bezig met genereren/downloaden van' : 'Generating & Downloading'} ${doc.name}...`);
+    
+    const printWin = window.open('', '_blank');
+    if (!printWin) return;
+
+    const isBlueprint = doc.name.includes('AUTOCAD') || doc.category === 'Designs';
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${doc.name}</title>
+        <style>
+          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f8f9fa; color: #1a202c; padding: 40px; }
+          .header { border-bottom: 3px solid #3E4E36; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
+          .logo { font-size: 24px; font-weight: bold; color: #3E4E36; letter-spacing: 2px; }
+          .subtitle { font-size: 12px; color: #718096; text-transform: uppercase; letter-spacing: 1px; }
+          .cad-box { background: #0f172a; border: 2px solid #0891b2; border-radius: 16px; padding: 30px; color: #22d3ee; margin: 30px 0; font-family: monospace; }
+          .cad-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; text-transform: uppercase; border-bottom: 1px solid #164e63; padding-bottom: 10px; }
+          .cad-diagram { border: 2px dashed #06b6d4; padding: 25px; text-align: center; border-radius: 12px; background: #020617; font-size: 14px; font-weight: bold; margin: 20px 0; }
+          .doc-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+          .badge { background: #3E4E36; color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+          .footer { margin-top: 50px; border-top: 1px solid #e2e8f0; padding-top: 20px; text-align: center; font-size: 11px; color: #a0aec0; }
+          .stamp { border: 2px solid #16a34a; color: #16a34a; padding: 8px 16px; border-radius: 8px; font-weight: bold; display: inline-block; margin-top: 20px; text-transform: uppercase; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <div class="logo">VANUIT AMBACHT</div>
+            <div class="subtitle">Official Project File & CAD Drawing • Spec & Verification</div>
+          </div>
+          <span class="badge">${isBlueprint ? 'AUTOCAD 1:20 SPEC' : 'VERIFIED DOCUMENT'}</span>
+        </div>
+
+        ${isBlueprint ? `
+          <div class="cad-box">
+            <div class="cad-title">📐 OFFICIAL SCHEMATIC BLUEPRINT (AUTOCAD SPEC V2)</div>
+            <p><strong>Document Name:</strong> ${doc.name}</p>
+            <p><strong>Uploader:</strong> ${doc.uploader}</p>
+            <p><strong>Scale:</strong> 1:20 • Approved Workshop Construction Spec</p>
+            
+            <div class="cad-diagram">
+              [ 3.5m TEAK FRAME ] ═══════ [ CONCRETE SLAB ] ═══════ [ SINK & KAMADO CUTOUT ]
+              <br><br>
+              <span style="font-size: 11px; color: #67e8f9;">Dimensions: 350cm (W) x 85cm (D) x 92cm (H) • Material: Grade-A Teak Wood + 8cm Beton Cire</span>
+            </div>
+
+            <p style="font-size: 11px; color: #a5f3fc;">Verified by Head Craftsmen Tim & Bram • Certified Workshop Production File</p>
+          </div>
+        ` : `
+          <div class="doc-card">
+            <h2 style="color: #3E4E36; margin-top: 0;">${doc.name}</h2>
+            <p><strong>Category:</strong> ${doc.category}</p>
+            <p><strong>Uploaded By:</strong> ${doc.uploader}</p>
+            <p><strong>Date Issued:</strong> ${doc.date}</p>
+            <hr style="border: none; border-top: 1px solid #edf2f7; margin: 20px 0;">
+            <p style="line-height: 1.6; color: #4a5568;">
+              This is an official verified document provided for Vanuit Ambacht B.V. project operations.
+            </p>
+            <div class="stamp">✓ Digitally Signed & Verified</div>
+          </div>
+        `}
+
+        <div class="footer">
+          Vanuit Ambacht B.V. • Craftsman Outdoor Kitchens & Canopies • Netherlands
+          <br>
+          Document ID: ${doc.id} • ${doc.name}
+        </div>
+
+        <script>
+          setTimeout(() => {
+            window.print();
+          }, 600);
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWin.document.write(htmlContent);
+    printWin.document.close();
   };
 
-  // Delete handler
   const handleDelete = (id, name) => {
     const updated = documents.filter(doc => doc.id !== id);
     setDocuments(updated);
@@ -186,17 +317,17 @@ export default function Documents({ role }) {
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Toast Notification */}
+    <div className="space-y-6 font-body text-[#4A4A43] relative">
+      {/* Toast Notification (Positioned nicely below header) */}
       <AnimatePresence>
         {notification && (
           <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 10 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-[#3E4E36] text-cream px-4 py-3 rounded-xl shadow-lg border border-[#D6CFC2]/20 font-body text-xs"
+            initial={{ opacity: 0, x: 80 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 80 }}
+            className="fixed top-20 right-4 z-[9999] flex items-center gap-2 bg-[#3E4E36] text-white px-4 py-3 rounded-xl shadow-2xl border border-[#2D3528] text-xs font-body"
           >
-            <CheckCircle className="w-4 h-4 text-green-400" />
+            <CheckCircle className="w-4 h-4 text-emerald-400" />
             {notification}
           </motion.div>
         )}
@@ -207,7 +338,7 @@ export default function Documents({ role }) {
           <h2 className="text-2xl font-heading font-bold text-primary">
             {language === 'NL' ? 'Documenten' : 'Documents'}
           </h2>
-          <p className="text-dark/50 text-sm font-body">
+          <p className="text-dark/50 text-sm font-body mt-1">
             {language === 'NL' ? 'Projectdocumenten uploaden, beheren en delen.' : 'Upload, manage, and share project documents.'}
           </p>
         </div>
@@ -248,33 +379,29 @@ export default function Documents({ role }) {
       </motion.div>
 
       {/* Search and Filters */}
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="relative w-full md:max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark/35" />
-          <input 
-            type="text" 
-            placeholder={language === 'NL' ? 'Zoek documenten op naam...' : 'Search documents by name...'}
+      <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-dark/40" />
+          <input
+            type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-[#4A4A43]"
+            placeholder={language === 'NL' ? 'Zoek documenten op naam...' : 'Search documents by name...'}
+            className="w-full pl-9 pr-4 py-2.5 bg-white border border-[#D6CFC2] rounded-xl text-xs font-body focus:outline-none focus:ring-2 focus:ring-primary/15 text-dark"
           />
         </div>
 
-        <div className="flex flex-wrap gap-2 w-full md:w-auto items-center">
-          <div className="flex gap-1.5 items-center">
-            <Filter className="w-3.5 h-3.5 text-dark/40 flex-shrink-0" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-dark/40 font-body mr-1">
-              {language === 'NL' ? 'Filter:' : 'Filter:'}
-            </span>
-          </div>
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+          <Filter className="w-3.5 h-3.5 text-dark/40 ml-1 mr-1 flex-shrink-0" />
+          <span className="text-xs font-bold text-dark/40 uppercase mr-1 hidden sm:inline">{language === 'NL' ? 'Filter:' : 'Filter:'}</span>
           {categories.map((cat) => (
             <button
               key={cat.key}
               onClick={() => setSelectedCategory(cat.key)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-body transition-all whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                 selectedCategory === cat.key
-                  ? 'bg-primary text-cream font-medium'
-                  : 'bg-[#EDE8DF] border border-[#D6CFC2]/70 text-dark/60 hover:bg-cream hover:text-primary'
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'bg-white/80 text-dark/70 hover:bg-white border border-[#D6CFC2]/60'
               }`}
             >
               {cat.label}
@@ -283,177 +410,107 @@ export default function Documents({ role }) {
         </div>
       </div>
 
-      {/* Document Grid / List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-        <AnimatePresence>
-          {filteredDocs.length > 0 ? (
-            filteredDocs.map((doc) => (
-              <motion.div
-                key={doc.id}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.3 }}
-                layout
-              >
-                <Card 
-                  onClick={() => setSelectedDoc(doc)}
-                  className="hover:shadow-md transition-shadow relative overflow-hidden group cursor-pointer"
-                  noPadding
-                >
-                  <div className="p-5 flex items-start gap-4">
-                    {/* Icon Area */}
-                    <div className="p-3 bg-light rounded-xl border border-cream-dark/30 flex-shrink-0">
-                      {getFileIcon(doc.type)}
-                    </div>
-                    {/* Content Area */}
-                    <div className="flex-1 min-w-0 pr-14">
-                      <h4 className="font-semibold text-sm text-dark font-body truncate" title={doc.name}>
-                        {doc.name}
-                      </h4>
-                      <p className="text-xs text-dark/40 font-body mt-0.5">{doc.size} · {doc.date}</p>
-                      
-                      <div className="mt-3 flex items-center justify-between">
-                        <Badge variant="default" className="text-[10px] uppercase font-body">
-                          {doc.category}
-                        </Badge>
-                        <span className="text-[10px] text-dark/40 font-body truncate max-w-[120px]" title={`Uploaded by ${doc.uploader}`}>
-                          By: {doc.uploader}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Actions Dropdown/Hover Buttons */}
-                  <div className="absolute right-3 top-3 flex gap-1 lg:opacity-0 lg:group-hover:opacity-100 opacity-100 transition-all duration-200">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleDownload(doc.name); }}
-                      className="p-1.5 rounded-lg bg-light border border-cream-dark/50 text-dark/60 hover:text-primary hover:bg-cream transition-all shadow-sm"
-                      title="Download File"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleDelete(doc.id, doc.name); }}
-                      className="p-1.5 rounded-lg bg-light border border-cream-dark/50 text-red-500 hover:text-white hover:bg-red-500 transition-all shadow-sm"
-                      title="Delete File"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </Card>
-              </motion.div>
-            ))
-          ) : (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="col-span-full py-16 text-center border-2 border-dashed border-[#D6CFC2]/60 rounded-2xl"
-            >
-              <File className="w-12 h-12 mx-auto mb-3 text-dark/20" />
-              <p className="text-dark/50 font-body text-sm font-semibold">No documents found</p>
-              <p className="text-dark/30 font-body text-xs mt-1">Try changing your filters or upload a new document.</p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* Document Preview Modal */}
-      <AnimatePresence>
-        {selectedDoc && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setSelectedDoc(null)}
-            className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              transition={{ type: "spring", damping: 25, stiffness: 350 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-[#F2EDE4] border border-[#D6CFC2] rounded-2xl w-full max-w-2xl overflow-hidden relative shadow-2xl p-6"
-            >
-              {/* Close Button */}
-              <button
-                onClick={() => setSelectedDoc(null)}
-                className="absolute top-4 right-4 p-2 rounded-lg hover:bg-black/5 text-dark/60 hover:text-dark transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-light rounded-lg border border-cream-dark/30">
-                    {getFileIcon(selectedDoc.type)}
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="font-heading font-bold text-dark text-lg truncate pr-8" title={selectedDoc.name}>
-                      {selectedDoc.name}
-                    </h3>
-                    <p className="text-xs text-dark/50 font-body">Size: {selectedDoc.size} · Uploaded: {selectedDoc.date}</p>
-                  </div>
+      {/* Document Grid List */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {filteredDocs.length === 0 ? (
+          <div className="col-span-full text-center py-12 text-dark/40 text-xs">
+            <File className="w-10 h-10 mx-auto mb-2 text-dark/20" />
+            {language === 'NL' ? 'Geen documenten gevonden.' : 'No documents found.'}
+          </div>
+        ) : (
+          filteredDocs.map((doc) => (
+            <Card key={doc.id} className="hover:border-primary/40 transition-all">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-[#EDE8DF] rounded-xl flex-shrink-0">
+                  {getFileIcon(doc.type)}
                 </div>
 
-                <div className="border-t border-[#D6CFC2] pt-4">
-                  {selectedDoc.type === 'image' ? (
-                    <div className="flex justify-center bg-black/5 rounded-xl p-4 border border-[#D6CFC2]/50 max-h-96 overflow-hidden">
-                      <img 
-                        src={selectedDoc.url || projectImg} 
-                        alt={selectedDoc.name} 
-                        className="max-w-full max-h-80 object-contain rounded-lg shadow-sm"
-                      />
-                    </div>
-                  ) : selectedDoc.type === 'pdf' && selectedDoc.url ? (
-                    <div className="rounded-xl overflow-hidden border border-[#D6CFC2]/50">
-                      <iframe 
-                        src={selectedDoc.url} 
-                        className="w-full h-96 bg-white" 
-                        title={selectedDoc.name}
-                      />
-                    </div>
-                  ) : selectedDoc.type === 'text' && selectedDoc.url ? (
-                    <pre className="text-left bg-[#F8F7F4] p-4 rounded-xl max-h-80 overflow-auto text-[11px] font-mono border border-[#D6CFC2] text-dark/80 whitespace-pre-wrap leading-relaxed">
-                      {selectedDoc.url}
-                    </pre>
-                  ) : (
-                    <div className="py-12 text-center border border-dashed border-[#D6CFC2] bg-light rounded-xl">
-                      <FileText className="w-16 h-16 mx-auto mb-3 text-dark/20" />
-                      <p className="text-sm font-semibold text-dark/70 font-body">No live preview available</p>
-                      <p className="text-xs text-dark/40 font-body mt-1">This file type ({selectedDoc.type.toUpperCase()}) cannot be previewed in browser.</p>
-                    </div>
-                  )}
-                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <Badge variant="primary" className="text-[9px]">
+                      {doc.category}
+                    </Badge>
+                    <span className="text-[10px] text-dark/40 font-mono">{doc.date}</span>
+                  </div>
 
-                <div className="flex justify-between items-center pt-2 text-xs font-body text-dark/60">
-                  <span>Uploaded by: <span className="font-semibold text-dark">{selectedDoc.uploader}</span></span>
-                  <div className="flex gap-2">
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      icon={Download}
-                      onClick={() => handleDownload(selectedDoc.name)}
-                    >
-                      Download
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      className="bg-red-500 hover:bg-red-600 text-white border-0" 
-                      icon={Trash2}
-                      onClick={() => {
-                        handleDelete(selectedDoc.id, selectedDoc.name);
-                        setSelectedDoc(null);
-                      }}
-                    >
-                      Delete
-                    </Button>
+                  <h3 className="font-bold text-sm text-primary truncate font-heading">{doc.name}</h3>
+                  <p className="text-xs text-dark/60 line-clamp-1 mt-0.5 font-body">
+                    {language === 'EN' ? (doc.descriptionEN || doc.descriptionNL || 'Uploaded document') : (doc.descriptionNL || doc.descriptionEN || 'Geüpload document')}
+                  </p>
+
+                  <div className="flex items-center justify-between pt-3 mt-2 border-t border-[#D6CFC2]/40 text-xs">
+                    <span className="text-[10px] text-dark/50 font-mono">
+                      {doc.size} • {doc.uploader}
+                    </span>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setSelectedDoc(doc)}
+                        className="p-1.5 text-dark/60 hover:text-primary hover:bg-[#EDE8DF] rounded-lg transition-colors"
+                        title={language === 'NL' ? 'Bekijk Details' : 'View Details'}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDownload(doc)}
+                        className="p-1.5 text-dark/60 hover:text-primary hover:bg-[#EDE8DF] rounded-lg transition-colors"
+                        title={language === 'NL' ? 'Download PDF' : 'Download PDF'}
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(doc.id, doc.name)}
+                        className="p-1.5 text-dark/40 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title={language === 'NL' ? 'Verwijder' : 'Delete'}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
+            </Card>
+          ))
+        )}
+      </div>
+
+      {/* DOCUMENT PREVIEW MODAL */}
+      <AnimatePresence>
+        {selectedDoc && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-dark/70 backdrop-blur-xs" onClick={() => setSelectedDoc(null)} />
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative w-full max-w-lg bg-[#EDE8DF] border border-[#C4BEB3] rounded-2xl p-6 shadow-2xl z-10 space-y-4 text-xs font-body">
+              <div className="flex justify-between items-start border-b border-[#D6CFC2] pb-3">
+                <div>
+                  <Badge variant="primary">{selectedDoc.category}</Badge>
+                  <h3 className="text-lg font-heading font-bold text-primary mt-1">{selectedDoc.name}</h3>
+                </div>
+                <button onClick={() => setSelectedDoc(null)} className="p-1 text-dark/40 hover:text-dark">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-4 bg-white rounded-xl border border-[#D6CFC2]/60 space-y-2">
+                <p><span className="font-bold text-dark">{language === 'NL' ? 'Grootte:' : 'Size:'}</span> {selectedDoc.size}</p>
+                <p><span className="font-bold text-dark">{language === 'NL' ? 'Type:' : 'Type:'}</span> {selectedDoc.type.toUpperCase()}</p>
+                <p><span className="font-bold text-dark">{language === 'NL' ? 'Geüpload door:' : 'Uploaded By:'}</span> {selectedDoc.uploader}</p>
+                <p><span className="font-bold text-dark">{language === 'NL' ? 'Datum:' : 'Date:'}</span> {selectedDoc.date}</p>
+                <p className="text-dark/70 pt-2 border-t border-[#D6CFC2]/40 leading-relaxed">
+                  {language === 'EN' ? (selectedDoc.descriptionEN || selectedDoc.descriptionNL || 'Official project document.') : (selectedDoc.descriptionNL || selectedDoc.descriptionEN || 'Officieel projectdocument.')}
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => setSelectedDoc(null)}>
+                  {language === 'NL' ? 'Sluiten' : 'Close'}
+                </Button>
+                <Button onClick={() => { handleDownload(selectedDoc); setSelectedDoc(null); }}>
+                  <Download className="w-3.5 h-3.5 mr-1" />
+                  {language === 'NL' ? 'Download PDF' : 'Download PDF'}
+                </Button>
+              </div>
             </motion.div>
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

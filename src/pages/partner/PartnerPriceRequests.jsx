@@ -1,22 +1,101 @@
-import React, { useState } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import Card from '../../components/Card';
 import Badge from '../../components/Badge';
 import { FileText, Send, Calendar, Banknote, Clock, CheckCircle2, ChevronDown, ChevronUp, MessageSquare, AlertCircle, Inbox } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const OPEN_REQUESTS = [];
+const DEFAULT_OPEN_REQUESTS = [
+  {
+    id: 'PR-2026-081',
+    projectNL: 'Luxe Teak Buitenkeuken 3.5m - Thermo Fraké',
+    projectEN: 'Luxury Teak Outdoor Kitchen 3.5m - Thermo Fraké',
+    customer: 'Bjorn Valk (Utrecht)',
+    divisionNL: 'Buitenkeukens',
+    divisionEN: 'Outdoor Kitchens',
+    deadlineNL: '25 Augustus 2026',
+    deadlineEN: '25 August 2026',
+    dueDateNL: '12 Aug 2026',
+    dueDateEN: '12 Aug 2026',
+    specsNL: 'Massief Teakhouten onderstel (350x85x92cm), 8cm Zwart Polijst Beton Cire werkblad, RVS Kamado cutout, spoelbak & kraan aansluiting.',
+    specsEN: 'Solid Teak wood base (350x85x92cm), 8cm Black Polished Concrete Worktop, Stainless Kamado cutout, sink & tap connections.'
+  },
+  {
+    id: 'PR-2026-084',
+    projectNL: 'Eiken Houten Overkapping 6x4m met Glaswand',
+    projectEN: 'Oak Wooden Canopy 6x4m with Glass Wall',
+    customer: 'Mark Davis (Amsterdam)',
+    divisionNL: 'Overkappingen',
+    divisionEN: 'Canopies',
+    deadlineNL: '10 September 2026',
+    deadlineEN: '10 September 2026',
+    dueDateNL: '15 Aug 2026',
+    dueDateEN: '15 Aug 2026',
+    specsNL: 'Rustiek Eiken gebint constructie (600x400cm), EPDM daksysteem, zinken hemelwaterafvoer, glazen schuifwand 4-delig.',
+    specsEN: 'Rustic Oak truss construction (600x400cm), EPDM roofing system, zinc rainwater drainage, 4-piece sliding glass wall.'
+  }
+];
 
-const SUBMITTED_LOG = [];
+const DEFAULT_SUBMITTED_LOG = [
+  {
+    id: 'PR-2026-079',
+    projectNL: 'Kliko Ombouw Triple Antraciet (240L)',
+    projectEN: 'Bin Storage Triple Anthracite (240L)',
+    customer: 'Sophia Taylor (Rotterdam)',
+    divisionNL: 'Kliko Ombouw',
+    divisionEN: 'Bin Storage',
+    deadlineNL: '15 Augustus 2026',
+    deadlineEN: '15 August 2026',
+    submittedOn: '04 Aug 2026',
+    price: '€ 1.450,00',
+    validityNL: '30 dagen',
+    validityEN: '30 days',
+    leadTimeNL: '2 weken',
+    leadTimeEN: '2 weeks',
+    remarksNL: 'Inclusief gasveren en gepoedercoat stalen frame.',
+    remarksEN: 'Includes gas struts and powder-coated steel frame.',
+    adminStatus: 'Accepted'
+  }
+];
 
 export default function PartnerPriceRequests() {
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
   const [expanded, setExpanded] = useState(null);
   const [formData, setFormData] = useState({});
-  const [submitted, setSubmitted] = useState([...SUBMITTED_LOG]);
-  const [open, setOpen] = useState([...OPEN_REQUESTS]);
+  const [submitted, setSubmitted] = useState([]);
+  const [open, setOpen] = useState([]);
   const [toastMsg, setToastMsg] = useState('');
   const [activeTab, setActiveTab] = useState('open');
+
+  // Load from localStorage or fallback defaults
+  useEffect(() => {
+    const loadRequests = () => {
+      const savedOpen = localStorage.getItem('app_partner_requests');
+      const savedSubmitted = localStorage.getItem('app_partner_submitted_offers');
+
+      if (savedOpen) {
+        try { setOpen(JSON.parse(savedOpen)); } catch (e) { setOpen(DEFAULT_OPEN_REQUESTS); }
+      } else {
+        setOpen(DEFAULT_OPEN_REQUESTS);
+        localStorage.setItem('app_partner_requests', JSON.stringify(DEFAULT_OPEN_REQUESTS));
+      }
+
+      if (savedSubmitted) {
+        try { setSubmitted(JSON.parse(savedSubmitted)); } catch (e) { setSubmitted(DEFAULT_SUBMITTED_LOG); }
+      } else {
+        setSubmitted(DEFAULT_SUBMITTED_LOG);
+        localStorage.setItem('app_partner_submitted_offers', JSON.stringify(DEFAULT_SUBMITTED_LOG));
+      }
+    };
+
+    loadRequests();
+    window.addEventListener('storage', loadRequests);
+    window.addEventListener('app_data_changed', loadRequests);
+    return () => {
+      window.removeEventListener('storage', loadRequests);
+      window.removeEventListener('app_data_changed', loadRequests);
+    };
+  }, []);
 
   const showToast = (msg) => {
     setToastMsg(msg);
@@ -35,28 +114,38 @@ export default function PartnerPriceRequests() {
     }
     const submittedOffer = {
       ...req,
-      submittedOn: new Date().toLocaleDateString('nl-NL', { day: '2-digit', month: 'short', year: 'numeric' }),
+      submittedOn: new Date().toLocaleDateString(language === 'NL' ? 'nl-NL' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' }),
       price: `€ ${parseFloat(form.price).toLocaleString('nl-NL', { minimumFractionDigits: 2 })}`,
-      validity: form.validity,
-      leadTime: form.leadTime,
-      remarks: form.remarks || '—',
+      validityNL: form.validity,
+      validityEN: form.validity,
+      leadTimeNL: `${form.leadTime} weken`,
+      leadTimeEN: `${form.leadTime} weeks`,
+      remarksNL: form.remarks || '—',
+      remarksEN: form.remarks || '—',
       adminStatus: 'In Review',
     };
-    setSubmitted(prev => [submittedOffer, ...prev]);
-    setOpen(prev => prev.filter(r => r.id !== req.id));
+
+    const newSubmitted = [submittedOffer, ...submitted];
+    const newOpen = open.filter(r => r.id !== req.id);
+
+    setSubmitted(newSubmitted);
+    setOpen(newOpen);
+    localStorage.setItem('app_partner_submitted_offers', JSON.stringify(newSubmitted));
+    localStorage.setItem('app_partner_requests', JSON.stringify(newOpen));
+    window.dispatchEvent(new Event('app_data_changed'));
+
     setExpanded(null);
     showToast(language === 'NL' ? `✅ Offerte ${req.id} succesvol ingediend!` : `✅ Offer ${req.id} submitted!`);
   };
 
   return (
     <div className="space-y-6 font-body text-[#4A4A43] relative">
-
       {/* Toast */}
       <AnimatePresence>
         {toastMsg && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 8 }} exit={{ opacity: 0, y: -20 }}
-            className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-primary text-cream px-4 py-3 rounded-xl shadow-lg text-xs font-body"
+            initial={{ opacity: 0, x: 80 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 80 }}
+            className="fixed top-20 right-4 z-[9999] flex items-center gap-2 bg-primary text-cream px-4 py-3 rounded-xl shadow-lg text-xs font-body"
           >
             {toastMsg}
           </motion.div>
@@ -114,6 +203,12 @@ export default function PartnerPriceRequests() {
             open.map(req => {
               const isOpen = expanded === req.id;
               const form = formData[req.id] || {};
+              const title = language === 'EN' ? (req.projectEN || req.project) : (req.projectNL || req.project);
+              const division = language === 'EN' ? (req.divisionEN || req.division) : (req.divisionNL || req.division);
+              const deadline = language === 'EN' ? (req.deadlineEN || req.deadline) : (req.deadlineNL || req.deadline);
+              const dueDate = language === 'EN' ? (req.dueDateEN || req.dueDate) : (req.dueDateNL || req.dueDate);
+              const specs = language === 'EN' ? (req.specsEN || req.specs) : (req.specsNL || req.specs);
+
               return (
                 <Card key={req.id} className="overflow-hidden" p="p-0">
                   {/* Card Header */}
@@ -128,17 +223,17 @@ export default function PartnerPriceRequests() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs font-mono font-bold text-accent">{req.id}</span>
-                          <Badge variant="warning">Open</Badge>
-                          <Badge variant="primary">{req.division}</Badge>
+                          <Badge variant="warning">{language === 'NL' ? 'Openstaand' : 'Open'}</Badge>
+                          <Badge variant="primary">{division}</Badge>
                         </div>
-                        <h3 className="font-bold text-primary font-heading text-base mt-0.5 truncate">{req.project}</h3>
-                        <p className="text-xs text-dark/50">{language === 'NL' ? 'Klant:' : 'Customer:'} {req.customer} · {language === 'NL' ? 'Deadline klant:' : 'Client deadline:'} <strong className="text-primary">{req.deadline}</strong></p>
+                        <h3 className="font-bold text-primary font-heading text-base mt-0.5 truncate">{title}</h3>
+                        <p className="text-xs text-dark/50">{language === 'NL' ? 'Klant:' : 'Customer:'} {req.customer} · {language === 'NL' ? 'Deadline klant:' : 'Client deadline:'} <strong className="text-primary">{deadline}</strong></p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
                       <div className="text-right hidden sm:block">
                         <span className="block text-[10px] text-dark/40 font-bold uppercase">{language === 'NL' ? 'Indienen voor' : 'Submit by'}</span>
-                        <span className="text-xs font-bold text-primary flex items-center gap-1"><Calendar className="w-3 h-3 text-accent" />{req.dueDate}</span>
+                        <span className="text-xs font-bold text-primary flex items-center gap-1"><Calendar className="w-3 h-3 text-accent" />{dueDate}</span>
                       </div>
                       {isOpen
                         ? <ChevronUp className="w-5 h-5 text-dark/40" />
@@ -159,7 +254,7 @@ export default function PartnerPriceRequests() {
                           {/* Specs */}
                           <div className="p-3 bg-[#F8F7F4] rounded-xl border border-[#D6CFC2]/40">
                             <p className="text-[10px] font-bold uppercase text-dark/40 mb-1">{language === 'NL' ? 'Projectspecificaties' : 'Project Specs'}</p>
-                            <p className="text-sm text-dark font-body">{req.specs}</p>
+                            <p className="text-sm text-dark font-body">{specs}</p>
                           </div>
 
                           {/* Form Fields */}
@@ -175,7 +270,7 @@ export default function PartnerPriceRequests() {
                                   type="number"
                                   value={form.price || ''}
                                   onChange={e => handleInput(req.id, 'price', e.target.value)}
-                                  placeholder="bijv. 4500"
+                                  placeholder={language === 'NL' ? 'bijv. 4500' : 'e.g. 4500'}
                                   className="w-full pl-9 pr-3 py-2.5 bg-white border border-[#D6CFC2] rounded-xl text-sm focus:ring-2 focus:ring-primary/20 outline-none"
                                 />
                               </div>
@@ -192,10 +287,10 @@ export default function PartnerPriceRequests() {
                                 className="w-full px-3 py-2.5 bg-white border border-[#D6CFC2] rounded-xl text-sm focus:ring-2 focus:ring-primary/20 outline-none"
                               >
                                 <option value="">{language === 'NL' ? 'Selecteer...' : 'Select...'}</option>
-                                <option value="14 dagen">14 dagen</option>
-                                <option value="30 dagen">30 dagen</option>
-                                <option value="45 dagen">45 dagen</option>
-                                <option value="60 dagen">60 dagen</option>
+                                <option value={language === 'NL' ? '14 dagen' : '14 days'}>{language === 'NL' ? '14 dagen' : '14 days'}</option>
+                                <option value={language === 'NL' ? '30 dagen' : '30 days'}>{language === 'NL' ? '30 dagen' : '30 days'}</option>
+                                <option value={language === 'NL' ? '45 dagen' : '45 days'}>{language === 'NL' ? '45 dagen' : '45 days'}</option>
+                                <option value={language === 'NL' ? '60 dagen' : '60 days'}>{language === 'NL' ? '60 dagen' : '60 days'}</option>
                               </select>
                             </div>
 
@@ -210,7 +305,7 @@ export default function PartnerPriceRequests() {
                                   type="number"
                                   value={form.leadTime || ''}
                                   onChange={e => handleInput(req.id, 'leadTime', e.target.value)}
-                                  placeholder="bijv. 4"
+                                  placeholder={language === 'NL' ? 'bijv. 4' : 'e.g. 4'}
                                   className="w-full pl-9 pr-3 py-2.5 bg-white border border-[#D6CFC2] rounded-xl text-sm focus:ring-2 focus:ring-primary/20 outline-none"
                                 />
                               </div>
@@ -227,7 +322,7 @@ export default function PartnerPriceRequests() {
                               value={form.remarks || ''}
                               onChange={e => handleInput(req.id, 'remarks', e.target.value)}
                               rows={3}
-                              placeholder={language === 'NL' ? 'Bijv. prijs incl. levering, montage op locatie, garantieperiode...' : 'e.g. price incl. delivery, on-site assembly, warranty period...'}
+                              placeholder={language === 'NL' ? 'bijv. prijs incl. levering, montage op locatie...' : 'e.g. price incl. delivery, on-site assembly...'}
                               className="w-full px-3 py-2.5 bg-white border border-[#D6CFC2] rounded-xl text-sm focus:ring-2 focus:ring-primary/20 outline-none resize-none"
                             />
                           </div>
@@ -238,7 +333,7 @@ export default function PartnerPriceRequests() {
                             className="w-full py-3 bg-primary text-cream rounded-xl flex items-center justify-center gap-2 font-bold font-body hover:bg-primary/90 active:scale-[0.98] transition-all shadow-md"
                           >
                             <Send className="w-4 h-4" />
-                            {language === 'NL' ? `Offerte Indienen voor ${req.project}` : `Submit Offer for ${req.project}`}
+                            {language === 'NL' ? `Offerte Indienen voor ${title}` : `Submit Offer for ${title}`}
                           </button>
                         </div>
                       </motion.div>
@@ -260,58 +355,70 @@ export default function PartnerPriceRequests() {
               {language === 'NL' ? 'Nog geen offertes ingediend.' : 'No offers submitted yet.'}
             </div>
           ) : (
-            submitted.map(offer => (
-              <Card key={offer.id} className="border border-green-200/60 bg-[#F8FFF8]/60">
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between gap-3 flex-wrap">
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <CheckCircle2 className="w-4 h-4 text-green-500" />
-                        <span className="text-xs font-mono font-bold text-green-600">{offer.id}</span>
-                        <Badge variant="success">{language === 'NL' ? 'Ingediend' : 'Submitted'}</Badge>
-                        <Badge variant={offer.adminStatus === 'In Review' ? 'warning' : 'success'}>
-                          {language === 'NL'
-                            ? (offer.adminStatus === 'In Review' ? 'In beoordeling' : offer.adminStatus)
-                            : offer.adminStatus}
-                        </Badge>
+            submitted.map(offer => {
+              const title = language === 'EN' ? (offer.projectEN || offer.project) : (offer.projectNL || offer.project);
+              const validity = language === 'EN' ? (offer.validityEN || offer.validity) : (offer.validityNL || offer.validity);
+              const leadTime = language === 'EN' ? (offer.leadTimeEN || offer.leadTime) : (offer.leadTimeNL || offer.leadTime);
+              const remarks = language === 'EN' ? (offer.remarksEN || offer.remarks) : (offer.remarksNL || offer.remarks);
+              const isAccepted = offer.adminStatus === 'Geaccepteerd' || offer.adminStatus === 'Accepted';
+
+              return (
+                <Card key={offer.id} className="border border-green-200/60 bg-[#F8FFF8]/60">
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between gap-3 flex-wrap">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <CheckCircle2 className="w-4 h-4 text-green-500" />
+                          <span className="text-xs font-mono font-bold text-green-600">{offer.id}</span>
+                          <Badge variant="success">{language === 'NL' ? 'Ingediend' : 'Submitted'}</Badge>
+                          <Badge variant={isAccepted ? 'success' : offer.adminStatus === 'In Review' ? 'warning' : 'primary'}>
+                            {language === 'NL'
+                              ? (isAccepted ? 'Geaccepteerd' : offer.adminStatus === 'In Review' ? 'In beoordeling' : offer.adminStatus)
+                              : (isAccepted ? 'Accepted' : offer.adminStatus === 'In Review' ? 'In Review' : offer.adminStatus)}
+                          </Badge>
+                        </div>
+                        <h3 className="font-heading font-bold text-primary text-base">{title}</h3>
+                        <p className="text-xs text-dark/50">{language === 'NL' ? 'Klant:' : 'Customer:'} {offer.customer}</p>
                       </div>
-                      <h3 className="font-heading font-bold text-primary text-base">{offer.project}</h3>
-                      <p className="text-xs text-dark/50">{language === 'NL' ? 'Klant:' : 'Customer:'} {offer.customer}</p>
+                      <div className="text-right">
+                        <span className="block text-[10px] text-dark/40 font-bold uppercase">{language === 'NL' ? 'Ingediend op' : 'Submitted On'}</span>
+                        <span className="text-sm font-bold text-primary">{offer.submittedOn}</span>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className="block text-[10px] text-dark/40 font-bold uppercase">{language === 'NL' ? 'Ingediend op' : 'Submitted On'}</span>
-                      <span className="text-sm font-bold text-primary">{offer.submittedOn}</span>
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                    <div className="p-2.5 bg-white rounded-lg border border-[#D6CFC2]/40">
-                      <p className="text-[10px] text-dark/40 font-bold uppercase mb-0.5">{language === 'NL' ? 'Bouwprijs' : 'Build Price'}</p>
-                      <p className="font-bold text-primary text-sm">{offer.price}</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                      <div className="p-2.5 bg-white rounded-lg border border-[#D6CFC2]/40">
+                        <p className="text-[10px] text-dark/40 font-bold uppercase mb-0.5">{language === 'NL' ? 'Bouwprijs' : 'Build Price'}</p>
+                        <p className="font-bold text-primary text-sm">{offer.price}</p>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-lg border border-[#D6CFC2]/40">
+                        <p className="text-[10px] text-dark/40 font-bold uppercase mb-0.5">{language === 'NL' ? 'Geldigheid' : 'Validity'}</p>
+                        <p className="font-bold text-dark">{validity}</p>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-lg border border-[#D6CFC2]/40">
+                        <p className="text-[10px] text-dark/40 font-bold uppercase mb-0.5">{language === 'NL' ? 'Levertijd' : 'Lead Time'}</p>
+                        <p className="font-bold text-dark">{leadTime}</p>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-lg border border-[#D6CFC2]/40">
+                        <p className="text-[10px] text-dark/40 font-bold uppercase mb-0.5">{language === 'NL' ? 'Status Admin' : 'Admin Status'}</p>
+                        <p className="font-bold text-accent">
+                          {language === 'NL'
+                            ? (isAccepted ? 'Geaccepteerd' : offer.adminStatus === 'In Review' ? 'In beoordeling' : offer.adminStatus)
+                            : (isAccepted ? 'Accepted' : offer.adminStatus === 'In Review' ? 'In Review' : offer.adminStatus)}
+                        </p>
+                      </div>
                     </div>
-                    <div className="p-2.5 bg-white rounded-lg border border-[#D6CFC2]/40">
-                      <p className="text-[10px] text-dark/40 font-bold uppercase mb-0.5">{language === 'NL' ? 'Geldigheid' : 'Validity'}</p>
-                      <p className="font-bold text-dark">{offer.validity}</p>
-                    </div>
-                    <div className="p-2.5 bg-white rounded-lg border border-[#D6CFC2]/40">
-                      <p className="text-[10px] text-dark/40 font-bold uppercase mb-0.5">{language === 'NL' ? 'Levertijd' : 'Lead Time'}</p>
-                      <p className="font-bold text-dark">{offer.leadTime}</p>
-                    </div>
-                    <div className="p-2.5 bg-white rounded-lg border border-[#D6CFC2]/40">
-                      <p className="text-[10px] text-dark/40 font-bold uppercase mb-0.5">{language === 'NL' ? 'Status Admin' : 'Admin Status'}</p>
-                      <p className="font-bold text-accent">{language === 'NL' ? (offer.adminStatus === 'In Review' ? 'In beoordeling' : offer.adminStatus) : offer.adminStatus}</p>
-                    </div>
-                  </div>
 
-                  {offer.remarks && offer.remarks !== '—' && (
-                    <div className="p-3 bg-[#F8F7F4] rounded-xl border border-[#D6CFC2]/40 text-xs">
-                      <p className="text-[10px] font-bold uppercase text-dark/40 mb-1">{language === 'NL' ? 'Opmerkingen' : 'Remarks'}</p>
-                      <p className="text-dark/70">{offer.remarks}</p>
-                    </div>
-                  )}
-                </div>
-              </Card>
-            ))
+                    {remarks && remarks !== '—' && (
+                      <div className="p-3 bg-[#F8F7F4] rounded-xl border border-[#D6CFC2]/40 text-xs">
+                        <p className="text-[10px] font-bold uppercase text-dark/40 mb-1">{language === 'NL' ? 'Opmerkingen' : 'Remarks'}</p>
+                        <p className="text-dark/70">{remarks}</p>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              );
+            })
           )}
         </div>
       )}

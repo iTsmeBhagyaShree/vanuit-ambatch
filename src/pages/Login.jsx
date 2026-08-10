@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../context/LanguageContext';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
@@ -56,7 +56,7 @@ export default function Login() {
       {/* Floating Login Card */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
         className="w-full max-w-[420px] bg-[#D6CFC2] rounded-3xl overflow-hidden shadow-2xl border border-white/40 relative z-10"
       >

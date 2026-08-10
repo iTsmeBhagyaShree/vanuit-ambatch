@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Card from '../../components/Card';
 import Badge from '../../components/Badge';
@@ -219,10 +219,10 @@ export default function AdminDashboard() {
       <AnimatePresence>
         {toastMsg && (
           <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 10 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-primary text-cream px-4 py-3 rounded-xl shadow-lg border border-[#D6CFC2]/20 font-body text-xs"
+            initial={{ opacity: 0, x: 80 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 80 }}
+            className="fixed top-20 right-4 z-[9999] flex items-center gap-2 bg-primary text-cream px-4 py-3 rounded-xl shadow-lg border border-[#D6CFC2]/20 font-body text-xs"
           >
             <CheckCircle className="w-4 h-4 text-green-400" />
             {toastMsg}
@@ -243,24 +243,26 @@ export default function AdminDashboard() {
         </div>
 
         {/* Right Top Action Buttons — Compact & Sleek Sizing */}
-        <div className="absolute top-3.5 right-3.5 sm:top-4 sm:right-5 md:top-5 md:right-6 flex flex-wrap gap-2 z-10">
+        <div className="absolute top-3 right-3 sm:top-4 sm:right-4 md:top-5 md:right-6 flex flex-wrap gap-1.5 sm:gap-2 z-10 max-w-[55%] sm:max-w-none justify-end">
           <Button 
             variant="custom" 
             icon={Plus} 
-            className="bg-cream text-primary hover:bg-cream/90 shadow-xs border border-primary/10 text-[11px] font-semibold py-1 px-2.5 rounded-md leading-tight" 
+            className="bg-cream text-primary hover:bg-cream/90 shadow-xs border border-primary/10 text-[10px] sm:text-[11px] font-semibold py-1 px-2 sm:px-2.5 rounded-md leading-tight" 
             size="sm"
             onClick={() => setLeadModalOpen(true)}
           >
-            {t('leads.addNewLead')}
+            <span className="hidden xs:inline">{t('leads.addNewLead')}</span>
+            <span className="xs:hidden">+ Lead</span>
           </Button>
           <Button 
             variant="custom" 
             icon={Plus} 
-            className="bg-white/15 text-white border border-white/30 hover:bg-white/25 text-[11px] font-semibold py-1 px-2.5 rounded-md backdrop-blur-xs leading-tight" 
+            className="bg-white/15 text-white border border-white/30 hover:bg-white/25 text-[10px] sm:text-[11px] font-semibold py-1 px-2 sm:px-2.5 rounded-md backdrop-blur-xs leading-tight" 
             size="sm"
             onClick={handleOpenQuoteModal}
           >
-            {t('common.createQuote')}
+            <span className="hidden xs:inline">{t('common.createQuote')}</span>
+            <span className="xs:hidden">+ Quote</span>
           </Button>
         </div>
       </div>
@@ -747,7 +749,7 @@ export default function AdminDashboard() {
                   {customerSelect === 'Other' && (
                     <motion.input
                       initial={{ opacity: 0, y: -8 }}
-                      animate={{ opacity: 1, y: 0 }}
+                      animate={{ opacity: 1, x: 0 }}
                       type="text"
                       required
                       value={quoteForm.customer}
@@ -783,7 +785,7 @@ export default function AdminDashboard() {
                   {projectSelect === 'Other' && (
                     <motion.input
                       initial={{ opacity: 0, y: -8 }}
-                      animate={{ opacity: 1, y: 0 }}
+                      animate={{ opacity: 1, x: 0 }}
                       type="text"
                       required
                       value={quoteForm.project}

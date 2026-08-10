@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
@@ -48,10 +48,10 @@ export default function CustomerContact() {
       <AnimatePresence>
         {toastMsg && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 10 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-primary text-cream px-4 py-3 rounded-xl shadow-xl text-xs font-body max-w-md border border-cream-dark/30"
+            initial={{ opacity: 0, x: 80 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 80 }}
+            className="fixed top-20 right-4 z-[9999] flex items-center gap-2 bg-primary text-cream px-4 py-3 rounded-xl shadow-xl text-xs font-body max-w-md border border-cream-dark/30"
           >
             <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
             <span>{toastMsg}</span>

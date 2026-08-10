@@ -154,7 +154,7 @@ export default function Leads() {
 
   const handleOpenAddModal = () => {
     setSelectedLead(null);
-    setForm({ name: '', phone: '', email: '', productType: 'buitenkeuken', size: '', source: 'Direct', status: 'Nieuw' });
+    setForm({ name: '', phone: '', email: '', location: '', productType: 'buitenkeuken', size: '', source: 'Direct', status: 'Nieuw', notes: '' });
     setModalOpen(true);
   };
 
@@ -164,10 +164,12 @@ export default function Leads() {
       name: lead.name,
       phone: lead.phone || '',
       email: lead.email || '',
+      location: lead.location || lead.city || '',
       productType: lead.productType || 'buitenkeuken',
       size: lead.size || '',
       source: lead.source || 'Direct',
-      status: lead.status || 'Nieuw'
+      status: lead.status || 'Nieuw',
+      notes: lead.notes || lead.intakeNotes || ''
     });
     setModalOpen(true);
   };
@@ -287,10 +289,14 @@ export default function Leads() {
             name: finalForm.name,
             phone: finalForm.phone || '-',
             email: finalForm.email || '-',
+            location: finalForm.location || '-',
+            city: finalForm.location || '-',
             productType: finalForm.productType,
             size: finalForm.size || '-',
             source: finalForm.source,
             status: finalForm.status,
+            notes: finalForm.notes || '',
+            intakeNotes: finalForm.notes || '',
             lostReason: reason || l.lostReason,
             lastContactDate: new Date().toISOString().split('T')[0] // Update contact date on edit
           };
@@ -305,10 +311,14 @@ export default function Leads() {
         name: finalForm.name,
         phone: finalForm.phone || '-',
         email: finalForm.email || '-',
+        location: finalForm.location || 'Amsterdam, NL',
+        city: finalForm.location || 'Amsterdam',
         productType: finalForm.productType,
         size: finalForm.size || '-',
         source: finalForm.source,
         status: finalForm.status,
+        notes: finalForm.notes || '',
+        intakeNotes: finalForm.notes || '',
         lostReason: reason,
         assignedTo: 'Admin',
         date: new Date().toISOString().split('T')[0],
@@ -657,10 +667,10 @@ export default function Leads() {
       <AnimatePresence>
         {toastMsg && (
           <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 10 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-primary text-cream px-4 py-3 rounded-xl shadow-lg border border-[#D6CFC2]/20 font-body text-xs"
+            initial={{ opacity: 0, x: 80 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 80 }}
+            className="fixed top-20 right-4 z-[9999] flex items-center gap-2 bg-primary text-cream px-4 py-3 rounded-xl shadow-lg border border-[#D6CFC2]/20 font-body text-xs"
           >
             <CheckCircle className="w-4 h-4 text-green-400" />
             {toastMsg}
@@ -924,15 +934,27 @@ export default function Leads() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-dark/60 mb-1 font-body uppercase tracking-wider">{language === 'EN' ? 'Email Address' : 'E-mailadres'}</label>
-                  <input
-                    type="email"
-                    value={form.email}
-                    onChange={e => setForm(prev => ({ ...prev, email: e.target.value }))}
-                    className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/20 text-[#4A4A43]"
-                    placeholder="john@outdoors.nl"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-dark/60 mb-1 font-body uppercase tracking-wider">{language === 'EN' ? 'Email Address' : 'E-mailadres'}</label>
+                    <input
+                      type="email"
+                      value={form.email}
+                      onChange={e => setForm(prev => ({ ...prev, email: e.target.value }))}
+                      className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/20 text-[#4A4A43]"
+                      placeholder="john@outdoors.nl"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-dark/60 mb-1 font-body uppercase tracking-wider">{language === 'EN' ? 'Location / City' : 'Locatie / Stad'}</label>
+                    <input
+                      type="text"
+                      value={form.location}
+                      onChange={e => setForm(prev => ({ ...prev, location: e.target.value }))}
+                      className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/20 text-[#4A4A43]"
+                      placeholder={language === 'EN' ? 'e.g. Amsterdam, NL' : 'b.v. Amsterdam, NL'}
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -990,6 +1012,17 @@ export default function Leads() {
                       <option value="Verloren">{language === 'EN' ? 'Lost' : 'Verloren'}</option>
                     </select>
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-dark/60 mb-1 font-body uppercase tracking-wider">{language === 'EN' ? 'Initial Notes & Requirements' : 'Eerste Opmerkingen & Wensen'}</label>
+                  <textarea
+                    rows={3}
+                    value={form.notes || ''}
+                    onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))}
+                    className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs sm:text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/20 text-[#4A4A43] resize-none"
+                    placeholder={language === 'EN' ? 'e.g. Customer requested 4m teak wood outdoor kitchen with gas grill...' : 'b.v. Klant wil een 4m teakhouten buitenkeuken...'}
+                  />
                 </div>
 
                 <div className="flex justify-end gap-2 pt-4 border-t border-cream-dark/60">
@@ -1215,24 +1248,28 @@ export default function Leads() {
                     </label>
                     <div className="grid grid-cols-2 gap-3">
                       {[
-                        { title: 'Buitenkeuken', desc: 'Custom Teak / Outdoor Kitchen' },
-                        { title: 'Overkapping', desc: 'Oak / Douglas Wooden Canopy' },
-                        { title: 'Kliko-ombouw', desc: 'Bin Storage Triple 240L' },
-                        { title: 'Buitenverblijf', desc: 'Terrace & Garden Building' }
-                      ].map((item) => (
-                        <div 
-                          key={item.title}
-                          onClick={() => setWizardForm(prev => ({ ...prev, category: item.title }))}
-                          className={`p-3 rounded-xl border cursor-pointer transition-all ${
-                            wizardForm.category === item.title 
-                              ? 'border-primary bg-primary/5 text-primary font-bold shadow-xs' 
-                              : 'border-[#D6CFC2] hover:border-primary/40 text-dark/80'
-                          }`}
-                        >
-                          <p className="font-bold text-xs">{item.title}</p>
-                          <p className="text-[10px] text-dark/50 mt-0.5">{item.desc}</p>
-                        </div>
-                      ))}
+                        { titleNL: 'Buitenkeuken', titleEN: 'Outdoor Kitchen', descNL: 'Maatwerk Teak / Buitenkeuken', descEN: 'Custom Teak / Outdoor Kitchen' },
+                        { titleNL: 'Overkapping', titleEN: 'Wooden Canopy', descNL: 'Eiken / Douglas Houten Overkapping', descEN: 'Oak / Douglas Wooden Canopy' },
+                        { titleNL: 'Kliko-ombouw', titleEN: 'Bin Storage Unit', descNL: 'Kliko Ombouw Triple 240L', descEN: 'Bin Storage Triple 240L' },
+                        { titleNL: 'Buitenverblijf', titleEN: 'Garden Building', descNL: 'Terras & Tuin Buitenverblijf', descEN: 'Terrace & Garden Building' }
+                      ].map((item) => {
+                        const displayTitle = language === 'EN' ? item.titleEN : item.titleNL;
+                        const displayDesc = language === 'EN' ? item.descEN : item.descNL;
+                        return (
+                          <div 
+                            key={item.titleNL}
+                            onClick={() => setWizardForm(prev => ({ ...prev, category: item.titleNL }))}
+                            className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                              wizardForm.category === item.titleNL
+                                ? 'border-primary bg-primary/5 text-primary font-bold shadow-xs' 
+                                : 'border-[#D6CFC2] hover:border-primary/40 text-dark/80'
+                            }`}
+                          >
+                            <p className="font-bold text-xs">{displayTitle}</p>
+                            <p className="text-[10px] text-dark/50 mt-0.5">{displayDesc}</p>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -1318,6 +1355,57 @@ export default function Leads() {
                           className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs font-mono font-bold text-primary"
                         />
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 4: MATERIALS */}
+                {partnerWizardStep === 4 && (
+                  <div className="space-y-3">
+                    <label className="block font-bold text-dark text-sm mb-2">
+                      {language === 'EN' ? 'Step 4: Wood Type & Countertop Material' : 'Stap 4: Houtsoort en Werkblad Materiaal'}
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">
+                          {language === 'EN' ? 'Primary Wood Spec' : 'Houtsoort'}
+                        </label>
+                        <select
+                          value={wizardForm.woodType || 'Thermo Fraké'}
+                          onChange={e => setWizardForm(prev => ({ ...prev, woodType: e.target.value }))}
+                          className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-lg text-xs font-bold text-primary"
+                        >
+                          <option value="Thermo Fraké">{language === 'EN' ? 'Thermo Fraké Wood' : 'Thermo Fraké Hout'}</option>
+                          <option value="Massief Teakhout">{language === 'EN' ? 'Solid Teak Wood' : 'Massief Teakhout'}</option>
+                          <option value="Eikenhout">{language === 'EN' ? 'Oak Wood' : 'Eikenhout'}</option>
+                          <option value="Douglas Hout">{language === 'EN' ? 'Douglas Timber' : 'Douglas Hout'}</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">
+                          {language === 'EN' ? 'Worktop Finish' : 'Werkblad Afwerking'}
+                        </label>
+                        <select
+                          value={wizardForm.countertop || 'Zwart Beton Cire 8cm'}
+                          onChange={e => setWizardForm(prev => ({ ...prev, countertop: e.target.value }))}
+                          className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-lg text-xs font-bold text-primary"
+                        >
+                          <option value="Zwart Beton Cire 8cm">{language === 'EN' ? 'Black Polished Concrete Cire (8cm)' : 'Zwart Beton Cire (8cm)'}</option>
+                          <option value="Belgisch Hardsteen">{language === 'EN' ? 'Belgian Hardstone Granite' : 'Belgisch Hardsteen'}</option>
+                          <option value="Massief Teak Werkblad">{language === 'EN' ? 'Solid Teak Top' : 'Massief Teak Werkblad'}</option>
+                          <option value="RVS RVS Blad">{language === 'EN' ? 'Stainless Steel Top' : 'RVS Werkblad'}</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">
+                        {language === 'EN' ? 'Special Hardware & Cutout Instructions' : 'Inbouw & Hardware Instructies'}
+                      </label>
+                      <textarea
+                        value={wizardForm.materialNotes || (language === 'EN' ? 'Includes Big Green Egg Kamado cutout & stainless sink connections.' : 'Inclusief Kamado BBQ uitsparing & RVS spoelbak aansluiting.')}
+                        onChange={e => setWizardForm(prev => ({ ...prev, materialNotes: e.target.value }))}
+                        className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs min-h-[70px] resize-none"
+                      />
                     </div>
                   </div>
                 )}

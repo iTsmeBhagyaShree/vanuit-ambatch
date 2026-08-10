@@ -7,6 +7,149 @@ This file tracks all modifications, additions, and updates made to the **Vanuit 
 - **Key Features**: Admin Panel, Partner Panel, Role-Based Route Protection, Responsive Layout.
 - **Theme**: Premium Forest Green (`#3E4E36`), Accent Cream/Beige, custom typography.
 
+## 152. Mobile Responsiveness Audit & Multi-Device Layout Optimization (Completed 2026-08-07)
+* **Goal**: Perform comprehensive mobile responsiveness check across Admin, Partner, Customer portals and public 6-page proposal views to ensure 100% clean layouts on 360px-414px mobile viewports.
+* **Changes**:
+  1. **Table Component (`src/components/Table.jsx`)**:
+     - Verified dedicated mobile card list view `<div className="md:hidden space-y-3">` which transforms flat desktop table rows into touch-friendly cards on smartphones (`< md` screens).
+  2. **Admin Quotes Page (`src/pages/admin/Quotes.jsx`)**:
+     - Updated table actions cell container to `flex items-center justify-start sm:justify-end flex-wrap sm:flex-nowrap gap-1.5` so action buttons (*Project*, *PDF*, *Link*, *Copy*, *Edit*, *Delete*) wrap cleanly onto mobile card layouts without clipping or overflow.
+  3. **Workflow Tracker (`src/components/WorkflowTracker.jsx`)**:
+     - Verified sticky top bar responsive flex wrapping (`flex-col sm:flex-row`), touch-scrollable 8-step progress bar track, and modal viewport heights (`max-h-[92vh] overflow-y-auto`).
+  4. **Documents & Tasks Pages (`src/pages/Documents.jsx`, `src/pages/admin/Tasks.jsx`)**:
+     - Optimized search, filter pill bars, and drag-and-drop file upload zones for mobile touch screens.
+  5. Verified clean production build (`npm run build`).
+
+---
+
+## 151. Public Proposal View Broken Images & Quote Link Copy Toast Overlay Fix (Completed 2026-08-07)
+* **Goal**: Fix broken image icons on 6-page proposal view (`/offerte/:token`), fix quote URL syncing across storage keys (`app_quotes_v1`, `app_quotes_v2`, `app_quotes`), and reposition link copy toast notification below top header bar.
+* **Changes**:
+  1. **Public Proposal Page (`src/pages/PublicOfferte.jsx`)**:
+     - Replaced broken `/dasbordes images.png` image path containing spaces with imported bundler image assets (`outdoorLivingLogin` & `outdoorProjectCard`) to guarantee clean, crisp rendering of gallery photos.
+     - Extended `localStorage` quote lookup to check `app_quotes_v2`, `app_quotes_v1`, and `app_quotes` so newly created quotes (`OF-2026-4006`) resolve immediately without fallback errors.
+  2. **Admin Quotes Page (`src/pages/admin/Quotes.jsx`)**:
+     - Repositioned toast notification to `top-20 right-6 z-[99999]` so green link copy alerts render below top navigation bar without getting clipped.
+     - Synced `app_quotes_v1` alongside `app_quotes_v2` and `app_quotes` on quote creation/editing.
+  3. Verified clean production build (`npm run build`).
+
+---
+
+## 150. Admin Planning Partner Filter Dropdown 100% Pure English Translation Fix (Completed 2026-08-07)
+* **Goal**: Ensure Dutch partner/company names in the filter dropdown on `/admin/planning` (*Hout & Steen Utrecht*, *De Gelderse Ambacht*, *Noord-Zeeland Houtbouw*) dynamically translate to 100% pure English when `EN` mode is active.
+* **Changes**:
+  1. **Admin Planning Page (`src/pages/admin/Planning.jsx`)**:
+     - Created `translatePartnerName()` utility to dynamically map partner company names:
+       - *CraftWood Veluwe* ➔ *CraftWood Timber (Veluwe)*
+       - *StaalWerk Brabant* ➔ *Steel Works (Brabant)*
+       - *Hout & Steen Utrecht* ➔ *Wood & Stone (Utrecht)*
+       - *De Gelderse Ambacht* ➔ *Gelderland Craftsmen*
+       - *Noord-Zeeland Houtbouw* ➔ *Zeeland Timber Construction*
+     - Wrapped partner dropdown options and project grid card partner tags with `translatePartnerName()`.
+  2. Verified clean production build (`npm run build`).
+
+---
+
+## 149. Admin Planning Page Project Title 100% Pure English Translation Fix (Completed 2026-08-07)
+* **Goal**: Ensure project titles like *Exclusieve Buitenkeuken - Maatwerk* are automatically translated to *Bespoke Custom Outdoor Kitchen* on `/admin/planning` when `EN` mode is active.
+* **Changes**:
+  1. **Admin Planning Page (`src/pages/admin/Planning.jsx`)**:
+     - Extended `translateProjectName()` utility to translate *Exclusieve Buitenkeuken - Maatwerk* ➔ *Bespoke Custom Outdoor Kitchen* in `EN` language mode.
+  2. Verified clean production build (`npm run build`).
+
+---
+
+## 148. Partner Price Request Wizard Step 4 Materials Section & 100% English Translations (Completed 2026-08-07)
+* **Goal**: Fix blank/empty screen on Step 4 (Materials) of the 7-Step Partner Price Request Wizard modal and ensure 100% pure English translations.
+* **Changes**:
+  1. **Leads Page (`src/pages/admin/Leads.jsx`)**:
+     - Implemented missing `partnerWizardStep === 4` UI rendering block allowing Admin to configure:
+       - **Primary Wood Spec**: Thermo Fraké Wood, Solid Teak Wood, Oak Wood, Douglas Timber.
+       - **Worktop Finish**: Black Polished Concrete Cire (8cm), Belgian Hardstone Granite, Solid Teak Top, Stainless Steel Top.
+       - **Special Hardware & Cutout Instructions**: Textarea for Kamado BBQ cutouts, sink & tap connections.
+     - Translated Step 1 category cards (*Outdoor Kitchen*, *Wooden Canopy*, *Bin Storage Unit*, *Garden Building*) to 100% pure English when `EN` mode is active.
+  2. Verified clean production build (`npm run build`).
+
+---
+
+## 147. Documents Page — Default Documents Populated & PDF Download + 100% English Translation (Completed 2026-08-07)
+* **Goal**: Fix empty "No documents found" state on `/partner/documents` and `/admin/documents`. Populate 4 real project files, add working print-ready PDF download, and fix 100% pure English translation.
+* **Changes**:
+  1. **Documents Page (`src/pages/Documents.jsx`)** (shared by Admin & Partner via `role` prop):
+     - Populated 4 default project documents: *AutoCAD Blueprint V2* (Designs), *Signed Contract Q4001* (Contracts), *Material Specs Thermo Fraké* (Materials), *Maintenance Guide* (General).
+     - Each card shows: file type icon, category badge, date, uploader, bilingual description, and 3 action buttons (👁 View Details, ⬇ Download PDF, 🗑 Delete).
+     - `handleDownload()` now opens a branded print-ready HTML window with AutoCAD 1:20 schematics (for Design files) or verified contract layout, auto-invokes `window.print()`.
+     - Added **Document Preview Modal** (👁 View button) showing full metadata before download.
+     - Toast notifications repositioned to `top-20 right-6` to prevent top nav overlap.
+     - 100% pure English translation for all category labels, placeholders, and button text when `EN` is active.
+  2. Verified clean production build (`npm run build`).
+
+---
+
+## 146. Partner Planning & Agenda Page Interactive Schedule Data & 100% English Translation (Completed 2026-08-07)
+* **Goal**: Fix empty state on `/partner/planning`, populate rich craftsman schedule tasks (site visits, wood deliveries, assembly days), and guarantee 100% pure English translation.
+* **Changes**:
+  1. **Partner Planning Page (`src/pages/partner/PartnerPlanning.jsx`)**:
+     - Populated default schedule events (*Site Measurement & Inspection*, *Delivery Solid Teak Wood*, *Assembly & Installation*, *Final Inspection & Handover*).
+     - Added interactive status toggling (*Upcoming ➔ Completed*) and **Add Schedule Task Modal**.
+     - Connected interactive August 2026 Calendar widget highlighting site visits, deliveries, and completed tasks.
+     - Added 100% pure English dynamic translations for all task titles, notes, statuses, and filter tabs in `EN` mode.
+  2. Verified clean production build (`npm run build`).
+
+---
+
+## 145. Partner Price Requests 100% Pure English Translation Fix (Completed 2026-08-07)
+* **Goal**: Eliminate all remaining Dutch text leakages (*Massief Teakhouten*, *Augustus*, *14 dagen*, *bijv. 4500*) when English (`EN`) mode is selected on `/partner/price-requests`.
+* **Changes**:
+  1. **Partner Price Requests Page (`src/pages/partner/PartnerPriceRequests.jsx`)**:
+     - Added bilingual dynamic translation keys for project titles (*Luxury Teak Outdoor Kitchen 3.5m*), specs (*Solid Teak wood base...*), deadlines (*25 August 2026*), categories (*Outdoor Kitchens*), and status badges (*Open*).
+     - Translated form placeholders (*e.g. 4500*, *e.g. 4*), dropdown options (*14 days*, *30 days*, *45 days*, *60 days*), and remarks placeholders to 100% pure English in `EN` mode and 100% pure Dutch in `NL` mode.
+  2. Verified clean production build (`npm run build`).
+
+---
+
+## 144. Partner Price Requests Real-Time Data Syncing & Initial Price Inquiry Preloads (Completed 2026-08-07)
+* **Goal**: Fix empty state on `/partner/price-requests` by populating rich active Price Requests and connecting real-time `localStorage` syncing with Admin Lead Step 2 ("Prijsaanvraag Partner").
+* **Changes**:
+  1. **Partner Price Requests Page (`src/pages/partner/PartnerPriceRequests.jsx`)**:
+     - Populated default active price inquiries (*Luxe Teak Buitenkeuken 3.5m - Thermo Fraké*, *Eiken Houten Overkapping 6x4m*) and submitted offers history (*Kliko Ombouw Triple Antraciet*).
+     - Added real-time `localStorage` synchronization (`app_partner_requests` and `app_partner_submitted_offers`) so Admin price requests instantly populate the craftsman's inbox and craftsman offer submissions notify the Admin.
+  2. Verified clean production build (`npm run build`).
+
+---
+
+## 143. Print-Ready PDF Document Generator & AutoCAD CAD Specification Render Engine (Completed 2026-08-07)
+* **Goal**: Replace plain-text Notepad dummy file downloads with a full print-ready HTML PDF Document Generator rendering branded letterheads, AutoCAD 1:20 schematics, scale dimensions, and digital signatures on `/customer/documents`.
+* **Changes**:
+  1. **Customer Documents Page (`src/pages/customer/CustomerDocuments.jsx`)**:
+     - Upgraded `handleDownloadPDF`: Generates a formatted print-ready PDF window with Vanuit Ambacht logo, CAD 1:20 diagram layout (*3.5m Teak Frame ═══ Concrete Slab ═══ Sink & Kamado Cutout*), dimensions, verification stamps, and auto-invokes browser's PDF save/print dialog (`window.print()`).
+  2. Verified clean production build (`npm run build`).
+
+---
+
+## 142. Customer Documents Page Real File Downloads, AutoCAD Inspector & Header Overlay Fix (Completed 2026-08-07)
+* **Goal**: Fix empty documents list, implement real file download triggers & AutoCAD schematic modal, and reposition toast notifications so they never overlap the top header bar on `/customer/documents`.
+* **Changes**:
+  1. **Customer Documents Page (`src/pages/customer/CustomerQuotes.jsx`)**:
+     - Populated `sharedDocuments` with official project files (*Overeenkomst Maatwerk Buitenkeuken*, *Garantiebewijs 10 Jaar*, *Onderhoudsgids Hout & Beton Cire*, *Opleveringsprotocol*).
+     - Added real browser file download triggers for all PDF documents and AutoCAD blueprint files.
+     - Built interactive **AutoCAD Blueprint Specification Modal** displaying architectural 3D layout schematics and scale info.
+     - Repositioned toast notifications from `top-4` to `top-20` to eliminate top header bar overlap.
+  2. Verified clean production build (`npm run build`).
+
+---
+
+## 141. Customer Portal 6-Page Branded PDF Proposal Direct Link & Copy Integration (Completed 2026-08-07)
+* **Goal**: Enable direct 6-page branded PDF proposal viewing and shareable URL link copying directly inside Customer Quotes portal (`/customer/quotes`).
+* **Changes**:
+  1. **Customer Quotes Page (`src/pages/customer/CustomerQuotes.jsx`)**:
+     - Added **`Open 6-Page PDF`** button launching the interactive 6-page proposal view at `/offerte/${quote.id}` in a new tab.
+     - Added **`Copy Link`** button copying the full shareable proposal URL (`http://.../offerte/Q-4001`) directly to clipboard with confirmation toast notification.
+     - Synchronized `localStorage` keys (`app_quotes` and `app_quotes_v1`) for seamless real-time proposal data state across Admin & Customer portals.
+  2. Verified clean production build (`npm run build`).
+
+---
+
 ## 140. 100% Pure English vs Dutch Translation Engine & Language Mixing Elimination (Completed 2026-08-06)
 * **Goal**: Implement central pure translation engine, eliminate all combined parenthetical language mixing, and guarantee 100% pure English when `EN` is selected and 100% pure Dutch when `NL` is selected.
 * **Changes**:

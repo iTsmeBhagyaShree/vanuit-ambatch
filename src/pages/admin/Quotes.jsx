@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Card from '../../components/Card';
 import Table from '../../components/Table';
@@ -408,6 +408,7 @@ export default function Quotes() {
 
     setQuotes(updatedQuotes);
     localStorage.setItem('app_quotes_v2', JSON.stringify(updatedQuotes));
+    localStorage.setItem('app_quotes_v1', JSON.stringify(updatedQuotes));
     localStorage.setItem('app_quotes', JSON.stringify(updatedQuotes));
     window.dispatchEvent(new Event('app_data_changed'));
     setModalOpen(false);
@@ -569,7 +570,7 @@ export default function Quotes() {
       header: language === 'EN' ? 'Actions' : 'Acties',
       style: { minWidth: '420px', textAlign: 'right' },
       render: (row) => (
-        <div className="flex items-center justify-end gap-1 sm:gap-1.5 max-w-full overflow-x-auto no-scrollbar whitespace-nowrap py-0.5">
+        <div className="flex items-center justify-start sm:justify-end flex-wrap sm:flex-nowrap gap-1 sm:gap-1.5 max-w-full py-0.5">
           {row.status !== 'Geaccepteerd' && row.status !== 'Accepted' && (
             <button 
               onClick={() => handleConvertToProject(row)}
@@ -641,12 +642,12 @@ export default function Quotes() {
       <AnimatePresence>
         {toastMsg && (
           <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 10 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-primary text-cream px-4 py-3 rounded-xl shadow-lg border border-[#D6CFC2]/20 font-body text-xs"
+            initial={{ opacity: 0, x: 80 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 80 }}
+            className="fixed top-20 right-4 z-[9999] flex items-center gap-2 bg-[#3E4E36] text-white px-4 py-3 rounded-xl shadow-2xl border border-[#2D3528] font-body text-xs"
           >
-            <CheckCircle className="w-4 h-4 text-green-400" />
+            <CheckCircle className="w-4 h-4 text-emerald-400" />
             {toastMsg}
           </motion.div>
         )}

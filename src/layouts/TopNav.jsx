@@ -89,18 +89,18 @@ export default function TopNav() {
   };
 
   return (
-    <header className="h-14 bg-[#EDE8DF] border-b border-[#D6CFC2] flex items-center justify-between px-4 lg:px-6 z-40 flex-shrink-0 relative">
+    <header className="h-14 bg-[#EDE8DF] border-b border-[#D6CFC2] flex items-center justify-between px-3 sm:px-4 lg:px-6 z-[99999] flex-shrink-0 relative">
       {/* Breadcrumb with Mini Brand Monogram */}
-      <div className="flex items-center gap-2 text-xs text-dark/50 font-body ml-[72px] sm:ml-20 lg:ml-0 min-w-0 truncate">
+      <div className="flex items-center gap-1.5 text-xs text-dark/50 font-body ml-[70px] sm:ml-20 lg:ml-0 min-w-0 truncate flex-1 mr-2">
         <img 
           src="/mini logo2.png" 
           alt="VA Monogram" 
           className="h-6 w-6 object-contain rounded-md hidden sm:block lg:hidden flex-shrink-0" 
         />
         {crumbs.map((crumb, i) => (
-          <span key={i} className="flex items-center gap-1.5 truncate">
+          <span key={i} className="flex items-center gap-1.5 min-w-0">
             {i > 0 && <span className="text-dark/25 flex-shrink-0">/</span>}
-            <span className={i === crumbs.length - 1 ? 'font-semibold text-dark/80 truncate' : 'text-dark/40 truncate'}>
+            <span className={`${i === crumbs.length - 1 ? 'font-semibold text-dark/80' : 'text-dark/40'} truncate`}>
               {crumb}
             </span>
           </span>
@@ -109,7 +109,7 @@ export default function TopNav() {
 
 
       {/* Right Controls */}
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
         {/* Language Switcher — compact globe icon with dropdown */}
         <div className="relative z-50" ref={langDropdownRef}>
           <button
@@ -181,7 +181,7 @@ export default function TopNav() {
 
           {/* Notifications Dropdown Menu */}
           {notifOpen && (
-            <div className="fixed sm:absolute right-3 sm:right-0 top-16 sm:top-full mt-0 sm:mt-2 w-[calc(100vw-24px)] max-w-xs sm:w-80 bg-[#F2EDE4] border border-[#D6CFC2] rounded-2xl shadow-2xl z-50 overflow-hidden font-body text-xs">
+            <div className="fixed sm:absolute right-2 sm:right-0 top-[57px] sm:top-full mt-0 sm:mt-2 w-[calc(100vw-16px)] max-w-xs sm:w-80 bg-[#F2EDE4] border border-[#D6CFC2] rounded-2xl shadow-2xl z-[9999] overflow-hidden font-body text-xs">
               <div className="px-4 py-3 border-b border-[#D6CFC2] flex items-center justify-between bg-[#EDE8DF]">
                 <div className="flex items-center gap-2">
                   <span className="font-heading font-bold text-dark text-sm">{language === 'NL' ? 'Meldingen' : 'Notifications'}</span>

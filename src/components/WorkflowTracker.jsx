@@ -137,8 +137,9 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
   const [quoteViewModalOpen, setQuoteViewModalOpen] = useState(false);
 
   // Step 2 Editable Free-Text Fields & Smart Green Logic State
-  const [step2ProductType, setStep2ProductType] = useState(lead?.productType || customerCategory || 'Buitenkeuken');
-  const [step2Size, setStep2Size] = useState(lead?.size || '350 x 80 x 95 cm');
+  const [step2ProductType, setStep2ProductType] = useState(lead?.productType || customerCategory || '');
+  const [step2Size, setStep2Size] = useState(lead?.size || lead?.dimensions || '');
+  const [step2Notes, setStep2Notes] = useState(lead?.notes || '');
   const [isPriceRequestSent, setIsPriceRequestSent] = useState(false);
 
   // Step 4 Direct Multi-Item Quotation Generator State
@@ -497,10 +498,10 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
       <AnimatePresence>
         {toastMsg && (
           <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 10 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-green-800 text-cream px-4 py-3 rounded-xl shadow-xl border border-green-700 font-body text-xs"
+            initial={{ opacity: 0, x: 80 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 80 }}
+            className="fixed top-20 right-4 z-[9999] flex items-center gap-2 bg-green-800 text-cream px-4 py-3 rounded-xl shadow-xl border border-green-700 font-body text-xs"
           >
             <Sparkles className="w-4 h-4 text-amber-300" />
             {toastMsg}
@@ -509,7 +510,7 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
       </AnimatePresence>
 
       {/* Clean Sticky Header with Interactive Stepper Progress Bar */}
-      <div className="sticky -top-4 lg:-top-6 z-40 bg-[#EDE8DF] shadow-md -mt-4 lg:-mt-6 pt-4 lg:pt-6 pb-3 border-b border-[#D6CFC2] -mx-4 px-4 sm:-mx-6 sm:px-6">
+      <div className="sticky -top-3 sm:-top-4 lg:-top-6 z-40 bg-[#EDE8DF] shadow-md -mt-3 sm:-mt-4 lg:-mt-6 pt-3 sm:pt-4 lg:pt-6 pb-3 border-b border-[#D6CFC2] -mx-3 px-3 sm:-mx-4 sm:px-4 lg:-mx-6 lg:px-6">
 
         {/* Row 1: Name + meta + Close */}
         <div className="flex items-start justify-between gap-2 mb-2">
@@ -680,61 +681,68 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
                       <MapPin className="w-4 h-4 text-primary" />
                       <div>
                         <p className="text-[10px] text-dark/50 font-bold uppercase">Location & Product</p>
-                        <p className="font-semibold text-dark">Amsterdam, NL ({translateCategory(customerCategory)})</p>
+                        <p className="font-semibold text-dark">{lead?.location || lead?.city || 'Amsterdam, NL'} ({translateCategory(customerCategory)})</p>
                       </div>
                     </div>
                   </div>
                   <div>
                     <h4 className="font-bold text-dark mb-1">Initial Intake Notes</h4>
                     <p className="p-3 bg-white/60 rounded-lg border border-[#D6CFC2]/40 text-dark/70 italic">
-                      "Customer requested a quote for a luxury bespoke teak wood outdoor kitchen with concrete countertop (3.5m width)."
+                      {lead?.notes || lead?.intakeNotes || (language === 'EN' ? 'No initial notes provided during lead intake.' : 'Geen intake opmerkingen ingevoerd.')}
                     </p>
                   </div>
 
-                  {/* SUBMITTED QUOTATION / GEKOPPELDE OFFERTE VISIBILITY CARD */}
-                  <div className="p-4 bg-white rounded-xl border border-[#D6CFC2] space-y-3 shadow-2xs">
-                    <div className="flex items-center justify-between border-b border-[#D6CFC2]/50 pb-2">
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-primary" />
-                        <span className="font-bold text-xs text-primary font-heading uppercase tracking-wider">
-                          {language === 'EN' ? 'Submitted Quotation / Proposal' : 'Gekoppelde Offerte'}
-                        </span>
-                        <span className="font-mono text-xs font-bold bg-[#EDE8DF] text-primary px-2 py-0.5 rounded-md">
-                          #Q-4001
-                        </span>
+                  {/* SUBMITTED QUOTATION VISIBILITY CARD — Only show if a quote has actually been generated */}
+                  {(lead?.quoteAmount || lead?.quoteId || currentStep >= 4) ? (
+                    <div className="p-4 bg-white rounded-xl border border-[#D6CFC2] space-y-3 shadow-2xs">
+                      <div className="flex items-center justify-between border-b border-[#D6CFC2]/50 pb-2">
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-primary" />
+                          <span className="font-bold text-xs text-primary font-heading uppercase tracking-wider">
+                            {language === 'EN' ? 'Submitted Quotation / Proposal' : 'Gekoppelde Offerte'}
+                          </span>
+                          <span className="font-mono text-xs font-bold bg-[#EDE8DF] text-primary px-2 py-0.5 rounded-md">
+                            {lead?.quoteId || '#Q-NEW'}
+                          </span>
+                        </div>
+                        <Badge variant="success">
+                          {language === 'EN' ? 'Quote Generated' : 'Offerte verstuurd'}
+                        </Badge>
                       </div>
-                      <Badge variant="success">
-                        {language === 'EN' ? 'Quote Sent' : 'Offerte verstuurd'}
-                      </Badge>
-                    </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-                      <div>
-                        <span className="text-[10px] text-dark/50 uppercase font-bold block">Product & Specs</span>
-                        <span className="font-semibold text-dark truncate block">Bespoke {customerCategory} (3.5m)</span>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                        <div>
+                          <span className="text-[10px] text-dark/50 uppercase font-bold block">Product & Specs</span>
+                          <span className="font-semibold text-dark truncate block">{translateCategory(customerCategory)}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-dark/50 uppercase font-bold block">Total Amount</span>
+                          <span className="font-bold text-primary text-sm">{lead?.quoteAmount || '€ 12,500'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-dark/50 uppercase font-bold block">Issue Date</span>
+                          <span className="font-mono text-dark/70">{new Date().toISOString().split('T')[0]}</span>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-[10px] text-dark/50 uppercase font-bold block">Total Amount</span>
-                        <span className="font-bold text-primary text-sm">€ 12,500</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-dark/50 uppercase font-bold block">Issue Date</span>
-                        <span className="font-mono text-dark/70">2026-08-04</span>
-                      </div>
-                    </div>
 
-                    <div className="pt-2 border-t border-[#D6CFC2]/40 flex justify-end">
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => setQuoteViewModalOpen(true)}
-                        className="text-xs py-1.5 px-3 border-primary/40 text-primary hover:bg-primary/10 font-bold flex items-center gap-1.5 shadow-2xs"
-                      >
-                        👁️ {language === 'EN' ? 'View Official 6-Page PDF Quotation' : 'Bekijk Officiële 6-Page Offerte'}
-                      </Button>
+                      <div className="pt-2 border-t border-[#D6CFC2]/40 flex justify-end">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => setQuoteViewModalOpen(true)}
+                          className="text-xs py-1.5 px-3 border-primary/40 text-primary hover:bg-primary/10 font-bold flex items-center gap-1.5 shadow-2xs"
+                        >
+                          👁️ {language === 'EN' ? 'View Official 6-Page PDF Quotation' : 'Bekijk Officiële 6-Page Offerte'}
+                        </Button>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="p-3 bg-[#EDE8DF]/40 rounded-xl border border-[#D6CFC2]/60 text-xs text-dark/60 flex items-center gap-2 font-mono">
+                      <FileText className="w-4 h-4 text-dark/40" />
+                      <span>{language === 'EN' ? 'No quote generated yet for this lead. Proceed to Step 4 to create a quote.' : 'Nog geen offerte aangemaakt. Ga naar Stap 4 om een offerte te maken.'}</span>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -802,9 +810,10 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
                         {language === 'EN' ? 'Special Requirements & Instructions' : 'Bijzondere Vereisten en Instructies'}
                       </label>
                       <textarea
+                        value={step2Notes}
+                        onChange={(e) => setStep2Notes(e.target.value)}
                         className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[70px] resize-none"
                         placeholder={language === 'EN' ? 'e.g. Teak wood frame, concrete countertop, LED lighting...' : 'b.v. Teakhout frame, beton aanrectblad...'}
-                        defaultValue="Bespoke teak wood frame with polished concrete countertop (3.5m width)."
                       />
                     </div>
                     {/* Response deadline */}
@@ -922,14 +931,14 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
                 <div className="space-y-4">
                   <div className="p-4 bg-[#EDE8DF]/50 rounded-xl border border-[#D6CFC2]/60 space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="font-bold text-dark text-sm">Project #P-2001 Work Order</span>
+                      <span className="font-bold text-dark text-sm">Project #{lead?.id?.replace('LEAD', 'P') || 'P-NEW'} Work Order</span>
                       <Badge variant="primary">Active Project</Badge>
                     </div>
                     <div className="grid grid-cols-2 gap-3 text-xs">
-                      <div><span className="text-dark/50 block text-[10px]">Project Name</span><span className="font-semibold">Luxury {customerCategory}</span></div>
-                      <div><span className="text-dark/50 block text-[10px]">Target Delivery Date</span><span className="font-semibold text-primary">12 Dec 2023</span></div>
+                      <div><span className="text-dark/50 block text-[10px]">Project Name</span><span className="font-semibold">{customerName} — {translateCategory(customerCategory)}</span></div>
+                      <div><span className="text-dark/50 block text-[10px]">Target Delivery Date</span><span className="font-semibold text-primary">{new Date(Date.now() + 30*86400000).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span></div>
                       <div><span className="text-dark/50 block text-[10px]">Assigned Team</span><span className="font-semibold">Tim & Bram (Admins)</span></div>
-                      <div><span className="text-dark/50 block text-[10px]">Build Progress</span><span className="font-semibold text-green-700">25%</span></div>
+                      <div><span className="text-dark/50 block text-[10px]">Build Progress</span><span className="font-semibold text-green-700">0% (Just Created)</span></div>
                     </div>
                   </div>
                 </div>

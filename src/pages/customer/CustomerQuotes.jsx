@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Card from '../../components/Card';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
 import { useLanguage } from '../../context/LanguageContext';
-import { CheckCircle, XCircle, FileText, Download, Sparkles, Check, CreditCard, ShieldCheck } from 'lucide-react';
+import { CheckCircle, XCircle, FileText, Download, Sparkles, Check, CreditCard, ShieldCheck, Copy, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function CustomerQuotes() {
   const { language } = useLanguage();
+  const navigate = useNavigate();
   const [quotes, setQuotes] = useState([]);
   const [toastMsg, setToastMsg] = useState('');
   const [acceptedModalQuote, setAcceptedModalQuote] = useState(null);
@@ -15,10 +17,12 @@ export default function CustomerQuotes() {
   // Load quotes from localStorage or fallback
   useEffect(() => {
     const loadQuotes = () => {
+      const savedV1 = localStorage.getItem('app_quotes_v1');
       const saved = localStorage.getItem('app_quotes');
-      if (saved) {
+      const source = savedV1 || saved;
+      if (source) {
         try {
-          const parsed = JSON.parse(saved);
+          const parsed = JSON.parse(source);
           setQuotes(parsed);
         } catch (e) {
           setQuotes([]);
@@ -56,6 +60,7 @@ export default function CustomerQuotes() {
         ];
         setQuotes(defaultQuotes);
         localStorage.setItem('app_quotes', JSON.stringify(defaultQuotes));
+        localStorage.setItem('app_quotes_v1', JSON.stringify(defaultQuotes));
       }
     };
 
@@ -77,6 +82,7 @@ export default function CustomerQuotes() {
     const updated = quotes.map(q => q.id === quote.id ? { ...q, status: 'Geaccepteerd' } : q);
     setQuotes(updated);
     localStorage.setItem('app_quotes', JSON.stringify(updated));
+    localStorage.setItem('app_quotes_v1', JSON.stringify(updated));
 
     // Auto Create Project
     const existingProjects = JSON.parse(localStorage.getItem('app_projects') || '[]');
@@ -140,6 +146,7 @@ export default function CustomerQuotes() {
     const updated = quotes.map(q => q.id === quote.id ? { ...q, status: 'Afgewezen' } : q);
     setQuotes(updated);
     localStorage.setItem('app_quotes', JSON.stringify(updated));
+    localStorage.setItem('app_quotes_v1', JSON.stringify(updated));
     window.dispatchEvent(new Event('app_data_changed'));
     showToast(language === 'EN' ? 'Quote marked as declined.' : 'Offerte is afgewezen.');
   };
@@ -150,10 +157,10 @@ export default function CustomerQuotes() {
       <AnimatePresence>
         {toastMsg && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 10 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-green-800 text-cream px-4 py-3 rounded-xl shadow-xl border border-green-700 font-body text-xs"
+            initial={{ opacity: 0, x: 80 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 80 }}
+            className="fixed top-20 right-4 z-[9999] flex items-center gap-2 bg-green-800 text-cream px-4 py-3 rounded-xl shadow-xl border border-green-700 font-body text-xs"
           >
             <Sparkles className="w-4 h-4 text-amber-300" />
             {toastMsg}
@@ -247,7 +254,40 @@ export default function CustomerQuotes() {
                   ))}
                 </div>
 
-                {/* Row 4: Clean Total & Action Buttons */}
+                {/* Row 4: Proposal PDF & Shareable Link Banner */}
+                <div className="bg-[#EDE8DF]/70 border border-[#D6CFC2] p-2.5 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                    <FileText className="w-4 h-4 text-accent flex-shrink-0" />
+                    <span>{language === 'EN' ? 'Official 6-Page Branded Proposal PDF' : 'Officiële 6-Pagina Merk Offerte PDF'}</span>
+                  </div>
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const link = `${window.location.origin}/offerte/${quote.id}`;
+                        navigator.clipboard.writeText(link);
+                        showToast(language === 'EN' ? 'Proposal link copied to clipboard!' : 'Offerte link gekopieerd naar klembord!');
+                      }}
+                      className="flex-1 sm:flex-none text-[11px] py-1 px-2.5 border-[#C4BEB3] text-dark hover:bg-white bg-white/60"
+                      title={language === 'EN' ? 'Copy shareable URL link' : 'Kopieer deelbare link'}
+                    >
+                      <Copy className="w-3.5 h-3.5 mr-1" />
+                      {language === 'EN' ? 'Copy Link' : 'Kopieer Link'}
+                    </Button>
+                    <a
+                      href={`/offerte/${quote.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1 text-[11px] font-bold py-1 px-3 rounded-lg bg-[#3E4E36] hover:bg-[#2D3528] text-white transition-colors shadow-xs"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      {language === 'EN' ? 'Open 6-Page PDF' : 'Open 6-Pagina PDF'}
+                    </a>
+                  </div>
+                </div>
+
+                {/* Row 5: Clean Total & Action Buttons */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 pt-1">
                   <div className="flex items-baseline gap-1.5">
                     <span className="text-[11px] text-dark/50 uppercase font-semibold">{language === 'EN' ? 'Total:' : 'Totaal:'}</span>
@@ -320,8 +360,14 @@ export default function CustomerQuotes() {
               </div>
 
               <div className="pt-2">
-                <Button onClick={() => setAcceptedModalQuote(null)} className="w-full">
-                  {language === 'EN' ? 'View My Project Progress' : 'Bekijk Mijn Project Voortgang ➔'}
+                <Button 
+                  onClick={() => { 
+                    setAcceptedModalQuote(null); 
+                    navigate('/customer/project'); 
+                  }} 
+                  className="w-full"
+                >
+                  {language === 'EN' ? 'View My Project Progress ➔' : 'Bekijk Mijn Project Voortgang ➔'}
                 </Button>
               </div>
             </motion.div>

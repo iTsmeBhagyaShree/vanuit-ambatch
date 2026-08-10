@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import Card from '../../components/Card';
 import Table from '../../components/Table';
 import Badge from '../../components/Badge';
@@ -15,11 +15,25 @@ export default function Planning() {
   const translateProjectName = (name) => {
     if (language !== 'EN' || !name) return name;
     return name
+      .replace(/Exclusieve Buitenkeuken - Maatwerk/gi, 'Bespoke Custom Outdoor Kitchen')
+      .replace(/Exclusieve Buitenkeuken/gi, 'Exclusive Outdoor Kitchen')
       .replace(/Eiken Houten Overkapping/gi, 'Oak Wooden Canopy')
       .replace(/Luxe Teak Buitenkeuken/gi, 'Luxury Teak Outdoor Kitchen')
       .replace(/Kliko Ombouw Triple Antraciet/gi, 'Triple Bin Storage Anthracite')
       .replace(/Luxury Buitenkeukens/gi, 'Luxury Outdoor Kitchens')
-      .replace(/Kliko Ombouw/gi, 'Bin Storage');
+      .replace(/Kliko Ombouw/gi, 'Bin Storage')
+      .replace(/Buitenkeuken/gi, 'Outdoor Kitchen')
+      .replace(/Overkapping/gi, 'Canopy');
+  };
+
+  const translatePartnerName = (name) => {
+    if (language !== 'EN' || !name) return name;
+    return name
+      .replace(/CraftWood Veluwe/gi, 'CraftWood Timber (Veluwe)')
+      .replace(/StaalWerk Brabant/gi, 'Steel Works (Brabant)')
+      .replace(/Hout & Steen Utrecht/gi, 'Wood & Stone (Utrecht)')
+      .replace(/De Gelderse Ambacht/gi, 'Gelderland Craftsmen')
+      .replace(/Noord-Zeeland Houtbouw/gi, 'Zeeland Timber Construction');
   };
 
   const [projects, setProjects] = useState([]);
@@ -154,7 +168,7 @@ export default function Planning() {
       {/* Toast Notification */}
       <AnimatePresence>
         {toastMsg && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 10 }} exit={{ opacity: 0, y: -20 }} className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-primary text-cream px-4 py-3 rounded-xl shadow-lg text-xs font-body">
+          <motion.div initial={{ opacity: 0, x: 80 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 80 }} className="fixed top-20 right-4 z-[9999] flex items-center gap-2 bg-primary text-cream px-4 py-3 rounded-xl shadow-lg text-xs font-body">
             <CheckCircle className="w-4 h-4 text-green-400" />
             {toastMsg}
           </motion.div>
@@ -259,11 +273,15 @@ export default function Planning() {
                 }}
               >
                 <option value="All">{label(`All Partners (${partners.length})`, `Alle partners (${partners.length})`)}</option>
-                {partners.map((pt, idx) => (
-                  <option key={idx} value={pt.name}>
-                    {pt.company && pt.company !== '-' ? `${pt.name} — ${pt.company}` : pt.name}
-                  </option>
-                ))}
+                {partners.map((pt, idx) => {
+                  const ptName = translatePartnerName(pt.name);
+                  const ptComp = translatePartnerName(pt.company);
+                  return (
+                    <option key={idx} value={pt.name}>
+                      {pt.company && pt.company !== '-' ? `${ptName} — ${ptComp}` : ptName}
+                    </option>
+                  );
+                })}
               </select>
               <ChevronDown className="w-3.5 h-3.5 text-primary flex-shrink-0 pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" />
             </div>
@@ -335,7 +353,7 @@ export default function Planning() {
 
                           <div className="pt-1.5 border-t border-[#D6CFC2]/40 text-[9px] space-y-0.5">
                             <p className={`font-bold truncate ${isProjUnassigned ? 'text-amber-800' : 'text-primary'}`}>
-                              {isProjUnassigned ? label('⚠️ No Partner', '⚠️ Geen Partner') : `👷 ${proj.partner}`}
+                              {isProjUnassigned ? label('⚠️ No Partner', '⚠️ Geen Partner') : `👷 ${translatePartnerName(proj.partner)}`}
                             </p>
                             <p className="text-dark/50 font-mono truncate">
                               📅 {proj.deadline}
