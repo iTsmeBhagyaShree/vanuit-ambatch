@@ -10,8 +10,9 @@ import heroImg from '/dasbordes images.png';
 export default function CustomerPhotos() {
   const { t, language } = useLanguage();
   const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [photosList, setPhotosList] = useState([]);
 
-  const photoUpdates = [
+  const defaultPhotoUpdates = [
     {
       id: 1,
       title: language === 'EN' ? 'Teak Wood Frame Construction' : 'Teakhouten Frame Constructie',
@@ -34,9 +35,36 @@ export default function CustomerPhotos() {
       phase: language === 'EN' ? 'Workshop Phase Date: 24 Oct 2026' : 'Werkplaats Fasedatum: 24 Okt 2026',
       description: language === 'EN' ? 'Tim & Bram have checked the drawers, hinges and cable ducts.' : 'Tim & Bram hebben de lades, scharnieren en kabeldoorvoeren gecontroleerd.',
       img: projectImg,
-      craftsman: 'Tim & Bram'
+      craftsman: 'Tim & Bram (Admins)'
     }
   ];
+
+  // Load photos dynamically from localStorage (Uploaded by Admin or Craftsmen)
+  React.useEffect(() => {
+    const loadPhotos = () => {
+      try {
+        const saved = localStorage.getItem('app_project_photos');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            // Only show photos that are shared with customer (isShared !== false)
+            const sharedOnly = parsed.filter(p => p.isShared !== false);
+            setPhotosList([...sharedOnly, ...defaultPhotoUpdates]);
+            return;
+          }
+        }
+      } catch (e) {}
+      setPhotosList(defaultPhotoUpdates);
+    };
+
+    loadPhotos();
+    window.addEventListener('storage', loadPhotos);
+    window.addEventListener('app_data_changed', loadPhotos);
+    return () => {
+      window.removeEventListener('storage', loadPhotos);
+      window.removeEventListener('app_data_changed', loadPhotos);
+    };
+  }, [language]);
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto font-body text-[#4A4A43]">
@@ -51,7 +79,7 @@ export default function CustomerPhotos() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-        {photoUpdates.map((photo) => (
+        {photosList.map((photo) => (
           <Card key={photo.id} className="overflow-hidden hover:shadow-card-hover transition-all cursor-pointer group" p="p-0" onClick={() => setSelectedPhoto(photo)}>
             <div className="relative h-48 bg-cream-dark/20 overflow-hidden">
               <img src={photo.img} alt={photo.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -81,9 +109,9 @@ export default function CustomerPhotos() {
       {/* FULLSCREEN PHOTO PREVIEW MODAL */}
       <AnimatePresence>
         {selectedPhoto && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-dark/80 backdrop-blur-sm" onClick={() => setSelectedPhoto(null)} />
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative w-full max-w-2xl bg-[#EDE8DF] border border-[#C4BEB3] rounded-2xl p-5 shadow-2xl z-10 space-y-3 text-xs">
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 overflow-y-auto">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-dark/85 backdrop-blur-md z-[99999]" onClick={() => setSelectedPhoto(null)} />
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative w-full max-w-2xl bg-[#EDE8DF] border border-[#C4BEB3] rounded-2xl p-5 shadow-2xl z-[100000] space-y-3 text-xs my-auto">
               <div className="flex justify-between items-start border-b border-[#D6CFC2] pb-2">
                 <div>
                   <span className="text-[10px] font-mono text-accent font-bold">{selectedPhoto.phase}</span>
@@ -92,8 +120,8 @@ export default function CustomerPhotos() {
                 <button onClick={() => setSelectedPhoto(null)} className="p-1 text-dark/40 hover:text-dark"><X className="w-5 h-5" /></button>
               </div>
 
-              <div className="rounded-xl overflow-hidden max-h-[380px] bg-black border border-[#D6CFC2]">
-                <img src={selectedPhoto.img} alt={selectedPhoto.title} className="w-full h-full object-contain" />
+              <div className="rounded-xl overflow-hidden max-h-[50vh] bg-black/90 border border-[#D6CFC2] flex items-center justify-center p-2">
+                <img src={selectedPhoto.img} alt={selectedPhoto.title} className="max-h-[48vh] w-auto max-w-full object-contain mx-auto rounded-lg" />
               </div>
 
               <p className="text-dark/80 bg-white p-3 rounded-xl border border-[#D6CFC2]/60 text-xs">

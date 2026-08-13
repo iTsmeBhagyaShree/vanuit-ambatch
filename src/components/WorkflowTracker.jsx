@@ -5,28 +5,31 @@ import Button from './Button';
 import Badge from './Badge';
 import { useLanguage } from '../context/LanguageContext';
 import { 
-  UserPlus, MessageSquare, FileText, CheckCircle2, Briefcase, 
+  UserPlus, MessageSquare, FileText, CheckCircle2, CheckCircle, Briefcase, 
   UserCheck, Calendar, Award, ArrowRight, Check, Clock, Phone, 
   Mail, MapPin, DollarSign, Wrench, ShieldCheck, Download, ChevronRight,
   AlertCircle, X, Sparkles, Send, FileSpreadsheet, CheckSquare, MessageCircle, Paperclip,
-  Mic, Play, Pause, FileAudio, Volume2
+  Mic, Play, Pause, FileAudio, Volume2, Sliders
 } from 'lucide-react';
+import { convertLeadToCustomerOnInvoiceSent } from '../utils/customerConversion';
+import { safeSetItem } from '../utils/storageHelper';
 
 export const WORKFLOW_STEPS = [
-  { id: 1, name: 'New Lead', icon: UserPlus, desc: 'Initial inquiry received & lead intake', statusKey: 'new', color: 'blue' },
-  { id: 2, name: 'Partner Price Request', icon: MessageSquare, desc: 'Send price request to partner & confirm specs', statusKey: 'inConversation', color: 'amber' },
-  { id: 3, name: 'Partner Quote', icon: FileText, desc: 'Cost estimate & quote received from partner', statusKey: 'quoteSent', color: 'amber' },
-  { id: 4, name: 'Create Quote for Lead/Customer', icon: CheckCircle2, desc: 'Generate & send quote to lead/customer', statusKey: 'won', color: 'green' },
-  { id: 5, name: 'Project Created', icon: Briefcase, desc: 'Active project setup in system', statusKey: 'active', color: 'indigo' },
-  { id: 6, name: 'Partner Assigned', icon: UserCheck, desc: 'Craftsman & supplier assigned', statusKey: 'inProgress', color: 'purple' },
-  { id: 7, name: 'Planning & Installation', icon: Calendar, desc: 'Delivery scheduled & build work', statusKey: 'inProgress', color: 'cyan' },
-  { id: 8, name: 'Completed', icon: Award, desc: 'Final inspection, invoice paid & closed', statusKey: 'completed', color: 'emerald' }
+  { id: 1, name: 'New Lead', desc: 'Contact & first intake', icon: UserPlus, statusKey: 'new', color: 'blue' },
+  { id: 2, name: 'Partner Price Request', desc: 'Specs + choose partner', icon: MessageSquare, statusKey: 'inConversation', color: 'amber' },
+  { id: 3, name: 'Partner Quote', desc: 'Record cost price', icon: FileText, statusKey: 'quoteSent', color: 'amber' },
+  { id: 4, name: 'Create Quote for Lead/Customer', desc: 'Margin + draft', icon: CheckCircle2, statusKey: 'quoteSent', color: 'green' },
+  { id: 5, name: 'Project Created', desc: 'Preview, PDF, approve', icon: Briefcase, statusKey: 'won', color: 'emerald' },
+  { id: 6, name: 'Partner Assigned', desc: 'Online or manual', icon: UserCheck, statusKey: 'won', color: 'purple' },
+  { id: 7, name: 'Planning & Installation', desc: 'Confirm partner', icon: Calendar, statusKey: 'cyan' },
+  { id: 8, name: 'Completed', desc: 'Through to completed', icon: Award, statusKey: 'won', color: 'emerald' }
 ];
 
 export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenPartnerWizard }) {
   const { t, tStatus, language } = useLanguage();
   const initialStep = lead?.workflowStep || 1;
   const [currentStep, setCurrentStep] = useState(initialStep);
+  const isLeadCompleted = currentStep === 8;
   const [autoModalType, setAutoModalType] = useState(null); // 'quote' | 'project' | 'partner' | 'invoice' | null
   const [toastMsg, setToastMsg] = useState('');
 
@@ -50,6 +53,11 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
   });
   const [commercialModalOpen, setCommercialModalOpen] = useState(false);
   const [newCommercialNote, setNewCommercialNote] = useState('');
+  const [commercialTaskForm, setCommercialTaskForm] = useState({
+    createTask: true,
+    assignee: 'Bram', // 'Bram' | 'Tim'
+    dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  });
 
   const handleSaveCommercialAction = (e) => {
     e.preventDefault();
@@ -58,14 +66,49 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
       id: Date.now(),
       date: new Date().toLocaleString('nl-NL', { dateStyle: 'short', timeStyle: 'short' }),
       user: 'Tim (Admin)',
-      note: newCommercialNote.trim()
+      note: newCommercialNote.trim(),
+      assignee: commercialTaskForm.createTask ? commercialTaskForm.assignee : null,
+      dueDate: commercialTaskForm.createTask ? commercialTaskForm.dueDate : null
     };
     const updated = [newAction, ...commercialActions];
     setCommercialActions(updated);
     localStorage.setItem(`app_commercial_actions_${lead?.id || 'default'}`, JSON.stringify(updated));
+
+    // Automatically create and sync related task to Task Board (app_tasks_v2 & app_tasks)
+    if (commercialTaskForm.createTask) {
+      try {
+        const savedTasks = localStorage.getItem('app_tasks_v2') || localStorage.getItem('app_tasks');
+        let tasksList = [];
+        if (savedTasks) {
+          try { tasksList = JSON.parse(savedTasks); } catch (err) {}
+        }
+        
+        const customerName = lead?.name || lead?.customerName || 'Klant';
+        const newTask = {
+          id: `TSK-COMM-${Date.now().toString().slice(-4)}`,
+          title: `[Commercial Action] ${newCommercialNote.trim().slice(0, 45)}${newCommercialNote.trim().length > 45 ? '...' : ''}`,
+          linkedType: 'Lead',
+          linkedId: `${customerName} (${lead?.id || 'Lead'})`,
+          assignee: commercialTaskForm.assignee,
+          assignedTo: commercialTaskForm.assignee,
+          priority: 'Medium',
+          dueDate: commercialTaskForm.dueDate,
+          completed: false,
+          createdDate: new Date().toISOString().split('T')[0]
+        };
+
+        const updatedTasksList = [newTask, ...tasksList];
+        localStorage.setItem('app_tasks_v2', JSON.stringify(updatedTasksList));
+        localStorage.setItem('app_tasks', JSON.stringify(updatedTasksList));
+        window.dispatchEvent(new Event('app_data_changed'));
+      } catch (err) {}
+    }
+
     setNewCommercialNote('');
     setCommercialModalOpen(false);
-    showToast(language === 'EN' ? 'Commercial action recorded successfully!' : 'Commerciële actie succesvol opgeslagen!');
+    showToast(commercialTaskForm.createTask
+      ? (language === 'EN' ? `Commercial action & task assigned to ${commercialTaskForm.assignee}!` : `Commerciële actie & taak toegewezen aan ${commercialTaskForm.assignee}!`)
+      : (language === 'EN' ? 'Commercial action recorded successfully!' : 'Commerciële actie succesvol opgeslagen!'));
   };
 
   // Plaud AI Audio Recordings State
@@ -136,11 +179,82 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
   const [generatedProposal, setGeneratedProposal] = useState(null);
   const [quoteViewModalOpen, setQuoteViewModalOpen] = useState(false);
 
+  // Dual Path Workflow Branching State ('partner' vs 'direct')
+  const [workflowPath, setWorkflowPath] = useState(lead?.requiresPartner === false ? 'direct' : 'partner');
+
+  // Dynamic Category Specification Fields (Synced live with Settings -> Veldinstellingen)
+  const [dynamicFieldSets, setDynamicFieldSets] = useState(() => {
+    try {
+      const saved = localStorage.getItem('app_fieldset_config');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {
+      buitenkeuken: [
+        { id: 'f-001', label: 'Werkblad Type & Afwerking', type: 'select', options: ['Gepolijst Beton Cire (8cm Zwart)', 'Graniet Zwart Mat', 'RVS Werkblad', 'Massief Teak Hout'], required: true },
+        { id: 'f-002', label: 'Houtsoort Onderstel', type: 'select', options: ['Thermo Fraké Hout (Recommended)', 'Massief Teakhout', 'Eikenhout', 'Zwart Gepoedercoat Staal'], required: true },
+        { id: 'f-003', label: 'Inbouw Kamado Cutout', type: 'select', options: ['Big Green Egg Large', 'Kamado Joe Classic III', 'Bastard Large', 'Geen Kamado Cutout'], required: true }
+      ],
+      buitenverblijf: [
+        { id: 'f-101', label: 'Isolatie Type (Dak & Wand)', type: 'select', options: ['PIR 80mm', 'Steenwol 100mm', 'Geen isolatie'], required: true },
+        { id: 'f-102', label: 'Glaswand Optie', type: 'select', options: ['Glazen schuifwanden (5-rail)', 'Vaste glazen wanden', 'Geen glas'], required: true },
+        { id: 'f-103', label: 'Houtsoort Frame', type: 'select', options: ['Massief Teakhout', 'Douglas Hout', 'Eikenhout'], required: true }
+      ]
+    };
+  });
+
+  const [specFormValues, setSpecFormValues] = useState({});
+
+  useEffect(() => {
+    const loadFieldSets = () => {
+      try {
+        const saved = localStorage.getItem('app_fieldset_config');
+        if (saved) setDynamicFieldSets(JSON.parse(saved));
+      } catch (e) {}
+    };
+    loadFieldSets();
+    window.addEventListener('app_data_changed', loadFieldSets);
+    return () => window.removeEventListener('app_data_changed', loadFieldSets);
+  }, []);
+
+  const getCategoryKey = (catStr) => {
+    const s = (catStr || '').toLowerCase();
+    if (s.includes('verblijf') || s.includes('building') || s.includes('garden') || s.includes('tuinkamer')) return 'buitenverblijf';
+    if (s.includes('overkapping') || s.includes('canopy') || s.includes('pergola')) return 'overkapping';
+    if (s.includes('poolhouse')) return 'poolhouse';
+    return 'buitenkeuken';
+  };
+
+  const activeCategoryKey = getCategoryKey(lead?.productType || customerCategory);
+
   // Step 2 Editable Free-Text Fields & Smart Green Logic State
   const [step2ProductType, setStep2ProductType] = useState(lead?.productType || customerCategory || '');
   const [step2Size, setStep2Size] = useState(lead?.size || lead?.dimensions || '');
   const [step2Notes, setStep2Notes] = useState(lead?.notes || '');
+  const [step2RequestedDate, setStep2RequestedDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [step2ExpectedDate, setStep2ExpectedDate] = useState(() => new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+  const [step2Material, setStep2Material] = useState('Douglas');
   const [isPriceRequestSent, setIsPriceRequestSent] = useState(false);
+
+  // Helper to construct STRICT Privacy-Sanitized Partner Payload (NO customerName, phone, email, address, budget)
+  const buildSanitizedPartnerPayload = () => {
+    return {
+      partnerName: partnerForm.partnerName || 'Ruben Verbeij — RV Meubels',
+      requestedOn: step2RequestedDate,
+      responseExpected: step2ExpectedDate,
+      town: lead?.city || (lead?.location ? lead.location.split(',')[0].trim() : 'Amsterdam'),
+      category: activeCategoryKey,
+      dimensions: step2Size || '8,00 × 4,00 m · h 2,80 m',
+      material: step2Material,
+      roofBaseWalls: 'flat · existing concrete · part glazed',
+      electrics: 'yes',
+      lighting: 'yes',
+      heating: 'none',
+      siteAccess: 'good — rear access 1.20 m',
+      notes: step2Notes || 'connect to existing services',
+      approvedPhotos: ['3 photos', '1 sketch']
+      // EXPLICITLY STRIPPED / DELETED FOR PRIVACY: customerName, customerPhone, customerEmail, customerAddress, customerBudget
+    };
+  };
 
   // Step 4 Direct Multi-Item Quotation Generator State
   const PRESET_PRODUCTS = [
@@ -203,14 +317,14 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
     setClaudeProposalModalOpen(false);
   };
 
-  // Update currentStep if selected lead changes & scroll main view to top
+  // Update currentStep when selected lead changes & scroll main view to top
   useEffect(() => {
     if (lead?.workflowStep) {
       setCurrentStep(lead.workflowStep);
     }
     const mainEl = document.querySelector('main');
     if (mainEl) mainEl.scrollTop = 0;
-  }, [lead, currentStep]);
+  }, [lead?.id]);
 
   // Prefilled State Inherited from Lead (Zero Dead Data Entry)
   const customerName = lead?.name || 'Jan de Vries';
@@ -344,11 +458,8 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
     if (currentStep === 2 || currentStep === 3) {
       setAutoModalType('quote');
     } else if (currentStep === 4) {
-      setAutoModalType('project');
-    } else if (currentStep === 5) {
-      setAutoModalType('partner');
-    } else if (currentStep === 7 || currentStep === 8) {
-      setAutoModalType('invoice');
+      autoConvertProjectAndCustomer(projectForm.partner);
+      advanceStep();
     } else {
       advanceStep();
     }
@@ -358,6 +469,12 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
     if (currentStep < 8) {
       const next = currentStep + 1;
       setCurrentStep(next);
+      if (lead) {
+        lead.workflowStep = next;
+      }
+      if (next >= 5) {
+        autoConvertProjectAndCustomer(projectForm.partner);
+      }
       if (onUpdateStatus) {
         onUpdateStatus(lead?.id, next);
       }
@@ -372,15 +489,19 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
       customer: quoteForm.customer || customerName,
       project: quoteForm.product || translatedCat,
       amount: `€ ${calculatedTotal.toLocaleString()}`,
-      status: 'Sent',
+      status: 'Verzonden',
       date: new Date().toISOString().split('T')[0],
       items: quoteLineItems
     };
 
-    const savedQuotes = JSON.parse(localStorage.getItem('app_quotes') || '[]');
-    localStorage.setItem('app_quotes', JSON.stringify([newQuote, ...savedQuotes]));
+    const savedQuotes = JSON.parse(localStorage.getItem('app_quotes_v1') || localStorage.getItem('app_quotes') || '[]');
+    const updated = [newQuote, ...savedQuotes];
+    safeSetItem('app_quotes', updated);
+    window.dispatchEvent(new Event('app_data_changed'));
 
-    showToast(`Quotation ${newQuote.id} (€${calculatedTotal.toLocaleString()}) created for ${newQuote.customer}!`);
+    showToast(language === 'EN' 
+      ? `Quotation ${newQuote.id} sent to ${newQuote.customer} via Email & delivered to Customer Portal!` 
+      : `Offerte ${newQuote.id} verzonden per E-mail & direct geleverd in Klantenportaal!`);
     setAutoModalType(null);
     setQuoteViewModalOpen(true);
     advanceStep();
@@ -452,24 +573,25 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
       id: invoiceForm.invoiceNumber,
       customer: invoiceForm.customer,
       amount: `€ ${parseInt(invoiceForm.amount).toLocaleString()}`,
-      status: 'Paid',
+      status: 'Openstaand',
       date: new Date().toISOString().split('T')[0]
     };
 
     const savedInvoices = JSON.parse(localStorage.getItem('app_invoices') || '[]');
-    localStorage.setItem('app_invoices', JSON.stringify([newInvoice, ...savedInvoices]));
+    const updatedInvoices = [newInvoice, ...savedInvoices];
+    localStorage.setItem('app_invoices', JSON.stringify(updatedInvoices));
 
-    showToast(`Invoice ${newInvoice.id} generated!`);
+    // Auto-convert Lead to Customer on Invoice Creation
+    convertLeadToCustomerOnInvoiceSent(newInvoice, lead);
+
+    showToast(language === 'EN'
+      ? `Invoice ${newInvoice.id} sent! Lead ${lead?.name || newInvoice.customer} converted to Customer!`
+      : `Factuur ${newInvoice.id} verzonden! Lead ${lead?.name || newInvoice.customer} omgezet naar Klant!`);
     setAutoModalType(null);
     advanceStep();
   };
 
   const getStepStatus = (stepId) => {
-    if (stepId === 2) {
-      if (isPriceRequestSent) return 'completed';
-      if (currentStep === 2) return 'current';
-      return 'upcoming';
-    }
     if (stepId < currentStep) return 'completed';
     if (stepId === currentStep) return 'current';
     return 'upcoming';
@@ -481,11 +603,11 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
       case 1: return { variant: 'info', label: tStatus('New') };
       case 2: return { variant: 'warning', label: tStatus('In Conversation') };
       case 3: return { variant: 'warning', label: tStatus('Quote Sent') };
-      case 4: return { variant: 'success', label: tStatus('Accepted') };
-      case 5: return { variant: 'primary', label: tStatus('Active') };
-      case 6: return { variant: 'primary', label: tStatus('In Progress') };
-      case 7: return { variant: 'warning', label: tStatus('In Progress') };
-      case 8: return { variant: 'success', label: tStatus('Completed') };
+      case 4: return { variant: 'primary', label: language === 'EN' ? 'Quote Created' : 'Offerte Aangemaakt' };
+      case 5: return { variant: 'success', label: language === 'EN' ? 'Project Created' : 'Project Aangemaakt' };
+      case 6: return { variant: 'purple', label: language === 'EN' ? 'Partner Assigned' : 'Partner Toegewezen' };
+      case 7: return { variant: 'info', label: language === 'EN' ? 'Planning Scheduled' : 'Planning Ingepland' };
+      case 8: return { variant: 'success', label: language === 'EN' ? 'Completed' : 'Afgerond' };
       default: return { variant: 'default', label: 'Active' };
     }
   };
@@ -501,9 +623,9 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
             initial={{ opacity: 0, x: 80 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 80 }}
-            className="fixed top-20 right-4 z-[9999] flex items-center gap-2 bg-green-800 text-cream px-4 py-3 rounded-xl shadow-xl border border-green-700 font-body text-xs"
+            className="fixed top-20 right-4 z-[9999] flex items-center gap-2 bg-primary text-cream px-4 py-3 rounded-xl shadow-lg text-xs font-bold"
           >
-            <Sparkles className="w-4 h-4 text-amber-300" />
+            <CheckCircle className="w-4 h-4 text-green-400" />
             {toastMsg}
           </motion.div>
         )}
@@ -527,7 +649,7 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
                 </button>
               )}
               <span className="text-[10px] font-bold text-accent tracking-wider uppercase font-body">Workflow</span>
-              <Badge variant="info">{language === 'EN' ? `Step ${currentStep}/8` : `Stap ${currentStep}/8`}</Badge>
+              <Badge variant="info">{language === 'EN' ? `Step ${currentStep}/${WORKFLOW_STEPS.length}` : `Stap ${currentStep}/${WORKFLOW_STEPS.length}`}</Badge>
               <span className="text-[10px] font-bold text-primary font-body bg-primary/10 px-1.5 py-0.5 rounded-md capitalize">
                 {translateCategory(lead?.productType || customerCategory)}
               </span>
@@ -552,15 +674,17 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
                 >
                   {language === 'EN' ? 'Send Message' : 'Bericht Versturen'}
                 </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  icon={MessageSquare} 
-                  onClick={() => setCommercialModalOpen(true)}
-                  className="text-xs py-1 px-2.5 border-primary/40 text-primary hover:bg-primary/10 shadow-xs"
-                >
-                  {language === 'EN' ? '+ Add Commercial Action' : '+ Commerciële Actie Toevoegen'}
-                </Button>
+                {!isLeadCompleted && (
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    icon={MessageSquare} 
+                    onClick={() => setCommercialModalOpen(true)}
+                    className="text-xs py-1 px-2.5 border-primary/40 text-primary hover:bg-primary/10 shadow-xs font-bold"
+                  >
+                    {language === 'EN' ? '+ Add Commercial Action' : '+ Commerciële Actie Toevoegen'}
+                  </Button>
+                )}
                 <Button 
                   size="sm" 
                   variant="outline" 
@@ -585,14 +709,16 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
           )}
         </div>
 
-        {/* Row 2: 8-Step Stepper — always horizontally scrollable */}
-        <div className="overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-          <div className="flex items-center min-w-[640px] justify-between relative px-2">
-            {/* Connecting Track Line */}
-            <div className="absolute top-4 left-6 right-6 h-0.5 bg-[#D6CFC2] z-0" />
+        {/* Row 2: Horizontal Connected Stepper Line Bar (Exact Match with User's Latest Screenshot) */}
+        <div className="overflow-x-auto pt-3 pb-2" style={{ scrollbarWidth: 'none' }}>
+          <div className="flex items-center min-w-[720px] justify-between relative px-4">
+            {/* Background Track Line */}
+            <div className="absolute top-4 left-8 right-8 h-0.5 bg-[#D6CFC2] z-0" />
+            
+            {/* Active Progress Line */}
             <div
-              className="absolute top-4 left-6 h-0.5 bg-primary transition-all duration-500 z-0"
-              style={{ width: `${((currentStep - 1) / (WORKFLOW_STEPS.length - 1)) * 96}%` }}
+              className="absolute top-4 left-8 h-0.5 bg-[#3E4E36] transition-all duration-300 z-0"
+              style={{ width: `${((currentStep - 1) / (WORKFLOW_STEPS.length - 1)) * 95}%` }}
             />
 
             {WORKFLOW_STEPS.map((step) => {
@@ -602,21 +728,35 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
               return (
                 <button
                   key={step.id}
-                  onClick={() => setCurrentStep(step.id)}
-                  title={`${language === 'EN' ? 'Step' : 'Stap'} ${step.id}: ${step.name}`}
+                  type="button"
+                  onClick={() => {
+                    setCurrentStep(step.id);
+                    if (lead) lead.workflowStep = step.id;
+                    if (onUpdateStatus) onUpdateStatus(lead?.id, step.id);
+                  }}
+                  title={`Step ${step.id}: ${step.name}`}
                   className="flex flex-col items-center group relative z-10 focus:outline-none cursor-pointer"
                 >
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
                     status === 'completed'
-                      ? 'bg-green-600 text-white ring-4 ring-green-100 shadow-sm'
+                      ? 'bg-emerald-600 text-white ring-4 ring-emerald-100 shadow-sm'
                       : status === 'current'
-                      ? 'bg-primary text-cream ring-4 ring-primary/20 shadow-md scale-110'
-                      : 'bg-[#EDE8DF] text-dark/40 border border-[#D6CFC2] hover:border-primary/50'
+                      ? 'bg-[#3E4E36] text-white ring-4 ring-blue-300/80 shadow-md scale-105'
+                      : 'bg-[#F4F1EA] text-dark/40 border border-[#D6CFC2] hover:border-primary/50'
                   }`}>
-                    {status === 'completed' ? <Check className="w-3.5 h-3.5" /> : <StepIcon className="w-3.5 h-3.5" />}
+                    {status === 'completed' ? (
+                      <Check className="w-4 h-4 stroke-[3]" />
+                    ) : (
+                      <StepIcon className="w-4 h-4" />
+                    )}
                   </div>
-                  <span className={`text-[9px] font-semibold mt-1 max-w-[70px] text-center line-clamp-1 ${
-                    status === 'current' ? 'text-primary font-bold' : status === 'completed' ? 'text-green-700' : 'text-dark/40'
+                  
+                  <span className={`text-[10px] font-semibold mt-1.5 max-w-[85px] text-center line-clamp-1 leading-tight ${
+                    status === 'current'
+                      ? 'text-[#3E4E36] font-bold'
+                      : status === 'completed'
+                      ? 'text-emerald-700 font-semibold'
+                      : 'text-dark/40'
                   }`}>
                     {step.name}
                   </span>
@@ -644,9 +784,31 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
                   <span>Step {currentStep}: {WORKFLOW_STEPS[currentStep - 1].name}</span>
                 </h3>
               </div>
-              <Badge variant={currentBadge.variant}>
-                {currentBadge.label}
-              </Badge>
+              {currentStep === 8 ? (
+                <span className="bg-[#DCFCE7] text-[#15803D] font-bold text-xs px-3 py-1 rounded-full border border-emerald-200/60 shadow-2xs">
+                  Completed
+                </span>
+              ) : currentStep === 7 ? (
+                <span className="bg-[#FEF9C3] text-[#713F12] font-semibold text-xs px-3 py-1 rounded-full border border-amber-200/60 shadow-2xs">
+                  In Progress
+                </span>
+              ) : currentStep === 4 ? (
+                <span className="bg-[#DCFCE7] text-[#15803D] font-bold text-xs px-3 py-1 rounded-full border border-emerald-200/60 shadow-2xs">
+                  Accepted
+                </span>
+              ) : currentStep === 3 ? (
+                <span className="bg-[#FEF3C7] text-[#92400E] font-semibold text-xs px-3 py-1 rounded-full border border-amber-200/60 shadow-2xs">
+                  Quote Sent
+                </span>
+              ) : currentStep === 2 ? (
+                <span className="bg-[#FEF3C7] text-[#92400E] font-semibold text-xs px-3 py-1 rounded-full border border-amber-200/60 shadow-2xs">
+                  In Conversation
+                </span>
+              ) : (
+                <span className="text-xs text-dark/60 font-body font-medium">
+                  {currentStep === 5 ? 'Active' : (currentStep === 6 ? 'In Progress' : currentBadge.label)}
+                </span>
+              )}
             </div>
 
             {/* Stage Specific Dynamic Content Controlled by Selected Step */}
@@ -685,6 +847,59 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
                       </div>
                     </div>
                   </div>
+
+                  {/* DYNAMIC CATEGORY SPECIFICATIONS CARD (Synced live with Settings -> Veldinstellingen) */}
+                  <div className="p-4 bg-white rounded-xl border border-[#D6CFC2] space-y-3 shadow-2xs">
+                    <div className="flex items-center justify-between border-b border-[#D6CFC2]/60 pb-2">
+                      <div className="flex items-center gap-2">
+                        <Sliders className="w-4 h-4 text-primary" />
+                        <span className="font-bold text-xs text-primary font-heading uppercase tracking-wider">
+                          {language === 'EN' 
+                            ? `Category Dynamic Specs: ${translateCategory(customerCategory)}` 
+                            : `Categorie Specificaties: ${customerCategory}`}
+                        </span>
+                      </div>
+                      <span className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded font-mono font-bold">
+                        Settings Configured ⚙️
+                      </span>
+                    </div>
+
+                    {dynamicFieldSets[activeCategoryKey] && dynamicFieldSets[activeCategoryKey].length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                        {dynamicFieldSets[activeCategoryKey].map((field) => (
+                          <div key={field.id} className="space-y-1">
+                            <label className="block text-[10px] font-bold text-dark/60 uppercase">
+                              {field.label} {field.required && <span className="text-red-500">*</span>}
+                            </label>
+                            {field.type === 'select' ? (
+                              <select
+                                value={specFormValues[field.id] || field.options[0]}
+                                onChange={(e) => setSpecFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                className="w-full px-2.5 py-1.5 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs font-semibold focus:ring-1 focus:ring-primary/20 outline-none"
+                              >
+                                {field.options.map((opt, i) => (
+                                  <option key={i} value={opt}>{opt}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <input
+                                type="text"
+                                value={specFormValues[field.id] || ''}
+                                onChange={(e) => setSpecFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                placeholder={`Vul ${field.label} in...`}
+                                className="w-full px-2.5 py-1.5 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs font-semibold focus:ring-1 focus:ring-primary/20 outline-none"
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-dark/50 text-xs italic">
+                        {language === 'EN' ? 'No custom fields configured for this category in Settings.' : 'Geen specifieke velden geconfigureerd in Settings.'}
+                      </p>
+                    )}
+                  </div>
+
                   <div>
                     <h4 className="font-bold text-dark mb-1">Initial Intake Notes</h4>
                     <p className="p-3 bg-white/60 rounded-lg border border-[#D6CFC2]/40 text-dark/70 italic">
@@ -740,126 +955,495 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
                   ) : (
                     <div className="p-3 bg-[#EDE8DF]/40 rounded-xl border border-[#D6CFC2]/60 text-xs text-dark/60 flex items-center gap-2 font-mono">
                       <FileText className="w-4 h-4 text-dark/40" />
-                      <span>{language === 'EN' ? 'No quote generated yet for this lead. Proceed to Step 4 to create a quote.' : 'Nog geen offerte aangemaakt. Ga naar Stap 4 om een offerte te maken.'}</span>
+                      <span>{language === 'EN' ? 'No quote generated yet. Complete partner pricing before creating the quote.' : 'Nog geen offerte aangemaakt. Voltooi eerst de partner prijsaanvraag.'}</span>
                     </div>
                   )}
+
+                  {/* Card 2: Auto-Message Templates & Contact Actions (Middle) */}
+                  <div id="auto-message-section" className="p-5 bg-[#F8F7F4] rounded-2xl border border-[#D6CFC2]/70 space-y-3 shadow-2xs">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4 text-primary" />
+                        <span className="text-xs font-bold text-primary font-heading uppercase tracking-wider">
+                          Auto-Message Templates & Contact Actions
+                        </span>
+                      </div>
+                      <select
+                        value={selectedTemplate}
+                        onChange={(e) => setSelectedTemplate(e.target.value)}
+                        className="px-3 py-1.5 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium shadow-2xs"
+                      >
+                        <option value="template1">Template 1: Initial Inquiry Response</option>
+                        <option value="template2">Template 2: 1st Follow-up Message</option>
+                        <option value="template3">Template 3: 2nd Follow-up Message</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <textarea
+                        value={customMessageText}
+                        onChange={(e) => setCustomMessageText(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-white border border-[#D6CFC2] rounded-xl text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[72px] resize-none leading-relaxed"
+                        placeholder="Message content..."
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                      <label className="flex items-center gap-2 text-[11px] text-dark/70 cursor-pointer select-none font-semibold">
+                        <input
+                          type="checkbox"
+                          checked={attachPhotos}
+                          onChange={(e) => setAttachPhotos(e.target.checked)}
+                          className="rounded border-[#D6CFC2] text-primary focus:ring-primary/20"
+                        />
+                        <Paperclip className="w-3.5 h-3.5 text-primary" />
+                        <span>{language === 'EN' ? 'Attach project photo / 3D render (WhatsApp)' : 'Projectfoto / 3D-render bijvoegen (WhatsApp)'}</span>
+                      </label>
+
+                      <div className="flex gap-2 flex-wrap">
+                        <a
+                          href={`https://wa.me/${customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(customMessageText)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                        </a>
+                        <a
+                          href={`tel:${customerPhone}`}
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#2196F3] hover:bg-[#1e87db] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
+                        >
+                          <Phone className="w-3.5 h-3.5" /> Call
+                        </a>
+                        <a
+                          href={`mailto:${customerEmail}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#3E4E36] hover:bg-[#2e3a28] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
+                        >
+                          <Mail className="w-3.5 h-3.5" /> E-mail
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 3: Recommended Next Action Banner (Bottom) */}
+                  <div className="p-4 bg-[#EDE8DF] border border-[#D6CFC2] rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div>
+                      <span className="text-[10px] font-mono font-bold text-accent uppercase tracking-wider block">RECOMMENDED NEXT ACTION</span>
+                      <span className="text-xs font-bold text-primary">Request partner pricing & send specifications</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => advanceStep()}
+                      className="px-5 py-2.5 bg-[#3E4E36] hover:bg-[#2F3C29] text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-2 whitespace-nowrap"
+                    >
+                      <ArrowRight className="w-4 h-4" />
+                      <span>Request Partner Pricing →</span>
+                    </button>
+                  </div>
                 </div>
               )}
 
-              {/* STEP 2: PRIJSAANVRAAG VERSTUREN */}
+              {/* STEP 2: PRIJSAANVRAAG VERSTUREN OF DIRECTE OFFERTE */}
               {currentStep === 2 && (
                 <div className="space-y-4">
-                  <div className="p-4 bg-[#EDE8DF]/50 rounded-xl border border-[#D6CFC2]/60 space-y-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#D6CFC2]/60 pb-3">
-                      <h4 className="font-bold text-dark flex items-center gap-2 text-sm font-heading">
-                        <Send className="w-4 h-4 text-primary" /> {language === 'EN' ? 'Send Price Request to Partner' : 'Prijsaanvraag Versturen naar Partner'}
-                      </h4>
-                      {onOpenPartnerWizard && (
+                  {/* DUAL PATH ROUTING SWITCHER BANNER */}
+                  <div className="p-3 bg-white rounded-xl border border-[#D6CFC2] shadow-xs space-y-2">
+                    <span className="text-[10px] font-bold uppercase text-dark/50 tracking-wider block">
+                      {language === 'EN' ? 'Choose Project Workflow Routing:' : 'Kies Project Workflow Route:'}
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setWorkflowPath('partner')}
+                        className={`p-3 rounded-lg border text-left transition-all cursor-pointer flex items-center gap-2.5 ${
+                          workflowPath === 'partner'
+                            ? 'bg-primary/10 border-primary text-primary font-bold shadow-2xs ring-1 ring-primary/30'
+                            : 'bg-[#EDE8DF]/40 border-[#D6CFC2] text-dark/70 hover:bg-[#EDE8DF]'
+                        }`}
+                      >
+                        <Wrench className={`w-4 h-4 ${workflowPath === 'partner' ? 'text-primary' : 'text-dark/40'}`} />
+                        <div>
+                          <div className="text-xs font-bold font-heading">
+                            {language === 'EN' ? '1. Partner Price Request Flow' : '1. Partner Prijsaanvraag Route'}
+                          </div>
+                          <div className="text-[10px] text-dark/60 font-normal">
+                            {language === 'EN' ? 'For custom craftsman projects requiring partner build price' : 'Voor maatwerk met partner bouwprijs aanvraag'}
+                          </div>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setWorkflowPath('direct')}
+                        className={`p-3 rounded-lg border text-left transition-all cursor-pointer flex items-center gap-2.5 ${
+                          workflowPath === 'direct'
+                            ? 'bg-amber-100/70 border-amber-500 text-amber-900 font-bold shadow-2xs ring-1 ring-amber-400'
+                            : 'bg-[#EDE8DF]/40 border-[#D6CFC2] text-dark/70 hover:bg-[#EDE8DF]'
+                        }`}
+                      >
+                        <Sparkles className={`w-4 h-4 ${workflowPath === 'direct' ? 'text-amber-600' : 'text-dark/40'}`} />
+                        <div>
+                          <div className="text-xs font-bold font-heading flex items-center gap-1">
+                            <span>{language === 'EN' ? '2. Direct Customer Quote Bypass' : '2. Directe Klantofferte (Geen Partner)'}</span>
+                            <span className="text-[9px] bg-amber-600 text-white font-mono px-1.5 py-0.2 rounded-full font-bold">Fast</span>
+                          </div>
+                          <div className="text-[10px] text-dark/60 font-normal">
+                            {language === 'EN' ? 'Bypass partner phase & generate customer quote immediately' : 'Sla partner over & maak direct de klantofferte aan'}
+                          </div>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* PATH A: PARTNER PRICE REQUEST FORM (Briefing V1.0 Match) */}
+                  {workflowPath === 'partner' ? (
+                    <div className="p-5 bg-[#F8F7F4] rounded-2xl border border-[#D6CFC2]/70 space-y-4 shadow-2xs font-body">
+                      
+                      {/* Section Title & 7-Step Partner Wizard Launch Button */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#D6CFC2]/60 pb-3">
+                        <h4 className="font-bold text-dark flex items-center gap-2 text-sm sm:text-base font-heading">
+                          <Send className="w-4 h-4 text-primary" />
+                          <span>{language === 'EN' ? 'Send Price Request to Partner' : 'Prijsaanvraag Versturen naar Partner'}</span>
+                        </h4>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (onOpenPartnerWizard) {
+                              onOpenPartnerWizard(lead);
+                            } else {
+                              showToast(language === 'EN' ? 'Opening 7-Step Partner Price Request Wizard...' : '7-Staps Prijsaanvraag Partner Wizard geopend...');
+                            }
+                          }}
+                          className="px-3.5 py-2 bg-[#3E4E36] hover:bg-[#2F3C29] text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5 transition-all"
+                        >
+                          <span>🚀 {language === 'EN' ? 'Open 7-Step Partner Price Request Wizard' : 'Open 7-Staps Prijsaanvraag Partner Wizard'}</span>
+                        </button>
+                      </div>
+
+                      {/* Top Row: Partner Selector & Dates */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pb-4 border-b border-[#D6CFC2]/60">
+                        <div>
+                          <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">PARTNER</label>
+                          <select 
+                            value={partnerForm.partnerName} 
+                            onChange={(e) => setPartnerForm(prev => ({ ...prev, partnerName: e.target.value }))}
+                            className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-xl text-xs font-bold text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer shadow-2xs"
+                          >
+                            <option value="Ruben Verbeij — RV Meubels">Ruben Verbeij — RV Meubels ▾</option>
+                            <option value="Sven Hoek (Hoek Bouw)">Sven Hoek (Hoek Bouw) ▾</option>
+                            <option value="Lars Jansen (Jansen Houtwerk)">Lars Jansen (Jansen Houtwerk) ▾</option>
+                            <option value="Theo Mulder (Mulder Tuinen)">Theo Mulder (Mulder Tuinen) ▾</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">Requested on</label>
+                          <input
+                            type="date"
+                            value={step2RequestedDate}
+                            onChange={(e) => setStep2RequestedDate(e.target.value)}
+                            className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-xl text-xs font-semibold text-dark focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">Response expected</label>
+                          <input
+                            type="date"
+                            value={step2ExpectedDate}
+                            onChange={(e) => setStep2ExpectedDate(e.target.value)}
+                            className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-xl text-xs font-semibold text-dark focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Section Header */}
+                      <div className="flex items-center justify-between pt-1">
+                        <span className="text-xs font-bold font-heading text-primary uppercase tracking-wider">
+                          DECISIVE AUTOMATIC SPECIFICATIONS (SENT TO THE PARTNER)
+                        </span>
+                        <span className="text-[10px] font-mono bg-primary/10 text-primary px-2 py-0.5 rounded font-bold">
+                          Partner Quote Input
+                        </span>
+                      </div>
+
+                      {/* 2-Column Specifications Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                        <div>
+                          <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">Category</label>
+                          <select 
+                            value={activeCategoryKey}
+                            onChange={() => {}}
+                            className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-xl font-semibold text-dark cursor-pointer focus:ring-2 focus:ring-primary/20"
+                          >
+                            <option value="buitenkeuken">Outdoor kitchen ▾</option>
+                            <option value="buitenverblijf">Garden room ▾</option>
+                            <option value="poolhouse">Poolhouse ▾</option>
+                            <option value="overkapping">Canopy ▾</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">Dimensions</label>
+                          <input 
+                            type="text" 
+                            value={step2Size || '8,00 × 4,00 m · h 2,80 m'} 
+                            onChange={(e) => setStep2Size(e.target.value)}
+                            className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-xl font-semibold text-dark focus:ring-2 focus:ring-primary/20" 
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">Timber / Material</label>
+                          <select 
+                            value={step2Material}
+                            onChange={(e) => setStep2Material(e.target.value)}
+                            className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-xl font-semibold text-dark cursor-pointer focus:ring-2 focus:ring-primary/20"
+                          >
+                            <option value="Douglas">Douglas ▾</option>
+                            <option value="Thermo Fraké Hout">Thermo Fraké Hout ▾</option>
+                            <option value="Massief Teakhout">Massief Teakhout ▾</option>
+                            <option value="Eikenhout">Eikenhout ▾</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">Roof · Base · Walls</label>
+                          <input 
+                            type="text" 
+                            defaultValue="flat · existing concrete · part glazed"
+                            className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-xl font-semibold text-dark focus:ring-2 focus:ring-primary/20" 
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">Electrics, Lighting, Heating</label>
+                          <input 
+                            type="text" 
+                            defaultValue="yes · yes · none"
+                            className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-xl font-semibold text-dark focus:ring-2 focus:ring-primary/20" 
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">Site Access</label>
+                          <input 
+                            type="text" 
+                            defaultValue="good — rear access 1.20 m"
+                            className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-xl font-semibold text-dark focus:ring-2 focus:ring-primary/20" 
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">Notes</label>
+                        <textarea
+                          value={step2Notes || 'connect to existing services'}
+                          onChange={(e) => setStep2Notes(e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-xl text-xs text-dark focus:ring-2 focus:ring-primary/20 min-h-[60px] resize-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">Attachments</label>
+                        <div className="p-3 bg-white rounded-xl border border-[#D6CFC2] flex items-center justify-between text-xs">
+                          <span className="font-semibold text-dark">3 photos · 1 sketch</span>
+                          {isPriceRequestSent ? (
+                            <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                              ✓ Sent to Partner
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-dark/70 font-bold bg-[#EDE8DF] px-2 py-0.5 rounded border border-[#D6CFC2]">
+                              Not yet sent
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* 🔴 STRICT PRIVACY NOTICE BOX (DO NOT SEND TO PARTNER) */}
+                      <div className="p-4 bg-[#FDF2F2] border border-[#F87171]/40 rounded-2xl space-y-3 text-xs">
+                        <div className="flex items-center justify-between border-b border-[#F87171]/20 pb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="bg-red-700 text-white font-bold text-[10px] px-2.5 py-0.5 rounded uppercase tracking-wider">
+                              DO NOT SEND
+                            </span>
+                            <span className="font-bold text-red-950 text-xs">Customer Contact & Budget Security</span>
+                          </div>
+                          <span className="text-[10px] font-mono bg-red-100 text-red-800 font-bold px-2 py-0.5 rounded uppercase">
+                            INTERNAL — INTERNAL
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                          <div className="p-2.5 bg-white rounded-xl border border-red-200/80">
+                            <span className="text-[10px] text-red-700/80 font-bold uppercase block mb-0.5">Customer Address, Phone & Email</span>
+                            <span className="font-bold text-red-900 text-xs italic">hidden until project confirmed</span>
+                          </div>
+                          <div className="p-2.5 bg-white rounded-xl border border-red-200/80">
+                            <span className="text-[10px] text-red-700/80 font-bold uppercase block mb-0.5">Customer Budget</span>
+                            <span className="font-bold text-red-900 text-xs italic">hidden until project confirmed</span>
+                          </div>
+                        </div>
+
+                        <p className="text-[11px] text-red-900/80 italic font-body leading-relaxed pt-0.5">
+                          "The partner sees the town, the specifications and the photos — no address, no phone number, no email, no customer budget. Those fields only unlock once the project is confirmed in step 7."
+                        </p>
+                      </div>
+
+                      {/* Form Action Buttons */}
+                      <div className="flex justify-start items-center gap-3 pt-2 border-t border-[#D6CFC2]/60">
+                        <button
+                          type="button"
+                          onClick={() => showToast(language === 'EN' ? 'Draft saved successfully!' : 'Concept succesvol opgeslagen!')}
+                          className="px-4 py-2 bg-white/80 hover:bg-white text-dark border border-[#D6CFC2] font-bold text-xs rounded-xl shadow-2xs cursor-pointer"
+                        >
+                          Save as draft
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* PATH B: DIRECT CUSTOMER QUOTE BYPASS CARD */
+                    <div className="p-5 bg-gradient-to-br from-amber-50 to-orange-50/40 rounded-xl border border-amber-200 space-y-4 text-xs">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-800 flex items-center justify-center flex-shrink-0">
+                          <Sparkles className="w-5 h-5 text-amber-700" />
+                        </div>
+                        <div>
+                          <h4 className="font-heading font-bold text-amber-950 text-sm">
+                            {language === 'EN' ? 'Direct Customer Quote Mode Active' : 'Directe Klantofferte Modus Actief'}
+                          </h4>
+                          <p className="text-amber-900/80 text-xs mt-0.5 font-body">
+                            {language === 'EN'
+                              ? 'This project does not require a partner price request. You can create the official 6-page PDF quotation directly using pre-saved catalog items or custom line pricing.'
+                              : 'Voor dit project is geen partner aanvraag nodig. Maak direct de officiële 6-pagina PDF offerte aan via de catalogus calculator.'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="p-3.5 bg-white/80 rounded-lg border border-amber-200/80 space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold text-dark">{language === 'EN' ? 'Client Name:' : 'Klantnaam:'}</span>
+                          <span className="font-semibold text-primary">{customerName}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold text-dark">{language === 'EN' ? 'Product Category:' : 'Product Categorie:'}</span>
+                          <span className="font-mono text-dark/80 capitalize">{translatedCat} ({step2Size || 'Standaard Maat'})</span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 flex justify-end">
                         <Button
                           type="button"
                           variant="primary"
-                          size="sm"
-                          onClick={() => onOpenPartnerWizard(lead)}
-                          className="text-xs py-1.5 px-3 bg-primary text-cream font-bold hover:bg-primary-dark shadow-2xs flex items-center gap-1.5"
+                          onClick={() => {
+                            setCurrentStep(4);
+                            setAutoModalType('quote');
+                            showToast(language === 'EN' ? 'Partner bypassed! Opening Direct Quote Generator...' : 'Partner overgeslagen! Directe Offerte Generator geopend...');
+                          }}
+                          className="py-2.5 px-5 bg-amber-600 hover:bg-amber-700 text-white font-bold font-body text-xs shadow-md flex items-center gap-2"
                         >
-                          🚀 {language === 'EN' ? 'Open 7-Step Partner Price Request Wizard' : 'Open 7-Staps Prijsaanvraag Partner Wizard'}
+                          <FileText className="w-4 h-4" />
+                          <span>{language === 'EN' ? '⚡ Generate Direct Customer Quote (Step 4)' : '⚡ Direct Klantofferte Genereren (Stap 4)'}</span>
                         </Button>
-                      )}
+                      </div>
                     </div>
-                    {/* Partner selection */}
-                    <div>
-                      <label className="block text-[10px] font-bold text-dark/50 uppercase mb-1">
-                        {language === 'EN' ? 'Pick Craftsman Partner' : 'Selecteer Partner'}
-                      </label>
-                      <select className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20">
-                        <option>Sven Hoek (Hoek Bouw) — 2 {language === 'EN' ? 'active projects' : 'actieve projecten'}</option>
-                        <option>Lars Jansen (Jansen Houtwerk) — 1 {language === 'EN' ? 'active project' : 'actief project'}</option>
-                        <option>Theo Mulder (Mulder Tuinen) — 3 {language === 'EN' ? 'active projects' : 'actieve projecten'}</option>
+                  )}
+
+                  {/* Card 2: Auto-Message Templates & Contact Actions (Middle) */}
+                  <div id="auto-message-section" className="p-5 bg-[#F8F7F4] rounded-2xl border border-[#D6CFC2]/70 space-y-3 shadow-2xs">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4 text-primary" />
+                        <span className="text-xs font-bold text-primary font-heading uppercase tracking-wider">
+                          Auto-Message Templates & Contact Actions
+                        </span>
+                      </div>
+                      <select
+                        value={selectedTemplate}
+                        onChange={(e) => setSelectedTemplate(e.target.value)}
+                        className="px-3 py-1.5 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium shadow-2xs"
+                      >
+                        <option value="template1">Template 1: Initial Inquiry Response</option>
+                        <option value="template2">Template 2: 1st Follow-up Message</option>
+                        <option value="template3">Template 3: 2nd Follow-up Message</option>
                       </select>
                     </div>
-                    {/* Editable Free-Text Specs */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[10px] font-bold text-dark/50 uppercase mb-1">
-                          {language === 'EN' ? 'Product Type (Free-Text)' : 'Producttype (Vrije tekst)'}
-                        </label>
-                        <input 
-                          type="text" 
-                          value={step2ProductType} 
-                          onChange={(e) => setStep2ProductType(e.target.value)} 
-                          placeholder={language === 'EN' ? 'e.g. Outdoor Kitchen / Canopy / Custom Joinery' : 'b.v. Buitenkeuken / Overkapping / Maatwerk'}
-                          className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 font-semibold" 
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-bold text-dark/50 uppercase mb-1">
-                          {language === 'EN' ? 'Preferred Dimensions (Free-Text)' : 'Gewenste Maat (Vrije tekst)'}
-                        </label>
-                        <input 
-                          type="text" 
-                          value={step2Size} 
-                          onChange={(e) => setStep2Size(e.target.value)} 
-                          placeholder="e.g. 350x80x95 cm or Custom 4m"
-                          className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 font-semibold" 
-                        />
-                      </div>
-                    </div>
-                    {/* Special requirements */}
+
                     <div>
-                      <label className="block text-[10px] font-bold text-dark/50 uppercase mb-1">
-                        {language === 'EN' ? 'Special Requirements & Instructions' : 'Bijzondere Vereisten en Instructies'}
-                      </label>
                       <textarea
-                        value={step2Notes}
-                        onChange={(e) => setStep2Notes(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[70px] resize-none"
-                        placeholder={language === 'EN' ? 'e.g. Teak wood frame, concrete countertop, LED lighting...' : 'b.v. Teakhout frame, beton aanrectblad...'}
+                        value={customMessageText}
+                        onChange={(e) => setCustomMessageText(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-white border border-[#D6CFC2] rounded-xl text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[72px] resize-none leading-relaxed"
+                        placeholder="Message content..."
                       />
                     </div>
-                    {/* Response deadline */}
-                    <div>
-                      <label className="block text-[10px] font-bold text-dark/50 uppercase mb-1">
-                        {language === 'EN' ? 'Response Deadline' : 'Reactie Deadline'}
+
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                      <label className="flex items-center gap-2 text-[11px] text-dark/70 cursor-pointer select-none font-semibold">
+                        <input
+                          type="checkbox"
+                          checked={attachPhotos}
+                          onChange={(e) => setAttachPhotos(e.target.checked)}
+                          className="rounded border-[#D6CFC2] text-primary focus:ring-primary/20"
+                        />
+                        <Paperclip className="w-3.5 h-3.5 text-primary" />
+                        <span>{language === 'EN' ? 'Attach project photo / 3D render (WhatsApp)' : 'Projectfoto / 3D-render bijvoegen (WhatsApp)'}</span>
                       </label>
-                      <input
-                        type="date"
-                        defaultValue={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
-                        className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      />
+
+                      <div className="flex gap-2 flex-wrap">
+                        <a
+                          href={`https://wa.me/${customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(customMessageText)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                        </a>
+                        <a
+                          href={`tel:${customerPhone}`}
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#2196F3] hover:bg-[#1e87db] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
+                        >
+                          <Phone className="w-3.5 h-3.5" /> Call
+                        </a>
+                        <a
+                          href={`mailto:${customerEmail}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#3E4E36] hover:bg-[#2e3a28] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
+                        >
+                          <Mail className="w-3.5 h-3.5" /> E-mail
+                        </a>
+                      </div>
                     </div>
                   </div>
-                  <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-[11px] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-amber-600 flex-shrink-0" />
-                      <span>
-                        {isPriceRequestSent 
-                          ? (language === 'EN' ? '✓ Price Request successfully sent to partner! Step 2 is now Complete (Green).' : '✓ Prijsaanvraag succesvol verzonden naar partner! Stap 2 is nu Voltooid (Groen).') 
-                          : (language === 'EN' ? 'Fill form and click button to send request & mark Step 2 complete.' : 'Vul het formulier in en klik op "Prijsaanvraag Versturen" om af te ronden.')}
-                      </span>
+
+                  {/* Card 3: Recommended Next Action Banner (Bottom) */}
+                  <div className="p-4 bg-[#EDE8DF] border border-[#D6CFC2] rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div>
+                      <span className="text-[10px] font-mono font-bold text-accent uppercase tracking-wider block">RECOMMENDED NEXT ACTION</span>
+                      <span className="text-xs font-bold text-primary">Send price request to selected partner</span>
                     </div>
-                    <Button 
-                      type="button" 
-                      variant="primary" 
-                      size="sm" 
+                    <button
+                      type="button"
                       onClick={() => {
+                        const sanitizedPayload = buildSanitizedPartnerPayload();
+                        console.log('🔒 Sanitized Partner Payload (Privacy Filtered):', sanitizedPayload);
                         setIsPriceRequestSent(true);
-                        showToast(language === 'EN' ? 'Partner Price Request sent! Step 2 is now Green ✓' : 'Prijsaanvraag verzonden naar partner! Stap 2 is nu Groen ✓');
+                        showToast(language === 'EN' ? 'Price request sent to partner!' : 'Prijsaanvraag verzonden naar partner!');
+                        advanceStep();
                       }}
-                      className={`whitespace-nowrap text-xs font-bold py-1.5 px-3.5 shadow-xs transition-all ${
-                        isPriceRequestSent ? 'bg-green-700 text-white hover:bg-green-800' : 'bg-primary text-cream hover:bg-primary/90'
-                      }`}
+                      className="px-5 py-2.5 bg-[#3E4E36] hover:bg-[#2F3C29] text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-2 whitespace-nowrap"
                     >
-                      {isPriceRequestSent 
-                        ? (language === 'EN' ? '✓ Request Sent (Green)' : '✓ Aanvraag Verzonden (Groen)') 
-                        : (language === 'EN' ? 'Send Price Request →' : 'Prijsaanvraag Versturen →')}
-                    </Button>
+                      <Send className="w-4 h-4 text-emerald-200" />
+                      <span>Send Price Request →</span>
+                    </button>
                   </div>
                 </div>
               )}
 
               {/* STEP 3: PARTNER OFFERTE ONTVANGEN (Partner Quote Received) */}
               {currentStep === 3 && (
-                <div className="space-y-4">
+                <div className="space-y-4 font-body">
                   <div className="p-4 bg-[#EDE8DF]/60 rounded-xl border border-[#D6CFC2]/60 space-y-4">
                     <h4 className="font-bold text-dark text-sm flex items-center gap-2">
                       <UserCheck className="w-4 h-4 text-primary" /> Partner Offerte Ontvangen (Partner Quote Received)
@@ -893,12 +1477,96 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
                     <FileText className="w-4 h-4 text-blue-600 flex-shrink-0" />
                     <span>Partner offerte ontvangen. Klik op "Offerte Maken →" om de klantofferte te genereren.</span>
                   </div>
+
+                  {/* Card 2: Auto-Message Templates & Contact Actions (Middle) */}
+                  <div id="auto-message-section" className="p-5 bg-[#F8F7F4] rounded-2xl border border-[#D6CFC2]/70 space-y-3 shadow-2xs">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4 text-primary" />
+                        <span className="text-xs font-bold text-primary font-heading uppercase tracking-wider">
+                          Auto-Message Templates & Contact Actions
+                        </span>
+                      </div>
+                      <select
+                        value={selectedTemplate}
+                        onChange={(e) => setSelectedTemplate(e.target.value)}
+                        className="px-3 py-1.5 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium shadow-2xs"
+                      >
+                        <option value="template1">Template 1: Initial Inquiry Response</option>
+                        <option value="template2">Template 2: 1st Follow-up Message</option>
+                        <option value="template3">Template 3: 2nd Follow-up Message</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <textarea
+                        value={customMessageText}
+                        onChange={(e) => setCustomMessageText(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-white border border-[#D6CFC2] rounded-xl text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[72px] resize-none leading-relaxed"
+                        placeholder="Message content..."
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                      <label className="flex items-center gap-2 text-[11px] text-dark/70 cursor-pointer select-none font-semibold">
+                        <input
+                          type="checkbox"
+                          checked={attachPhotos}
+                          onChange={(e) => setAttachPhotos(e.target.checked)}
+                          className="rounded border-[#D6CFC2] text-primary focus:ring-primary/20"
+                        />
+                        <Paperclip className="w-3.5 h-3.5 text-primary" />
+                        <span>{language === 'EN' ? 'Attach project photo / 3D render (WhatsApp)' : 'Projectfoto / 3D-render bijvoegen (WhatsApp)'}</span>
+                      </label>
+
+                      <div className="flex gap-2 flex-wrap">
+                        <a
+                          href={`https://wa.me/${customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(customMessageText)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                        </a>
+                        <a
+                          href={`tel:${customerPhone}`}
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#2196F3] hover:bg-[#1e87db] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
+                        >
+                          <Phone className="w-3.5 h-3.5" /> Call
+                        </a>
+                        <a
+                          href={`mailto:${customerEmail}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#3E4E36] hover:bg-[#2e3a28] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
+                        >
+                          <Mail className="w-3.5 h-3.5" /> E-mail
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 3: Recommended Next Action Banner (Bottom) */}
+                  <div className="p-4 bg-[#EDE8DF] border border-[#D6CFC2] rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div>
+                      <span className="text-[10px] font-mono font-bold text-accent uppercase tracking-wider block">RECOMMENDED NEXT ACTION</span>
+                      <span className="text-xs font-bold text-primary">Partner quote received — create customer quote now</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAutoModalType('quote')}
+                      className="px-5 py-2.5 bg-[#3E4E36] hover:bg-[#2F3C29] text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-2 whitespace-nowrap"
+                    >
+                      <ArrowRight className="w-4 h-4" />
+                      <span>Quote Received — Proceed →</span>
+                    </button>
+                  </div>
                 </div>
               )}
 
               {/* STEP 4: OFFERTE MAKEN (Quote Builder) */}
               {currentStep === 4 && (
-                <div className="space-y-4">
+                <div className="space-y-4 font-body">
                   {/* Partner quote recap */}
                   <div className="p-4 bg-[#EDE8DF]/50 rounded-xl border border-[#D6CFC2]/60 space-y-2">
                     <h4 className="font-bold text-dark text-sm flex items-center gap-2">
@@ -923,258 +1591,550 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
                       Offerte Maken (Create Quote) →
                     </Button>
                   </div>
+
+                  {/* Card 2: Auto-Message Templates & Contact Actions (Middle) */}
+                  <div id="auto-message-section" className="p-5 bg-[#F8F7F4] rounded-2xl border border-[#D6CFC2]/70 space-y-3 shadow-2xs">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4 text-primary" />
+                        <span className="text-xs font-bold text-primary font-heading uppercase tracking-wider">
+                          Auto-Message Templates & Contact Actions
+                        </span>
+                      </div>
+                      <select
+                        value={selectedTemplate}
+                        onChange={(e) => setSelectedTemplate(e.target.value)}
+                        className="px-3 py-1.5 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium shadow-2xs"
+                      >
+                        <option value="template1">Template 1: Initial Inquiry Response</option>
+                        <option value="template2">Template 2: 1st Follow-up Message</option>
+                        <option value="template3">Template 3: 2nd Follow-up Message</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <textarea
+                        value={customMessageText}
+                        onChange={(e) => setCustomMessageText(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-white border border-[#D6CFC2] rounded-xl text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[72px] resize-none leading-relaxed"
+                        placeholder="Message content..."
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                      <label className="flex items-center gap-2 text-[11px] text-dark/70 cursor-pointer select-none font-semibold">
+                        <input
+                          type="checkbox"
+                          checked={attachPhotos}
+                          onChange={(e) => setAttachPhotos(e.target.checked)}
+                          className="rounded border-[#D6CFC2] text-primary focus:ring-primary/20"
+                        />
+                        <Paperclip className="w-3.5 h-3.5 text-primary" />
+                        <span>{language === 'EN' ? 'Attach project photo / 3D render (WhatsApp)' : 'Projectfoto / 3D-render bijvoegen (WhatsApp)'}</span>
+                      </label>
+
+                      <div className="flex gap-2 flex-wrap">
+                        <a
+                          href={`https://wa.me/${customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(customMessageText)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                        </a>
+                        <a
+                          href={`tel:${customerPhone}`}
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#2196F3] hover:bg-[#1e87db] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
+                        >
+                          <Phone className="w-3.5 h-3.5" /> Call
+                        </a>
+                        <a
+                          href={`mailto:${customerEmail}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#3E4E36] hover:bg-[#2e3a28] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
+                        >
+                          <Mail className="w-3.5 h-3.5" /> E-mail
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 3: Recommended Next Action Banner (Bottom) */}
+                  <div className="p-4 bg-[#EDE8DF] border border-[#D6CFC2] rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div>
+                      <span className="text-[10px] font-mono font-bold text-accent uppercase tracking-wider block">RECOMMENDED NEXT ACTION</span>
+                      <span className="text-xs font-bold text-primary">Quote approved — create active project</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAutoModalType('project')}
+                      className="px-5 py-2.5 bg-[#3E4E36] hover:bg-[#2F3C29] text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-2 whitespace-nowrap"
+                    >
+                      <ArrowRight className="w-4 h-4" />
+                      <span>Create Project →</span>
+                    </button>
+                  </div>
                 </div>
               )}
 
               {/* STEP 5: PROJECT CREATED */}
               {currentStep === 5 && (
-                <div className="space-y-4">
-                  <div className="p-4 bg-[#EDE8DF]/50 rounded-xl border border-[#D6CFC2]/60 space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-dark text-sm">Project #{lead?.id?.replace('LEAD', 'P') || 'P-NEW'} Work Order</span>
-                      <Badge variant="primary">Active Project</Badge>
+                <div className="space-y-4 font-body">
+                  {/* Card 1: Work Order Details */}
+                  <div className="p-5 bg-[#F8F7F4] rounded-2xl border border-[#D6CFC2]/70 space-y-4 shadow-2xs">
+                    <div className="flex justify-between items-center border-b border-[#D6CFC2]/60 pb-3">
+                      <span className="font-heading font-bold text-base text-[#3E4E36]">
+                        Project #{lead?.id?.replace('LEAD', 'L') || 'L-1003'} Work Order
+                      </span>
+                      <span className="text-dark/60 font-body text-xs font-medium">
+                        Active Project
+                      </span>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 text-xs">
-                      <div><span className="text-dark/50 block text-[10px]">Project Name</span><span className="font-semibold">{customerName} — {translateCategory(customerCategory)}</span></div>
-                      <div><span className="text-dark/50 block text-[10px]">Target Delivery Date</span><span className="font-semibold text-primary">{new Date(Date.now() + 30*86400000).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span></div>
-                      <div><span className="text-dark/50 block text-[10px]">Assigned Team</span><span className="font-semibold">Tim & Bram (Admins)</span></div>
-                      <div><span className="text-dark/50 block text-[10px]">Build Progress</span><span className="font-semibold text-green-700">0% (Just Created)</span></div>
+
+                    <div className="grid grid-cols-2 gap-4 text-xs">
+                      <div>
+                        <span className="text-[10px] text-dark/50 font-bold uppercase block mb-0.5">Project Name</span>
+                        <span className="font-bold text-dark">{customerName} — {translateCategory(customerCategory)}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-dark/50 font-bold uppercase block mb-0.5">Target Delivery Date</span>
+                        <span className="font-semibold text-dark">{new Date(Date.now() + 30*86400000).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-dark/50 font-bold uppercase block mb-0.5">Assigned Team</span>
+                        <span className="font-semibold text-dark">Tim & Bram (Admins)</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-dark/50 font-bold uppercase block mb-0.5">Build Progress</span>
+                        <span className="font-mono text-emerald-700 font-bold">0% (Just Created)</span>
+                      </div>
                     </div>
+                  </div>
+
+                  {/* Card 2: Auto-Message Templates & Contact Actions (Middle) */}
+                  <div id="auto-message-section" className="p-5 bg-[#F8F7F4] rounded-2xl border border-[#D6CFC2]/70 space-y-3 shadow-2xs">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4 text-primary" />
+                        <span className="text-xs font-bold text-primary font-heading uppercase tracking-wider">
+                          Auto-Message Templates & Contact Actions
+                        </span>
+                      </div>
+                      <select
+                        value={selectedTemplate}
+                        onChange={(e) => setSelectedTemplate(e.target.value)}
+                        className="px-3 py-1.5 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium shadow-2xs"
+                      >
+                        <option value="template1">Template 1: Initial Inquiry Response</option>
+                        <option value="template2">Template 2: 1st Follow-up Message</option>
+                        <option value="template3">Template 3: 2nd Follow-up Message</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <textarea
+                        value={customMessageText}
+                        onChange={(e) => setCustomMessageText(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-white border border-[#D6CFC2] rounded-xl text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[72px] resize-none leading-relaxed"
+                        placeholder="Message content..."
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                      <label className="flex items-center gap-2 text-[11px] text-dark/70 cursor-pointer select-none font-semibold">
+                        <input
+                          type="checkbox"
+                          checked={attachPhotos}
+                          onChange={(e) => setAttachPhotos(e.target.checked)}
+                          className="rounded border-[#D6CFC2] text-primary focus:ring-primary/20"
+                        />
+                        <Paperclip className="w-3.5 h-3.5 text-primary" />
+                        <span>{language === 'EN' ? 'Attach project photo / 3D render (WhatsApp)' : 'Projectfoto / 3D-render bijvoegen (WhatsApp)'}</span>
+                      </label>
+
+                      <div className="flex gap-2 flex-wrap">
+                        <a
+                          href={`https://wa.me/${customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(customMessageText)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                        </a>
+                        <a
+                          href={`tel:${customerPhone}`}
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#2196F3] hover:bg-[#1e87db] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
+                        >
+                          <Phone className="w-3.5 h-3.5" /> Call
+                        </a>
+                        <a
+                          href={`mailto:${customerEmail}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#3E4E36] hover:bg-[#2e3a28] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
+                        >
+                          <Mail className="w-3.5 h-3.5" /> E-mail
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 3: Recommended Next Action Banner (Bottom) */}
+                  <div className="p-4 bg-[#EDE8DF] border border-[#D6CFC2] rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div>
+                      <span className="text-[10px] font-mono font-bold text-accent uppercase tracking-wider block">RECOMMENDED NEXT ACTION</span>
+                      <span className="text-xs font-bold text-primary">Assign a craftsman partner to the project</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAutoModalType('partner')}
+                      className="px-5 py-2.5 bg-[#3E4E36] hover:bg-[#2F3C29] text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-2 whitespace-nowrap"
+                    >
+                      <ArrowRight className="w-4 h-4" />
+                      <span>Assign Partner →</span>
+                    </button>
                   </div>
                 </div>
               )}
 
               {/* STEP 6: PARTNER ASSIGNED */}
               {currentStep === 6 && (
-                <div className="space-y-4">
-                  <div className="p-4 bg-[#EDE8DF]/60 rounded-xl border border-[#D6CFC2]/60 space-y-2">
-                    <h4 className="font-bold text-dark flex items-center gap-2">
-                      <UserCheck className="w-4 h-4 text-primary" /> Assigned Partner & Craftsman
-                    </h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div><span className="text-dark/50 block text-[10px]">Craftsman Partner</span><span className="font-semibold">Sven Hoek (Hoek Bouw)</span></div>
-                      <div><span className="text-dark/50 block text-[10px]">Workload Status</span><span className="font-semibold text-green-700">Available (2 Projects)</span></div>
-                      <div><span className="text-dark/50 block text-[10px]">Agreed Build Price</span><span className="font-semibold text-primary">€8,500</span></div>
-                      <div><span className="text-dark/50 block text-[10px]">Delivery Week</span><span className="font-semibold">Week 49 (Dec 2023)</span></div>
+                <div className="space-y-4 font-body">
+                  {/* Card 1: Assigned Partner & Craftsman */}
+                  <div className="p-5 bg-[#F8F7F4] rounded-2xl border border-[#D6CFC2]/70 space-y-4 shadow-2xs">
+                    <div className="flex justify-between items-center border-b border-[#D6CFC2]/60 pb-3">
+                      <span className="font-heading font-bold text-base text-[#3E4E36] flex items-center gap-2">
+                        <UserCheck className="w-4.5 h-4.5 text-primary" />
+                        Assigned Partner & Craftsman
+                      </span>
                     </div>
+
+                    <div className="grid grid-cols-2 gap-4 text-xs">
+                      <div>
+                        <span className="text-[10px] text-dark/50 font-bold uppercase block mb-0.5">Craftsman Partner</span>
+                        <span className="font-bold text-dark">{partnerForm.partnerName || 'Sven Hoek (Hoek Bouw)'}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-dark/50 font-bold uppercase block mb-0.5">Workload Status</span>
+                        <span className="font-mono text-emerald-700 font-bold">Available (2 Projects)</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-dark/50 font-bold uppercase block mb-0.5">Agreed Build Price</span>
+                        <span className="font-mono font-bold text-dark">€{partnerForm.buildPrice ? Number(partnerForm.buildPrice).toLocaleString() : '8,500'}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-dark/50 font-bold uppercase block mb-0.5">Delivery Week</span>
+                        <span className="font-semibold text-dark">{partnerForm.deliveryWeek || 'Week 49 (Dec 2023)'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 2: Auto-Message Templates & Contact Actions (Middle) */}
+                  <div id="auto-message-section" className="p-5 bg-[#F8F7F4] rounded-2xl border border-[#D6CFC2]/70 space-y-3 shadow-2xs">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4 text-primary" />
+                        <span className="text-xs font-bold text-primary font-heading uppercase tracking-wider">
+                          Auto-Message Templates & Contact Actions
+                        </span>
+                      </div>
+                      <select
+                        value={selectedTemplate}
+                        onChange={(e) => setSelectedTemplate(e.target.value)}
+                        className="px-3 py-1.5 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium shadow-2xs"
+                      >
+                        <option value="template1">Template 1: Initial Inquiry Response</option>
+                        <option value="template2">Template 2: 1st Follow-up Message</option>
+                        <option value="template3">Template 3: 2nd Follow-up Message</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <textarea
+                        value={customMessageText}
+                        onChange={(e) => setCustomMessageText(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-white border border-[#D6CFC2] rounded-xl text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[72px] resize-none leading-relaxed"
+                        placeholder="Message content..."
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                      <label className="flex items-center gap-2 text-[11px] text-dark/70 cursor-pointer select-none font-semibold">
+                        <input
+                          type="checkbox"
+                          checked={attachPhotos}
+                          onChange={(e) => setAttachPhotos(e.target.checked)}
+                          className="rounded border-[#D6CFC2] text-primary focus:ring-primary/20"
+                        />
+                        <Paperclip className="w-3.5 h-3.5 text-primary" />
+                        <span>{language === 'EN' ? 'Attach project photo / 3D render (WhatsApp)' : 'Projectfoto / 3D-render bijvoegen (WhatsApp)'}</span>
+                      </label>
+
+                      <div className="flex gap-2 flex-wrap">
+                        <a
+                          href={`https://wa.me/${customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(customMessageText)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                        </a>
+                        <a
+                          href={`tel:${customerPhone}`}
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#2196F3] hover:bg-[#1e87db] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
+                        >
+                          <Phone className="w-3.5 h-3.5" /> Call
+                        </a>
+                        <a
+                          href={`mailto:${customerEmail}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#3E4E36] hover:bg-[#2e3a28] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
+                        >
+                          <Mail className="w-3.5 h-3.5" /> E-mail
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 3: Recommended Next Action Banner (Bottom) */}
+                  <div className="p-4 bg-[#EDE8DF] border border-[#D6CFC2] rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div>
+                      <span className="text-[10px] font-mono font-bold text-accent uppercase tracking-wider block">RECOMMENDED NEXT ACTION</span>
+                      <span className="text-xs font-bold text-primary">Schedule site installation date</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => advanceStep()}
+                      className="px-5 py-2.5 bg-[#3E4E36] hover:bg-[#2F3C29] text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-2 whitespace-nowrap"
+                    >
+                      <ArrowRight className="w-4 h-4" />
+                      <span>Schedule Planning →</span>
+                    </button>
                   </div>
                 </div>
               )}
 
               {/* STEP 7: PLANNING & INSTALLATION */}
               {currentStep === 7 && (
-                <div className="space-y-4">
-                  <div className="p-4 bg-[#EDE8DF]/60 rounded-xl border border-[#D6CFC2]/60 space-y-3">
-                    <h4 className="font-bold text-dark flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-primary" /> Installation & Calendar Schedule
-                    </h4>
-                    <div className="p-3 bg-white/80 rounded-lg border border-[#D6CFC2]/40 text-xs space-y-2">
-                      <div className="flex justify-between font-semibold"><span>Site Assembly & Delivery</span><span>12 Dec 2023 @ 09:00</span></div>
-                      <div className="text-dark/60 text-[11px]">Address: Keizersgracht 402, Amsterdam</div>
-                      <div className="flex items-center gap-2 pt-2 border-t border-[#D6CFC2]/40 text-[11px] text-green-800">
-                        <CheckSquare className="w-3.5 h-3.5 text-green-600" />
-                        <span>Pre-assembly quality check passed in workshop by Sven Hoek.</span>
+                <div className="space-y-4 font-body">
+                  {/* Card 1: Installation & Calendar Schedule */}
+                  <div className="p-5 bg-[#F8F7F4] rounded-2xl border border-[#D6CFC2]/70 space-y-4 shadow-2xs">
+                    <div className="flex justify-between items-center border-b border-[#D6CFC2]/60 pb-3">
+                      <span className="font-heading font-bold text-base text-[#3E4E36] flex items-center gap-2">
+                        <Calendar className="w-4.5 h-4.5 text-primary" />
+                        Installation & Calendar Schedule
+                      </span>
+                    </div>
+
+                    <div className="p-4 bg-white rounded-xl border border-[#D6CFC2]/60 space-y-3 shadow-2xs">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <span className="font-bold text-dark text-xs block mb-0.5">Site Assembly & Delivery</span>
+                          <span className="text-[11px] text-dark/50 font-normal">Address: {lead?.location || 'Keizersgracht 402, Amsterdam'}</span>
+                        </div>
+                        <span className="font-mono text-xs font-semibold text-dark/80">12 Dec 2023 @ 09:00</span>
+                      </div>
+
+                      <div className="pt-2 border-t border-[#D6CFC2]/40 flex items-center gap-2 text-emerald-700 text-xs font-medium">
+                        <CheckSquare className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                        <span>Pre-assembly quality check passed in workshop by {partnerForm.partnerName || 'Sven Hoek'}.</span>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Card 2: Auto-Message Templates & Contact Actions (Middle) */}
+                  <div id="auto-message-section" className="p-5 bg-[#F8F7F4] rounded-2xl border border-[#D6CFC2]/70 space-y-3 shadow-2xs">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4 text-primary" />
+                        <span className="text-xs font-bold text-primary font-heading uppercase tracking-wider">
+                          Auto-Message Templates & Contact Actions
+                        </span>
+                      </div>
+                      <select
+                        value={selectedTemplate}
+                        onChange={(e) => setSelectedTemplate(e.target.value)}
+                        className="px-3 py-1.5 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium shadow-2xs"
+                      >
+                        <option value="template1">Template 1: Initial Inquiry Response</option>
+                        <option value="template2">Template 2: 1st Follow-up Message</option>
+                        <option value="template3">Template 3: 2nd Follow-up Message</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <textarea
+                        value={customMessageText}
+                        onChange={(e) => setCustomMessageText(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-white border border-[#D6CFC2] rounded-xl text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[72px] resize-none leading-relaxed"
+                        placeholder="Message content..."
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                      <label className="flex items-center gap-2 text-[11px] text-dark/70 cursor-pointer select-none font-semibold">
+                        <input
+                          type="checkbox"
+                          checked={attachPhotos}
+                          onChange={(e) => setAttachPhotos(e.target.checked)}
+                          className="rounded border-[#D6CFC2] text-primary focus:ring-primary/20"
+                        />
+                        <Paperclip className="w-3.5 h-3.5 text-primary" />
+                        <span>{language === 'EN' ? 'Attach project photo / 3D render (WhatsApp)' : 'Projectfoto / 3D-render bijvoegen (WhatsApp)'}</span>
+                      </label>
+
+                      <div className="flex gap-2 flex-wrap">
+                        <a
+                          href={`https://wa.me/${customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(customMessageText)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                        </a>
+                        <a
+                          href={`tel:${customerPhone}`}
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#2196F3] hover:bg-[#1e87db] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
+                        >
+                          <Phone className="w-3.5 h-3.5" /> Call
+                        </a>
+                        <a
+                          href={`mailto:${customerEmail}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#3E4E36] hover:bg-[#2e3a28] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
+                        >
+                          <Mail className="w-3.5 h-3.5" /> E-mail
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 3: Recommended Next Action Banner (Bottom) */}
+                  <div className="p-4 bg-[#EDE8DF] border border-[#D6CFC2] rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div>
+                      <span className="text-[10px] font-mono font-bold text-accent uppercase tracking-wider block">RECOMMENDED NEXT ACTION</span>
+                      <span className="text-xs font-bold text-primary">Complete installation & generate final invoice</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAutoModalType('invoice')}
+                      className="px-5 py-2.5 bg-[#3E4E36] hover:bg-[#2F3C29] text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-2 whitespace-nowrap"
+                    >
+                      <ArrowRight className="w-4 h-4" />
+                      <span>Mark as Completed →</span>
+                    </button>
                   </div>
                 </div>
               )}
 
               {/* STEP 8: COMPLETED */}
               {currentStep === 8 && (
-                <div className="space-y-4">
-                  <div className="p-5 bg-green-900 text-cream rounded-xl space-y-3 shadow-card">
-                    <div className="flex items-center gap-2 font-bold text-base">
-                      <Award className="w-6 h-6 text-amber-400" />
+                <div className="space-y-4 font-body">
+                  {/* Card 1: Dark Forest Green Banner */}
+                  <div className="p-5 bg-[#185334] text-white rounded-2xl space-y-2 shadow-sm">
+                    <div className="flex items-center gap-2 font-bold text-base text-white">
+                      <Award className="w-5 h-5 text-amber-400 flex-shrink-0" />
                       <span>Project Completed & Archived</span>
                     </div>
-                    <p className="text-xs text-cream/80">
+                    <p className="text-xs text-[#EDE8DF]/90 font-normal leading-relaxed">
                       Final inspection passed, 100% invoice paid (€12,500), customer signature received for {customerName}.
                     </p>
                   </div>
-                </div>
-              )}
 
-              {/* Repositioned Auto-Message Templates & Contact Actions (Section 2.3) */}
-              <div id="auto-message-section" className="pt-4 mt-6 border-t border-[#D6CFC2]/70 space-y-3 bg-[#EDE8DF]/40 p-4 rounded-xl border border-[#D6CFC2]/60">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5">
-                    <MessageSquare className="w-4 h-4 text-primary" />
-                    <span className="text-xs font-bold text-primary font-heading uppercase tracking-wider">
-                      Auto-Message Templates & Contact Actions
-                    </span>
-                  </div>
-                  {/* Template Selector Dropdown */}
-                  <select
-                    value={selectedTemplate}
-                    onChange={(e) => setSelectedTemplate(e.target.value)}
-                    className="px-2.5 py-1 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium"
-                  >
-                    <option value="template1">Template 1: Initial Inquiry Response</option>
-                    <option value="template2">Template 2: 1st Follow-up Message</option>
-                    <option value="template3">Template 3: 2nd Follow-up Message</option>
-                  </select>
-                </div>
+                  {/* Card 2: Auto-Message Templates & Contact Actions (Middle) */}
+                  <div id="auto-message-section" className="p-5 bg-[#F8F7F4] rounded-2xl border border-[#D6CFC2]/70 space-y-3 shadow-2xs">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4 text-primary" />
+                        <span className="text-xs font-bold text-primary font-heading uppercase tracking-wider">
+                          Auto-Message Templates & Contact Actions
+                        </span>
+                      </div>
+                      <select
+                        value={selectedTemplate}
+                        onChange={(e) => setSelectedTemplate(e.target.value)}
+                        className="px-3 py-1.5 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium shadow-2xs"
+                      >
+                        <option value="template1">Template 1: Initial Inquiry Response</option>
+                        <option value="template2">Template 2: 1st Follow-up Message</option>
+                        <option value="template3">Template 3: 2nd Follow-up Message</option>
+                      </select>
+                    </div>
 
-                {/* Editable Message Textarea */}
-                <div>
-                  <textarea
-                    value={customMessageText}
-                    onChange={(e) => setCustomMessageText(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[64px] resize-none"
-                    placeholder="Message content..."
-                  />
-                </div>
-
-                {/* Bottom Row: Attach photos toggle & Action Buttons */}
-                <div className="space-y-2 pt-1">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <label className="flex items-center gap-1.5 text-[11px] text-dark/70 cursor-pointer select-none font-bold">
-                      <input
-                        type="checkbox"
-                        checked={attachPhotos}
-                        onChange={(e) => setAttachPhotos(e.target.checked)}
-                        className="rounded border-[#D6CFC2] text-primary focus:ring-primary/20"
+                    <div>
+                      <textarea
+                        value={customMessageText}
+                        onChange={(e) => setCustomMessageText(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-white border border-[#D6CFC2] rounded-xl text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[72px] resize-none leading-relaxed"
+                        placeholder="Message content..."
                       />
-                      <Paperclip className="w-3.5 h-3.5 text-primary" />
-                      <span>{language === 'EN' ? 'Attach project photo / 3D render (WhatsApp)' : 'Projectfoto / 3D-render bijvoegen (WhatsApp)'}</span>
-                    </label>
+                    </div>
 
-                    <div className="flex gap-2 flex-wrap">
-                      <a
-                        href={`https://wa.me/${customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(customMessageText + (attachPhotos && attachedPhotos.length > 0 ? `\n\n[Attached ${attachedPhotos.length} Photos: ${attachedPhotos.map(p => p.name).join(', ')}]` : ''))}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-lg transition-all duration-200 shadow-xs"
-                      >
-                        <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
-                      </a>
-                      <a
-                        href={`tel:${customerPhone}`}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-all duration-200 shadow-xs"
-                      >
-                        <Phone className="w-3.5 h-3.5" /> Call
-                      </a>
-                      <a
-                        href={`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(customerEmail)}&su=${encodeURIComponent(`Vanuit Ambacht — ${translatedCat} for ${customerName}`)}&body=${encodeURIComponent(customMessageText)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#3E4E36] hover:bg-[#2e3a28] text-white text-xs font-bold rounded-lg transition-all duration-200 shadow-xs"
-                      >
-                        <Mail className="w-3.5 h-3.5" /> E-mail
-                      </a>
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                      <label className="flex items-center gap-2 text-[11px] text-dark/70 cursor-pointer select-none font-semibold">
+                        <input
+                          type="checkbox"
+                          checked={attachPhotos}
+                          onChange={(e) => setAttachPhotos(e.target.checked)}
+                          className="rounded border-[#D6CFC2] text-primary focus:ring-primary/20"
+                        />
+                        <Paperclip className="w-3.5 h-3.5 text-primary" />
+                        <span>{language === 'EN' ? 'Attach project photo / 3D render (WhatsApp)' : 'Projectfoto / 3D-render bijvoegen (WhatsApp)'}</span>
+                      </label>
+
+                      <div className="flex gap-2 flex-wrap">
+                        <a
+                          href={`https://wa.me/${customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(customMessageText)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                        </a>
+                        <a
+                          href={`tel:${customerPhone}`}
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#2196F3] hover:bg-[#1e87db] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
+                        >
+                          <Phone className="w-3.5 h-3.5" /> Call
+                        </a>
+                        <a
+                          href={`mailto:${customerEmail}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#3E4E36] hover:bg-[#2e3a28] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
+                        >
+                          <Mail className="w-3.5 h-3.5" /> E-mail
+                        </a>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Multiple Photos Upload & Thumbnail Gallery Grid */}
-                  {attachPhotos && (
-                    <div className="p-3 bg-white rounded-xl border border-[#D6CFC2] space-y-3 animate-fadeIn">
-                      <input 
-                        type="file" 
-                        ref={fileInputRef} 
-                        onChange={handlePhotoUpload} 
-                        accept="image/*" 
-                        multiple
-                        className="hidden" 
-                      />
-                      
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[#D6CFC2]/40 pb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-emerald-800">
-                            ✓ {attachedPhotos.length} {language === 'EN' ? 'Photos / 3D Renders Attached' : 'Foto\'s / 3D Renders Bijgevoegd'}
-                          </span>
-                          <span className="text-[10px] text-dark/50 font-mono">
-                            ({language === 'EN' ? 'Ready to send via WhatsApp' : 'Klaar om te verzenden via WhatsApp'})
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">
-                          <Button 
-                            type="button" 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => fileInputRef.current?.click()} 
-                            className="text-[11px] py-1 px-2.5 bg-[#EDE8DF] border-[#C4BEB3] text-primary hover:bg-[#D6CFC2]"
-                          >
-                            📷 {language === 'EN' ? '+ Add Photos' : '+ Foto\'s Toevoegen'}
-                          </Button>
-                          <button 
-                            type="button" 
-                            onClick={() => { setAttachedPhotos([]); setAttachPhotos(false); }} 
-                            className="text-xs text-red-600 font-bold hover:underline px-1"
-                          >
-                            {language === 'EN' ? 'Clear All' : 'Alles Verwijderen'}
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Thumbnail Gallery Grid */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                        {attachedPhotos.map((photo) => (
-                          <div key={photo.id} className="relative group bg-[#F8F7F4] border border-[#D6CFC2]/70 rounded-lg p-1.5 flex flex-col items-center text-center space-y-1">
-                            <img 
-                              src={photo.url} 
-                              alt={photo.name} 
-                              className="w-full h-16 object-cover rounded border border-[#D6CFC2]/40 shadow-2xs" 
-                            />
-                            <span className="text-[10px] font-medium text-dark/80 truncate w-full px-1" title={photo.name}>
-                              {photo.name}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleRemovePhoto(photo.id)}
-                              className="absolute -top-1.5 -right-1.5 bg-red-600 text-white rounded-full p-0.5 shadow-sm hover:bg-red-700 transition-colors"
-                              title="Remove photo"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
+                  {/* Card 3: Recommended Next Action Banner (Bottom) */}
+                  <div className="p-4 bg-[#EDE8DF] border border-[#D6CFC2] rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div>
+                      <span className="text-[10px] font-mono font-bold text-accent uppercase tracking-wider block">RECOMMENDED NEXT ACTION</span>
+                      <span className="text-xs font-bold text-primary">Archive project & save documents</span>
                     </div>
-                  )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        showToast('Project archived successfully!');
+                        if (onClose) onClose();
+                      }}
+                      className="px-4 py-2 bg-white/80 hover:bg-white text-dark border border-[#D6CFC2] font-bold text-xs rounded-xl shadow-2xs cursor-pointer flex items-center gap-2 whitespace-nowrap"
+                    >
+                      <Award className="w-4 h-4 text-dark/70" />
+                      <span>Archive Project</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
-
-            </div>
-
-            {/* Prominent Primary Action Button (What should I do next?) */}
-            <div className="pt-4 border-t border-[#D6CFC2] flex flex-col sm:flex-row items-center justify-between gap-3 bg-[#EDE8DF]/30 -mx-5 -mb-5 p-5 rounded-b-2xl">
-              <div>
-                <span className="text-[10px] text-dark/50 uppercase font-bold tracking-wider block">
-                  {language === 'NL' ? 'Aanbevolen Volgende Actie' : 'Recommended Next Action'}
-                </span>
-                <span className="text-xs font-bold text-dark">
-                  {currentStep === 1 && (language === 'EN' ? 'Contact customer to discuss requirements' : 'Neem contact op om de vereisten te bespreken')}
-                  {currentStep === 2 && (language === 'EN' ? 'Send price request to selected partner' : 'Stuur de prijsaanvraag naar de geselecteerde partner')}
-                  {currentStep === 3 && (language === 'EN' ? 'Partner quote received — create customer quote now' : 'Partner offerte ontvangen — maak nu de klantofferte')}
-                  {currentStep === 4 && (language === 'EN' ? 'Quote approved — create active project' : 'Offerte goedgekeurd — maak actief project aan')}
-                  {currentStep === 5 && (language === 'EN' ? 'Assign a craftsman partner to the project' : 'Wijs een ambachtsman partner toe aan het project')}
-                  {currentStep === 6 && (language === 'EN' ? 'Schedule site installation date' : 'Plan de installatiedatum op locatie')}
-                  {currentStep === 7 && (language === 'EN' ? 'Complete installation & generate final invoice' : 'Installatie voltooien & eindfactuur genereren')}
-                  {currentStep === 8 && (language === 'EN' ? 'Archive project & save documents' : 'Project archiveren & documenten opslaan')}
-                </span>
-              </div>
-
-              {currentStep < 8 && (
-                <Button variant="primary" icon={ArrowRight} onClick={handleNextStep} className="w-full sm:w-auto shadow-md">
-                  {currentStep === 1 && (language === 'EN' ? 'Contact Customer →' : 'Contact Opnemen →')}
-                  {currentStep === 2 && (language === 'EN' ? 'Send Price Request →' : 'Prijsaanvraag Versturen →')}
-                  {currentStep === 3 && (language === 'EN' ? 'Quote Received — Proceed →' : 'Offerte Ontvangen — Ga verder →')}
-                  {currentStep === 4 && (language === 'EN' ? 'Create Project →' : 'Project Aanmaken →')}
-                  {currentStep === 5 && (language === 'EN' ? 'Assign Partner →' : 'Partner Toewijzen →')}
-                  {currentStep === 6 && (language === 'EN' ? 'Schedule Planning →' : 'Planning Inplannen →')}
-                  {currentStep === 7 && (language === 'EN' ? 'Mark as Completed →' : 'Markeer als Afgerond →')}
-                </Button>
               )}
 
-              {currentStep === 8 && (
-                <Button variant="outline" icon={Award} onClick={onClose} className="w-full sm:w-auto">
-                  {language === 'NL' ? 'Project Archiveren' : 'Archive Project'}
-                </Button>
-              )}
+              {/* End of Workflow Step Content */}
             </div>
-
           </Card>
         </div>
 
@@ -1188,15 +2148,23 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
                 <MessageSquare className="w-4 h-4 text-primary" />
                 <span>{language === 'EN' ? 'Commercial Actions' : 'Commerciële Acties'}</span>
               </h3>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                onClick={() => setCommercialModalOpen(true)}
-                className="py-1 px-2 text-[10px] border-primary/40 text-primary hover:bg-primary/10 font-bold"
-              >
-                + {language === 'EN' ? 'Add Action' : 'Actie Toevoegen'}
-              </Button>
+              {!isLeadCompleted && (
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => setCommercialModalOpen(true)}
+                  className="py-1 px-2 text-[10px] border-primary/40 text-primary hover:bg-primary/10 font-bold"
+                >
+                  + {language === 'EN' ? 'Add Action' : 'Actie Toevoegen'}
+                </Button>
+              )}
             </div>
+
+            {isLeadCompleted && (
+              <div className="p-2.5 mb-3 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-900 font-medium flex items-center gap-1.5 shadow-2xs">
+                <span>🔒 {language === 'EN' ? 'Lead is converted & completed. Further commercial actions & follow-ups are handled in Project Detail.' : 'Lead is geconverteerd & afgerond. Verdere commerciële acties & follow-ups beheer je bij het Project.'}</span>
+              </div>
+            )}
 
             {commercialActions.length > 0 ? (
               <div className="space-y-2.5 text-xs max-h-[300px] overflow-y-auto pr-1">
@@ -1204,7 +2172,14 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
                   <div key={item.id} className="p-3 bg-[#F8F7F4] border border-[#D6CFC2]/70 rounded-xl space-y-1 shadow-2xs">
                     <div className="flex justify-between items-center text-[10px] text-dark/50 font-mono border-b border-[#D6CFC2]/30 pb-1">
                       <span className="font-bold text-primary">{item.user}</span>
-                      <span>{item.date}</span>
+                      <div className="flex items-center gap-1.5">
+                        {item.assignee && (
+                          <span className="bg-purple-100 text-purple-900 px-1.5 py-0.5 rounded font-bold">
+                            👤 Taak: {item.assignee} {item.dueDate ? `(${item.dueDate})` : ''}
+                          </span>
+                        )}
+                        <span>{item.date}</span>
+                      </div>
                     </div>
                     <p className="text-dark/85 font-body leading-relaxed pt-0.5">{item.note}</p>
                   </div>
@@ -1427,12 +2402,57 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
                   />
                 </div>
 
+                {/* Related Task Creation Options */}
+                <div className="p-3.5 bg-white rounded-xl border border-[#D6CFC2] space-y-3 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-2 cursor-pointer font-bold text-xs text-primary">
+                      <input 
+                        type="checkbox" 
+                        checked={commercialTaskForm.createTask} 
+                        onChange={(e) => setCommercialTaskForm(prev => ({ ...prev, createTask: e.target.checked }))}
+                        className="w-4 h-4 text-primary rounded border-[#D6CFC2] focus:ring-primary" 
+                      />
+                      <span>📌 {language === 'EN' ? 'Create Related Task in Task Board' : 'Koppel Gerelateerde Taak in Takenlijst'}</span>
+                    </label>
+                  </div>
+
+                  {commercialTaskForm.createTask && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-[#D6CFC2]/50 text-xs">
+                      <div>
+                        <label className="block font-bold text-dark/60 uppercase text-[10px] mb-1">
+                          👤 {language === 'EN' ? 'Assign To (Bram / Tim)' : 'Toewijzen Aan (Bram / Tim)'}
+                        </label>
+                        <select 
+                          value={commercialTaskForm.assignee} 
+                          onChange={(e) => setCommercialTaskForm(prev => ({ ...prev, assignee: e.target.value }))}
+                          className="w-full px-2.5 py-1.5 bg-[#EDE8DF]/60 border border-[#D6CFC2] rounded-lg font-bold text-dark text-xs focus:outline-none"
+                        >
+                          <option value="Bram">👤 Bram</option>
+                          <option value="Tim">👤 Tim</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-dark/60 uppercase text-[10px] mb-1">
+                          📅 {language === 'EN' ? 'Due Date' : 'Vervaldatum (Due Date)'}
+                        </label>
+                        <input 
+                          type="date" 
+                          value={commercialTaskForm.dueDate} 
+                          onChange={(e) => setCommercialTaskForm(prev => ({ ...prev, dueDate: e.target.value }))}
+                          className="w-full px-2.5 py-1.5 bg-[#EDE8DF]/60 border border-[#D6CFC2] rounded-lg font-bold text-dark text-xs focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex justify-end gap-2 pt-2 border-t border-[#D6CFC2]">
                   <Button type="button" variant="outline" onClick={() => setCommercialModalOpen(false)}>
                     {language === 'EN' ? 'Cancel' : 'Annuleren'}
                   </Button>
                   <Button type="submit" variant="primary">
-                    {language === 'EN' ? 'Save Commercial Action' : 'Commerciële Actie Opslaan'}
+                    {language === 'EN' ? 'Save Commercial Action & Task' : 'Commerciële Actie & Taak Opslaan'}
                   </Button>
                 </div>
               </form>
@@ -1696,12 +2716,20 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
                 </div>
 
                 <div className="flex justify-end gap-2 pt-3 border-t border-[#D6CFC2]">
-                  <Button type="button" variant="outline" onClick={() => setAutoModalType(null)}>
-                    {language === 'EN' ? 'Cancel' : 'Annuleren'}
-                  </Button>
-                  <Button type="submit" icon={Send} className="bg-primary text-cream hover:bg-primary/90 font-bold shadow-md">
-                    ✨ {language === 'EN' ? 'Generate & Save Official Quotation →' : 'Offerte Genereren & Opslaan →'}
-                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => setAutoModalType(null)}
+                    className="px-4 py-2 bg-transparent hover:bg-white/60 text-dark border border-[#D6CFC2] font-bold text-xs rounded-xl cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 bg-[#3E4E36] hover:bg-[#2F3C29] text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-2"
+                  >
+                    <Sparkles className="w-4 h-4 text-amber-300" />
+                    <span>Generate & Save Official Quotation →</span>
+                  </button>
                 </div>
               </form>
             </motion.div>
@@ -1784,33 +2812,38 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
 
         {autoModalType === 'invoice' && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark/60 backdrop-blur-xs">
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-[#EDE8DF] border border-[#D6CFC2] rounded-2xl shadow-card p-6 w-full max-w-lg space-y-4">
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-[#EDE8DF] border border-[#D6CFC2] rounded-2xl shadow-2xl p-6 w-full max-w-lg space-y-4">
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="text-xl font-heading font-bold text-primary mt-1">Auto-Generate Final Invoice</h3>
+                  <h3 className="text-xl font-heading font-serif font-bold text-[#3E4E36] mt-1">Auto-Generate Final Invoice</h3>
                 </div>
-                <button onClick={() => setAutoModalType(null)} className="text-dark/40 hover:text-dark"><X className="w-5 h-5" /></button>
+                <button onClick={() => setAutoModalType(null)} className="text-dark/40 hover:text-dark cursor-pointer"><X className="w-5 h-5" /></button>
               </div>
 
-              <form onSubmit={handleSaveAutoInvoice} className="space-y-3 text-xs">
+              <form onSubmit={handleSaveAutoInvoice} className="space-y-4 text-xs font-body">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-semibold text-dark/70 mb-1">Invoice #</label>
-                    <input type="text" readOnly value={invoiceForm.invoiceNumber} className="w-full px-3 py-2 bg-white/80 border border-[#D6CFC2] rounded-lg font-mono font-bold text-dark" />
+                    <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">Invoice #</label>
+                    <input type="text" readOnly value={invoiceForm.invoiceNumber || 'INV-1369'} className="w-full px-3.5 py-2.5 bg-white border border-[#D6CFC2] rounded-xl font-mono font-bold text-dark text-xs" />
                   </div>
                   <div>
-                    <label className="block font-semibold text-dark/70 mb-1">Customer</label>
-                    <input type="text" readOnly value={invoiceForm.customer} className="w-full px-3 py-2 bg-white/80 border border-[#D6CFC2] rounded-lg font-semibold text-dark" />
+                    <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">Customer</label>
+                    <input type="text" readOnly value={customerName || 'Mark Davis'} className="w-full px-3.5 py-2.5 bg-white border border-[#D6CFC2] rounded-xl font-semibold text-dark text-xs" />
                   </div>
                 </div>
                 <div>
-                  <label className="block font-semibold text-dark/70 mb-1">Total Paid Amount (€)</label>
-                  <input type="number" value={invoiceForm.amount} onChange={e => setInvoiceForm(prev => ({ ...prev, amount: e.target.value }))} className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-lg font-bold text-green-700 text-sm" />
+                  <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">Total Paid Amount (€)</label>
+                  <input type="text" value={invoiceForm.amount || '12500'} onChange={e => setInvoiceForm(prev => ({ ...prev, amount: e.target.value }))} className="w-full px-3.5 py-2.5 bg-white border border-[#D6CFC2] rounded-xl font-mono font-bold text-[#15803D] text-base" />
                 </div>
 
-                <div className="flex justify-end gap-2 pt-3 border-t border-[#D6CFC2]">
-                  <Button type="button" variant="outline" onClick={() => setAutoModalType(null)}>Cancel</Button>
-                  <Button type="submit" icon={FileSpreadsheet}>Generate & Store Invoice →</Button>
+                <div className="flex justify-end gap-2 pt-4 border-t border-[#D6CFC2]/60">
+                  <button type="button" onClick={() => setAutoModalType(null)} className="px-4 py-2 bg-transparent hover:bg-white/60 text-dark border border-[#D6CFC2] font-bold text-xs rounded-xl cursor-pointer">
+                    Cancel
+                  </button>
+                  <button type="submit" className="px-5 py-2.5 bg-[#3E4E36] hover:bg-[#2F3C29] text-white font-bold text-xs rounded-xl shadow-md flex items-center gap-2 cursor-pointer">
+                    <FileSpreadsheet className="w-4 h-4" />
+                    <span>Generate & Store Invoice →</span>
+                  </button>
                 </div>
               </form>
             </motion.div>
@@ -1839,7 +2872,15 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
               </div>
 
               {/* Pixel-Perfect 6-Page Proposal Summary */}
-              <div className="bg-[#FDFBF7] p-6 rounded-xl border border-[#C4BEB3] shadow-inner space-y-6 text-[#4A4A43]">
+              <div className="bg-[#FDFBF7] p-6 rounded-xl border border-[#C4BEB3] shadow-inner space-y-4 text-[#4A4A43]">
+                {/* Green Status Toast Banner (Screenshot 3 Match) */}
+                <div className="p-3 bg-[#15803D] text-white rounded-xl font-bold text-xs flex items-center justify-between gap-2 shadow-2xs">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-200 flex-shrink-0" />
+                    <span>Quotation Q-4294 sent to {customerName} via Email & delivered to Customer Portal!</span>
+                  </div>
+                </div>
+
                 {/* Header Banner */}
                 <div className="bg-[#3E4E36] text-[#FDFBF7] p-4 rounded-lg flex justify-between items-center">
                   <div>
@@ -1905,22 +2946,25 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-[#D6CFC2]">
-                <Button type="button" variant="outline" onClick={() => setQuoteViewModalOpen(false)}>
-                  {language === 'EN' ? 'Close Preview' : 'Sluiten'}
-                </Button>
-                <Button 
+              <div className="flex justify-end gap-2 pt-3 border-t border-[#D6CFC2]">
+                <button
+                  type="button"
+                  onClick={() => setQuoteViewModalOpen(false)}
+                  className="px-4 py-2 bg-transparent hover:bg-white/60 text-dark border border-[#D6CFC2] font-bold text-xs rounded-xl cursor-pointer"
+                >
+                  Close Preview
+                </button>
+                <button 
                   type="button" 
-                  variant="primary" 
-                  icon={Download}
                   onClick={() => {
-                    showToast(language === 'EN' ? 'Downloading Official PDF Quote #Q-4001...' : 'PDF Offerte #Q-4001 wordt gedownload...');
+                    showToast(`Downloading Official PDF Quote #Q-4001 for ${customerName}...`);
                     setQuoteViewModalOpen(false);
                   }}
-                  className="bg-primary text-cream hover:bg-primary/90 font-bold"
+                  className="px-5 py-2.5 bg-[#3E4E36] hover:bg-[#2F3C29] text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-2"
                 >
-                  📥 {language === 'EN' ? 'Download PDF Proposal' : 'Download PDF Offerte'}
-                </Button>
+                  <Download className="w-4 h-4 text-emerald-200" />
+                  <span>Download PDF Proposal</span>
+                </button>
               </div>
             </motion.div>
           </div>

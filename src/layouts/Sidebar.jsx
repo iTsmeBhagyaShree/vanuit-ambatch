@@ -51,6 +51,7 @@ export default function Sidebar({ role }) {
     },
     { name: t('common.partners'), path: '/admin/partners', icon: UserSquare },
     { name: t('common.planning'), path: '/admin/planning', icon: Calendar },
+    { name: language === 'EN' ? 'Photos & Media' : 'Foto\'s & Media', path: '/admin/photos', icon: Camera },
     { name: t('common.tasks'), path: '/admin/tasks', icon: FileText },
     { name: t('common.documents'), path: '/admin/documents', icon: Folder },
     { name: t('common.settings'), path: '/admin/settings', icon: Settings },
@@ -84,6 +85,9 @@ export default function Sidebar({ role }) {
     setMobileOpen(false);
     if (path === '/admin/leads') {
       window.dispatchEvent(new Event('app_reset_leads_view'));
+    }
+    if (path === '/admin/projects') {
+      window.dispatchEvent(new Event('app_reset_projects_view'));
     }
   };
 

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bell, Search, ChevronDown, User, LogOut, Settings, Check, Clock, FileText, Briefcase, UserPlus, Globe } from 'lucide-react';
+import { Bell, Search, ChevronDown, User, LogOut, Settings, Check, Clock, FileText, Briefcase, UserPlus, Globe, Camera } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../context/LanguageContext';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -13,6 +13,16 @@ function getBreadcrumb(pathname, t) {
 }
 
 const ADMIN_NOTIFS = [
+  { 
+    id: 'partner-photo-sample', 
+    titleKey: '📸 New Partner Photo Uploaded', 
+    descKey: 'Craftsman Sven Hoek uploaded a new workshop progress photo for Luxury Teak Outdoor Kitchen (PRJ-101).', 
+    isCustomText: true, 
+    timeKey: '5m ago', 
+    unread: true, 
+    link: '/admin/photos', 
+    icon: Camera 
+  },
   { id: 1, titleKey: 'notifications.newLead', descKey: 'notifications.newLeadDesc', descParams: { name: 'Sanne Visser', category: 'Bespoke Outdoor Kitchen' }, timeKey: 'notifications.10m', unread: true, link: '/admin/leads', icon: UserPlus },
   { id: 2, titleKey: 'notifications.projectProgress', descKey: 'notifications.projectProgressDesc', descParams: { partner: 'Sven Hoek', project: 'Luxury Kitchen Amsterdam', progress: '70' }, timeKey: 'notifications.1h', unread: true, link: '/admin/projects', icon: Briefcase },
   { id: 3, titleKey: 'notifications.quoteApproved', descKey: 'notifications.quoteApprovedDesc', descParams: { client: 'Jan de Vries', quote: 'Q-2004' }, timeKey: 'notifications.3h', unread: true, link: '/admin/quotes', icon: Check },
@@ -37,7 +47,59 @@ export default function TopNav() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
 
-  const [notifications, setNotifications] = useState(user?.role === 'partner' ? PARTNER_NOTIFS : ADMIN_NOTIFS);
+  const [notifications, setNotifications] = useState(() => {
+    if (user?.role === 'admin') {
+      try {
+        const savedNotifs = JSON.parse(localStorage.getItem('app_admin_notifications') || '[]');
+        if (savedNotifs.length > 0) {
+          const dynamicNotifs = savedNotifs.map(n => ({
+            id: n.id,
+            titleKey: n.title || '📸 Partner Photo Uploaded',
+            descKey: n.message || `Partner ${n.partnerName} uploaded a photo for project ${n.projectName}`,
+            isCustomText: true,
+            timeKey: n.time || 'Just now',
+            unread: n.unread !== false,
+            link: '/admin/photos',
+            icon: Camera
+          }));
+          return [...dynamicNotifs, ...ADMIN_NOTIFS];
+        }
+      } catch (e) {}
+      return ADMIN_NOTIFS;
+    }
+    return PARTNER_NOTIFS;
+  });
+
+  // Listen to live partner photo upload notifications
+  useEffect(() => {
+    const syncNotifs = () => {
+      if (user?.role === 'admin') {
+        try {
+          const savedNotifs = JSON.parse(localStorage.getItem('app_admin_notifications') || '[]');
+          if (savedNotifs.length > 0) {
+            const dynamicNotifs = savedNotifs.map(n => ({
+              id: n.id,
+              titleKey: n.title || '📸 Partner Photo Uploaded',
+              descKey: n.message || `Partner ${n.partnerName} uploaded a photo for project ${n.projectName}`,
+              isCustomText: true,
+              timeKey: n.time || 'Just now',
+              unread: n.unread !== false,
+              link: '/admin/photos',
+              icon: Camera
+            }));
+            setNotifications([...dynamicNotifs, ...ADMIN_NOTIFS]);
+          }
+        } catch (e) {}
+      }
+    };
+
+    window.addEventListener('app_data_changed', syncNotifs);
+    window.addEventListener('storage', syncNotifs);
+    return () => {
+      window.removeEventListener('app_data_changed', syncNotifs);
+      window.removeEventListener('storage', syncNotifs);
+    };
+  }, [user]);
 
   const dropdownRef = useRef(null);
   const notifRef = useRef(null);
@@ -220,11 +282,11 @@ export default function TopNav() {
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-baseline">
                           <p className={`font-semibold truncate ${notif.unread ? 'text-dark font-bold' : 'text-dark/70'}`}>
-                            {t(notif.titleKey)}
+                            {notif.isCustomText ? notif.titleKey : t(notif.titleKey)}
                           </p>
-                          <span className="text-[10px] text-dark/40 ml-2 flex-shrink-0">{t(notif.timeKey)}</span>
+                          <span className="text-[10px] text-dark/40 ml-2 flex-shrink-0">{notif.isCustomText ? notif.timeKey : t(notif.timeKey)}</span>
                         </div>
-                        <p className="text-[11px] text-dark/60 line-clamp-2 mt-0.5">{t(notif.descKey, notif.descParams)}</p>
+                        <p className="text-[11px] text-dark/60 line-clamp-2 mt-0.5">{notif.isCustomText ? notif.descKey : t(notif.descKey, notif.descParams)}</p>
                       </div>
                     </div>
                   );

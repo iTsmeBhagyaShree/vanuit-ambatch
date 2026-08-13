@@ -1,14 +1,18 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Card from '../../components/Card';
 import Table from '../../components/Table';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
+import Offerte6PagePDF from '../../components/Offerte6PagePDF';
+import QuoteEditor from '../../components/QuoteEditor';
+import { createDefaultQuote, calculateTotals } from '../../utils/quoteSchema';
 import { Plus, Search, Filter, X, Check, CheckCircle, Trash2, Edit2, RotateCcw, FileText, Download, Printer, PlusCircle, MinusCircle, Briefcase, Share2, ExternalLink, Copy, ShoppingBag } from 'lucide-react';
 import { mockQuotes as defaultQuotes } from '../../utils/mockData';
 import { useLanguage } from '../../context/LanguageContext';
-import outdoorProjectCard from '../../assets/outdoor_project_card.png';
-import outdoorLivingLogin from '../../assets/outdoor_living_login.png';
+import { safeSetItem } from '../../utils/storageHelper';
+
 
 // Helper to get raw numeric value from formatted amount string (e.g. "€ 12,500" -> 12500)
 const getNumericAmount = (amtStr) => {
@@ -165,13 +169,41 @@ export default function Quotes() {
     }
   }, [modalOpen]);
 
-  const showToast = (msg) => {
-    setToastMsg(msg);
-    setTimeout(() => setToastMsg(''), 3000);
+  const [activeEditorQuote, setActiveEditorQuote] = useState(null);
+
+  const handleSaveEditorQuote = (updatedQuote, showToastFlag = false) => {
+    const totals = calculateTotals(updatedQuote.investment?.lineItems || []);
+    const formattedAmt = `€ ${Math.round(totals.totalInclVat).toLocaleString('nl-NL')}`;
+    
+    const processedQuote = {
+      ...updatedQuote,
+      customer: updatedQuote.customer?.name || updatedQuote.customer || 'Bjorn Valk',
+      project: `Buitenkeuken ${updatedQuote.configuration?.woodType || 'Thermo Fraké'}`,
+      amount: formattedAmt
+    };
+
+    setQuotes(prevQuotes => {
+      const exists = prevQuotes.some(q => q.id === processedQuote.id);
+      let updatedList = [];
+      if (exists) {
+        updatedList = prevQuotes.map(q => q.id === processedQuote.id ? processedQuote : q);
+      } else {
+        updatedList = [processedQuote, ...prevQuotes];
+      }
+      safeSetItem('app_quotes_v2', updatedList);
+      safeSetItem('app_quotes', updatedList);
+      return updatedList;
+      return updatedList;
+    });
+
+    window.dispatchEvent(new Event('app_data_changed'));
+
+    if (showToastFlag) {
+      showToast(language === 'EN' ? `Quote ${processedQuote.id} saved successfully!` : `Offerte ${processedQuote.id} succesvol opgeslagen!`);
+    }
   };
 
   const handleOpenAddModal = () => {
-    setSelectedQuote(null);
     let freshLeads = leadsList;
     const savedLeads = localStorage.getItem('app_leads_v2') || localStorage.getItem('app_leads');
     if (savedLeads) {
@@ -181,51 +213,22 @@ export default function Quotes() {
       } catch(e){}
     }
 
-    const defaultCust = freshLeads[0]?.name || 'Jan de Vries';
-    setForm({ 
-      customer: defaultCust, 
-      project: 'Exclusieve Buitenkeuken', 
-      discountPercent: 0,
-      status: 'Concept',
-      items: [
-        { description: 'Bespoke Houten Frame', quantity: 1, unitPrice: 7500 },
-        { description: 'Aanrechtblad & Afwerking', quantity: 1, unitPrice: 2500 }
-      ]
-    });
-    setCustomerSelect(defaultCust);
-    setProjectSelect('Exclusieve Buitenkeuken');
-    setModalOpen(true);
+    const nextId = generateNextQuoteId(quotes);
+    const newQuote = createDefaultQuote(freshLeads[0] || null, null);
+    newQuote.id = nextId;
+    setActiveEditorQuote(newQuote);
   };
 
-  const handleOpenEditModal = (quote) => {
-    setSelectedQuote(quote);
-    
-    // Check match for Customer Select
-    const hasMatchingLead = leadsList.some(l => l.name === quote.customer);
-    setCustomerSelect(hasMatchingLead ? quote.customer : 'Other');
-
-    const standardProjects = ['Exclusieve Buitenkeuken', 'Exclusieve Kliko-ombouw', 'Houten Pergola', 'Tuinterras'];
-    const hasMatchingProject = standardProjects.includes(quote.project);
-    setProjectSelect(hasMatchingProject ? quote.project : 'Other');
-
-    setForm({
-      customer: quote.customer,
-      project: quote.project,
-      discountPercent: quote.discountPercent || 0,
-      status: quote.status || 'Concept',
-      items: quote.items && quote.items.length > 0 ? quote.items : [
-        { description: quote.project || 'Maatwerk Keuken', quantity: 1, unitPrice: getNumericAmount(quote.amount) || 5000 }
-      ]
-    });
-    setModalOpen(true);
+  const handleOpenEditModal = (quoteRow) => {
+    const fullQuoteModel = createDefaultQuote(null, quoteRow);
+    setActiveEditorQuote(fullQuoteModel);
   };
 
   const handleDeleteQuote = (id, customer) => {
     const updatedQuotes = quotes.filter(q => q.id !== id);
     setQuotes(updatedQuotes);
-    localStorage.setItem('app_quotes_v2', JSON.stringify(updatedQuotes));
-    localStorage.setItem('app_quotes', JSON.stringify(updatedQuotes));
-    localStorage.setItem('app_quotes_v1', JSON.stringify(updatedQuotes));
+    safeSetItem('app_quotes_v2', updatedQuotes);
+    safeSetItem('app_quotes', updatedQuotes);
     window.dispatchEvent(new Event('app_data_changed'));
     showToast(`Quote "${id}" for "${customer}" deleted successfully!`);
   };
@@ -245,9 +248,8 @@ export default function Quotes() {
 
     const updatedList = [duplicatedObj, ...quotes];
     setQuotes(updatedList);
-    localStorage.setItem('app_quotes_v2', JSON.stringify(updatedList));
-    localStorage.setItem('app_quotes', JSON.stringify(updatedList));
-    localStorage.setItem('app_quotes_v1', JSON.stringify(updatedList));
+    safeSetItem('app_quotes_v2', updatedList);
+    safeSetItem('app_quotes', updatedList);
     window.dispatchEvent(new Event('app_data_changed'));
     showToast(language === 'EN' ? `Quote duplicated as ${nextId} (Concept)!` : `Offerte gekopieerd als ${nextId} (Concept)!`);
   };
@@ -364,6 +366,15 @@ export default function Quotes() {
         amount: formattedAmount,
         discountPercent: parseFloat(form.discountPercent) || 0,
         status: form.status,
+        showFrontView: form.showFrontView,
+        woodType: form.woodType,
+        totalWidth: form.totalWidth,
+        frontViewElements: form.frontViewElements,
+        finishTreatment: form.finishTreatment,
+        deliveryLocation: form.deliveryLocation,
+        deliveryPrice: Number(form.deliveryPrice) || 0,
+        paymentTerm1Percent: Number(form.paymentTerm1Percent) || 50,
+        paymentTerm2Percent: Number(form.paymentTerm2Percent) || 50,
         items: form.items
       };
 
@@ -383,6 +394,15 @@ export default function Quotes() {
         amount: formattedAmount,
         discountPercent: parseFloat(form.discountPercent) || 0,
         status: form.status,
+        showFrontView: form.showFrontView,
+        woodType: form.woodType,
+        totalWidth: form.totalWidth,
+        frontViewElements: form.frontViewElements,
+        finishTreatment: form.finishTreatment,
+        deliveryLocation: form.deliveryLocation,
+        deliveryPrice: Number(form.deliveryPrice) || 0,
+        paymentTerm1Percent: Number(form.paymentTerm1Percent) || 50,
+        paymentTerm2Percent: Number(form.paymentTerm2Percent) || 50,
         items: form.items,
         date: new Date().toISOString().split('T')[0],
         validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
@@ -407,9 +427,8 @@ export default function Quotes() {
     }
 
     setQuotes(updatedQuotes);
-    localStorage.setItem('app_quotes_v2', JSON.stringify(updatedQuotes));
-    localStorage.setItem('app_quotes_v1', JSON.stringify(updatedQuotes));
-    localStorage.setItem('app_quotes', JSON.stringify(updatedQuotes));
+    safeSetItem('app_quotes_v2', updatedQuotes);
+    safeSetItem('app_quotes', updatedQuotes);
     window.dispatchEvent(new Event('app_data_changed'));
     setModalOpen(false);
   };
@@ -434,6 +453,43 @@ export default function Quotes() {
       const newItems = [...prev.items];
       newItems[index] = { ...newItems[index], [field]: val };
       return { ...prev, items: newItems };
+    });
+  };
+
+  const handleAddFrontViewElement = () => {
+    setForm(prev => ({
+      ...prev,
+      frontViewElements: [
+        ...(prev.frontViewElements || []),
+        { name: 'kastje', width: '60 cm', isDark: false, flex: 1 }
+      ]
+    }));
+  };
+
+  const handleRemoveFrontViewElement = (index) => {
+    setForm(prev => ({
+      ...prev,
+      frontViewElements: (prev.frontViewElements || []).filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleMoveFrontViewElement = (index, direction) => {
+    setForm(prev => {
+      const list = [...(prev.frontViewElements || [])];
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= list.length) return prev;
+      const temp = list[index];
+      list[index] = list[targetIndex];
+      list[targetIndex] = temp;
+      return { ...prev, frontViewElements: list };
+    });
+  };
+
+  const handleFrontViewElementChange = (index, field, val) => {
+    setForm(prev => {
+      const list = [...(prev.frontViewElements || [])];
+      list[index] = { ...list[index], [field]: val };
+      return { ...prev, frontViewElements: list };
     });
   };
 
@@ -636,18 +692,31 @@ export default function Quotes() {
 
   const hasActiveFilters = statusFilter !== 'All' || sortBy !== 'newest' || searchQuery !== '';
 
+  if (activeEditorQuote) {
+    return (
+      <div className="space-y-6">
+        <QuoteEditor
+          quoteData={activeEditorQuote}
+          leadsList={leadsList}
+          onClose={() => setActiveEditorQuote(null)}
+          onSaveQuote={(updated, showToastFlag) => handleSaveEditorQuote(updated, showToastFlag)}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6 text-[#4A4A43] font-body">
+    <div className="space-y-6 font-body">
       {/* Toast Notification */}
       <AnimatePresence>
         {toastMsg && (
           <motion.div 
-            initial={{ opacity: 0, x: 80 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 80 }}
-            className="fixed top-20 right-4 z-[9999] flex items-center gap-2 bg-[#3E4E36] text-white px-4 py-3 rounded-xl shadow-2xl border border-[#2D3528] font-body text-xs"
+            initial={{ opacity: 0, y: -20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0, y: -20 }} 
+            className="fixed top-4 right-4 z-[99999] flex items-center gap-2 bg-[#33422C] text-white px-4 py-3 rounded-xl shadow-xl text-xs font-body font-semibold"
           >
-            <CheckCircle className="w-4 h-4 text-emerald-400" />
+            <CheckCircle className="w-4 h-4 text-[#D97706]" />
             {toastMsg}
           </motion.div>
         )}
@@ -904,33 +973,13 @@ export default function Quotes() {
                   <div className="flex justify-between items-center flex-wrap gap-2">
                     <label className="text-xs font-bold text-primary font-body uppercase tracking-wider">{language === 'EN' ? 'Quote Items' : 'Offerte Artikelen'}</label>
                     
-                    <div className="flex items-center gap-3">
-                      {/* Product Library Selector Dropdown */}
-                      <select
-                        onChange={(e) => {
-                          if (e.target.value) {
-                            handleSelectFromLibrary(e.target.value);
-                            e.target.value = '';
-                          }
-                        }}
-                        className="px-2.5 py-1 bg-white border border-[#D6CFC2] rounded-lg text-xs text-primary font-bold cursor-pointer hover:bg-cream-dark/20"
-                      >
-                        <option value="">🛒 {language === 'EN' ? '+ Add from Product Library' : '+ Product Bibliotheek'}</option>
-                        {PRESET_PRODUCT_LIBRARY.map((prod) => (
-                          <option key={prod.id} value={prod.id}>
-                            {prod.description} (€ {prod.unitPrice.toLocaleString()})
-                          </option>
-                        ))}
-                      </select>
-
-                      <button
-                        type="button"
-                        onClick={handleAddItem}
-                        className="flex items-center gap-1 text-xs font-bold text-primary hover:underline"
-                      >
-                        <PlusCircle className="w-3.5 h-3.5" /> {language === 'EN' ? 'Add Custom Item' : 'Artikel Toevoegen'}
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAddItem}
+                      className="flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary-dark transition-colors bg-white px-3 py-1.5 border border-[#D6CFC2] rounded-lg shadow-2xs cursor-pointer"
+                    >
+                      <PlusCircle className="w-4 h-4 text-primary" /> {language === 'EN' ? 'Add Item' : '+ Artikel Toevoegen'}
+                    </button>
                   </div>
 
                   {form.items.map((item, idx) => (
@@ -1045,494 +1094,21 @@ export default function Quotes() {
               </div>
 
               {/* 6-PAGE DOCUMENT CONTAINER */}
-              <div className="space-y-8 bg-[#EBE6DD] p-3 sm:p-6 rounded-2xl border border-[#C4BEB3]">
-
-                {/* ========================================================= */}
-                {/* PAGE 1: BRANDED LUXURY FULL DARK GREEN COVER PAGE (#3E4E36) */}
-                {/* ========================================================= */}
-                <div className="bg-[#3E4E36] text-[#FDFBF7] rounded-xl shadow-2xl border border-[#2D3528] overflow-hidden p-6 sm:p-10 space-y-8 relative">
-                  {/* Top Header */}
-                  <div className="flex justify-between items-start border-b border-[#526648] pb-6">
-                    <div>
-                      <h1 className="text-2xl sm:text-3xl font-heading font-bold text-[#FDFBF7] tracking-wider">VANUIT AMBACHT</h1>
-                      <p className="text-[11px] text-[#D6CFC2] font-mono tracking-widest uppercase mt-0.5">EXCLUSIEVE HOUTBOUW & BUITENKEUKENS</p>
-                    </div>
-                    <span className="text-xs font-mono font-bold border border-[#70624F] text-[#FDFBF7] bg-[#70624F]/30 px-3.5 py-1.5 rounded-full shadow-xs">
-                      OFFERTE
-                    </span>
-                  </div>
-
-                  {/* Main Title Section */}
-                  <div className="space-y-3 py-4">
-                    <span className="text-xs font-mono text-[#D6CFC2] tracking-wider uppercase block">
-                      VOORKEUR OP MAAT — {pdfPreviewQuote.id || 'OF-2026325'}
-                    </span>
-                    <h2 className="text-2xl sm:text-4xl font-serif font-bold text-[#FDFBF7] leading-tight">
-                      Uw buitenkeuken, op maat gemaakt.
-                    </h2>
-                    <p className="text-xs text-[#D6CFC2] font-mono pt-2">
-                      Thermo Fraké • 240 × 80 cm • uitsparing Big Green Egg Large
-                    </p>
-                  </div>
-
-                  {/* Metadata Grid (4 Columns) */}
-                  <div className="pt-6 border-t border-[#526648] grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono">
-                    <div>
-                      <span className="text-[10px] text-[#D6CFC2] uppercase block tracking-wider font-bold">OPDRACHTGEVER</span>
-                      <span className="font-bold text-[#FDFBF7] text-sm">{pdfPreviewQuote.customer || 'Bjorn Valk'}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-[#D6CFC2] uppercase block tracking-wider font-bold">OFFERTENUMMER</span>
-                      <span className="font-bold text-[#FDFBF7]">{pdfPreviewQuote.id || 'OF-2026325'}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-[#D6CFC2] uppercase block tracking-wider font-bold">DATUM</span>
-                      <span className="font-bold text-[#FDFBF7]">{pdfPreviewQuote.date || '21 juli 2026'}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-[#D6CFC2] uppercase block tracking-wider font-bold">GELDIG TOT</span>
-                      <span className="font-bold text-[#FDFBF7]">{pdfPreviewQuote.validUntil || '19 augustus 2026'}</span>
-                    </div>
-                  </div>
-
-                  {/* 3 Horizontal Photo Strip */}
-                  <div className="grid grid-cols-3 gap-2.5 pt-2">
-                    <img src="/dasbordes images.png" alt="Buitenkeuken 1" className="h-28 sm:h-36 w-full object-cover rounded-lg border border-[#526648]" />
-                    <img src={outdoorProjectCard} alt="Buitenkeuken 2" className="h-28 sm:h-36 w-full object-cover rounded-lg border border-[#526648]" />
-                    <img src={outdoorLivingLogin} alt="Buitenkeuken 3" className="h-28 sm:h-36 w-full object-cover rounded-lg border border-[#526648]" />
-                  </div>
-
-                  {/* Footer Text */}
-                  <div className="flex justify-between items-center text-[10px] font-mono text-[#D6CFC2] pt-4 border-t border-[#526648]">
-                    <span>Vanuit Ambacht B.V. • Keizersgracht 402</span>
-                    <span>AMBACHT • KWALITEIT • ZEKERHEID</span>
-                  </div>
-                </div>
-
-                {/* ========================================================= */}
-                {/* PAGE 2: PERSONAL LETTER & 4 USP CARDS (#FDFBF7)            */}
-                {/* ========================================================= */}
-                <div className="bg-[#FDFBF7] rounded-xl shadow-lg border border-[#C4BEB3] p-6 sm:p-8 space-y-6 text-xs font-body text-dark">
-                  <div className="flex justify-between items-center border-b border-[#C4BEB3]/60 pb-2 text-[10px] font-mono text-accent font-bold">
-                    <span>VANUIT AMBACHT • OFFERTE SPECIFICATIE</span>
-                    <span>Pagina 2 van 6</span>
-                  </div>
-
-                  {/* Intro Letter Section */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-                    <div className="md:col-span-2 space-y-3">
-                      <span className="text-[10px] font-mono text-accent font-bold uppercase tracking-wider block">01 - PERSOONLIJK WOORD</span>
-                      <h3 className="text-xl font-serif font-bold text-primary">Beste {pdfPreviewQuote.customer || 'Bjorn'},</h3>
-                      <p className="leading-relaxed text-dark/80">
-                        Leuk dat we met je mee mogen nadenken over jouw buitenkeuken. In deze offerte vind je ons voorstel, volledig afgestemd op jouw wensen en jouw buitenruimte.
-                      </p>
-                      <p className="leading-relaxed text-dark/80">
-                        Bij Vanuit Ambacht geloven we in echt ambachtelijk vakwerk. Elk meubel wordt met de hand gemaakt door vakmensen die het ambacht verstaan. Geen massaproductie, maar een zorgvuldig vervaardigd meubel met duurzame uitstraling en lange levensduur.
-                      </p>
-                      <p className="leading-relaxed text-dark/80">
-                        Vragen, of wil je een aanpassing? App of bel ons gerust. Schakelen bij Vanuit Ambacht betekent rechtstreeks contact met een van ons beiden.
-                      </p>
-                      <div className="pt-2">
-                        <p className="font-serif font-bold text-primary text-sm">Tim & Bram</p>
-                        <p className="text-[10px] text-accent font-semibold font-mono">OPRICHTERS VANUIT AMBACHT</p>
-                      </div>
-                    </div>
-
-                    {/* Founders Photo Card */}
-                    <div className="p-3 bg-[#EDE8DF] rounded-xl border border-[#C4BEB3] space-y-2 text-center">
-                      <img src={outdoorLivingLogin} alt="Tim & Bram" className="h-32 w-full object-cover rounded-lg border border-[#C4BEB3]" />
-                      <p className="text-[10px] font-body text-dark/70 italic">
-                        Tim & Bram, jouw vaste aanspreekpunt van eerste schets tot nazorg.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* 4 Cream USP Cards */}
-                  <div className="pt-4 border-t border-[#C4BEB3]/60 space-y-3">
-                    <span className="text-[10px] font-mono text-accent font-bold uppercase tracking-wider block">02 - WAAROM VANUIT AMBACHT?</span>
-                    <h4 className="text-base font-serif font-bold text-primary">Waar je op kunt rekenen</h4>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="p-3.5 bg-[#EDE8DF]/60 rounded-xl border border-[#C4BEB3]/60 flex items-start gap-3">
-                        <div className="w-7 h-7 rounded-full bg-primary text-cream flex items-center justify-center font-bold flex-shrink-0 text-xs">✓</div>
-                        <div>
-                          <p className="font-bold text-primary text-xs">Gecertificeerde vakmanschap</p>
-                          <p className="text-[11px] text-dark/70 mt-0.5">Kwalitatief hoogwaardig kwaliteitsmateriaal en ambachtelijk gemaakt door ervaren vakmensen.</p>
-                        </div>
-                      </div>
-
-                      <div className="p-3.5 bg-[#EDE8DF]/60 rounded-xl border border-[#C4BEB3]/60 flex items-start gap-3">
-                        <div className="w-7 h-7 rounded-full bg-primary text-cream flex items-center justify-center font-bold flex-shrink-0 text-xs">✓</div>
-                        <div>
-                          <p className="font-bold text-primary text-xs">Eén vast aanspreekpunt</p>
-                          <p className="text-[11px] text-dark/70 mt-0.5">Rechtstreeks contact met Tim of Bram via WhatsApp, telefoon of e-mail voor al je vragen.</p>
-                        </div>
-                      </div>
-
-                      <div className="p-3.5 bg-[#EDE8DF]/60 rounded-xl border border-[#C4BEB3]/60 flex items-start gap-3">
-                        <div className="w-7 h-7 rounded-full bg-primary text-cream flex items-center justify-center font-bold flex-shrink-0 text-xs">✓</div>
-                        <div>
-                          <p className="font-bold text-primary text-xs">Garantie én nazorg</p>
-                          <p className="text-[11px] text-dark/70 mt-0.5">Garantie op het product en de montage. Ook na de levering staan wij altijd voor je klaar.</p>
-                        </div>
-                      </div>
-
-                      <div className="p-3.5 bg-[#EDE8DF]/60 rounded-xl border border-[#C4BEB3]/60 flex items-start gap-3">
-                        <div className="w-7 h-7 rounded-full bg-primary text-cream flex items-center justify-center font-bold flex-shrink-0 text-xs">✓</div>
-                        <div>
-                          <p className="font-bold text-primary text-xs">Eerlijke prijs, bewust online</p>
-                          <p className="text-[11px] text-dark/70 mt-0.5">Geen dure showroom en tussenpersonen. Zeer scherpe prijs voor vakwerk.</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="text-right text-[10px] text-dark/50 font-mono font-semibold pt-2">Pagina 2 van 6</div>
-                </div>
-
-                {/* ========================================================= */}
-                {/* PAGE 3: UW CONFIGURATIE & 2D BLOCK DIAGRAM (#FDFBF7)       */}
-                {/* ========================================================= */}
-                <div className="bg-[#FDFBF7] rounded-xl shadow-lg border border-[#C4BEB3] p-6 sm:p-8 space-y-6 text-xs font-body text-dark">
-                  <div className="flex justify-between items-center border-b border-[#C4BEB3]/60 pb-2 text-[10px] font-mono text-accent font-bold">
-                    <span>VANUIT AMBACHT • PRODUCT CONFIGURATIE</span>
-                    <span>Pagina 3 van 6</span>
-                  </div>
-
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-mono text-accent font-bold uppercase tracking-wider block">03 - CONFIGURATIE</span>
-                    <h3 className="text-xl font-serif font-bold text-primary">Jouw buitenkeuken in één oogopslag</h3>
-                  </div>
-
-                  {/* 4 Dark Green Stat Cards */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="bg-[#3E4E36] text-[#FDFBF7] p-3.5 rounded-xl text-center space-y-1 shadow-sm">
-                      <span className="text-[9px] uppercase font-mono tracking-wider text-[#D6CFC2] block">AFMETING</span>
-                      <p className="text-base font-bold font-mono">240 × 80 cm</p>
-                      <span className="text-[9px] text-[#D6CFC2] block">Totale footprint</span>
-                    </div>
-
-                    <div className="bg-[#3E4E36] text-[#FDFBF7] p-3.5 rounded-xl text-center space-y-1 shadow-sm">
-                      <span className="text-[9px] uppercase font-mono tracking-wider text-[#D6CFC2] block">HOUTSOORT</span>
-                      <p className="text-base font-bold font-mono">Thermo Fraké</p>
-                      <span className="text-[9px] text-[#D6CFC2] block">Onderhoudsarm</span>
-                    </div>
-
-                    <div className="bg-[#3E4E36] text-[#FDFBF7] p-3.5 rounded-xl text-center space-y-1 shadow-sm">
-                      <span className="text-[9px] uppercase font-mono tracking-wider text-[#D6CFC2] block">UITSPARING</span>
-                      <p className="text-base font-bold font-mono">Big Green Egg</p>
-                      <span className="text-[9px] text-[#D6CFC2] block">Geschikt voor Large</span>
-                    </div>
-
-                    <div className="bg-[#3E4E36] text-[#FDFBF7] p-3.5 rounded-xl text-center space-y-1 shadow-sm">
-                      <span className="text-[9px] uppercase font-mono tracking-wider text-[#D6CFC2] block">LEVERTIJD</span>
-                      <p className="text-base font-bold font-mono">3 tot 5 weken</p>
-                      <span className="text-[9px] text-[#D6CFC2] block">Montage inbegrepen</span>
-                    </div>
-                  </div>
-
-                  {/* Specs & 2D Front View Diagram */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                    {/* Left: Specs List */}
-                    <div className="space-y-3 font-body">
-                      <div>
-                        <p className="font-bold text-primary uppercase text-[10px] tracking-wider mb-0.5">BOVENBLAD</p>
-                        <p className="text-dark/80 text-[11px]">✓ Houten bovenblad met keramische tegels en uitsparing voor de Big Green Egg Large, rechts van het midden.</p>
-                      </div>
-
-                      <div>
-                        <p className="font-bold text-primary uppercase text-[10px] tracking-wider mb-0.5">INDELING & OPBERGRUIMTE</p>
-                        <p className="text-dark/80 text-[11px]">✓ Drie kastjes met deurtjes: links 1x klein kastje, uitsparing Big Green Egg, rechts 1x lang kastje.</p>
-                      </div>
-
-                      <div>
-                        <p className="font-bold text-primary uppercase text-[10px] tracking-wider mb-0.5">AFWERKING & MOBILITEIT</p>
-                        <p className="text-dark/80 text-[11px]">✓ Behandeld met olie. Wielen onder de benen voor optimale mobiliteit op het terras.</p>
-                      </div>
-
-                      <div>
-                        <p className="font-bold text-primary uppercase text-[10px] tracking-wider mb-0.5">BEZORGING</p>
-                        <p className="text-dark/80 text-[11px]">✓ Gratis bezorging en inhuizen op de gewenste plek in jouw tuin.</p>
-                      </div>
-                    </div>
-
-                    {/* Right: 2D Diagram & Over Thermo Fraké */}
-                    <div className="space-y-3">
-                      <img src={outdoorProjectCard} alt="Render" className="h-32 w-full object-cover rounded-xl border border-[#C4BEB3]" />
-
-                      {/* 2D Visual Block Diagram */}
-                      <div className="p-3 bg-[#EDE8DF] rounded-xl border border-[#C4BEB3] text-center space-y-2">
-                        <span className="text-[9px] font-mono uppercase font-bold text-accent">2D FRONT VIEW SCHEMA</span>
-                        <div className="flex items-center justify-center gap-1.5 font-mono text-[9px]">
-                          <div className="px-2 py-3 bg-white border border-dark/30 rounded font-bold text-dark">Kastje</div>
-                          <div className="px-2 py-3 bg-white border border-dark/30 rounded font-bold text-dark">Kastje</div>
-                          <div className="px-2 py-3 bg-[#3E4E36] text-white rounded font-bold">Big Green Egg</div>
-                          <div className="px-2 py-3 bg-white border border-dark/30 rounded font-bold text-dark">Kastje</div>
-                        </div>
-                        <div className="text-[9px] font-mono text-dark/60 border-t border-dark/20 pt-1">
-                          |&lt;------------------ 240 cm ------------------&gt;|
-                        </div>
-                      </div>
-
-                      {/* Dark Green Box: Over Thermo Fraké */}
-                      <div className="p-3.5 bg-[#3E4E36] text-[#FDFBF7] rounded-xl text-xs space-y-1 shadow-sm">
-                        <p className="font-serif font-bold text-[#FDFBF7] text-xs">Over Thermo Fraké</p>
-                        <p className="text-[10px] text-[#D6CFC2] leading-relaxed">
-                          Thermisch gemodificeerd hout is duurzaam, vormvast en bestand tegen alle weersinvloeden. Het hout verkleurt mooi en heeft een levensduur van meer dan 20 jaar.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="text-right text-[10px] text-dark/50 font-mono font-semibold pt-2">Pagina 3 van 6</div>
-                </div>
-
-                {/* ========================================================= */}
-                {/* PAGE 4: DETAILED PRICING & PAYMENT TERMS (#FDFBF7)         */}
-                {/* ========================================================= */}
-                <div className="bg-[#FDFBF7] rounded-xl shadow-lg border border-[#C4BEB3] p-6 sm:p-8 space-y-6 text-xs font-body text-dark">
-                  <div className="flex justify-between items-center border-b border-[#C4BEB3]/60 pb-2 text-[10px] font-mono text-accent font-bold">
-                    <span>VANUIT AMBACHT • FINANCIEEL OVERZICHT</span>
-                    <span>Pagina 4 van 6</span>
-                  </div>
-
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-mono text-accent font-bold uppercase tracking-wider block">04 - INVESTERING</span>
-                    <h3 className="text-xl font-serif font-bold text-primary">Heldere prijs, alles inbegrepen</h3>
-                  </div>
-
-                  {/* Line Items Table */}
-                  <table className="w-full text-left border-collapse rounded-xl overflow-hidden border border-[#C4BEB3]">
-                    <thead>
-                      <tr className="bg-[#3E4E36] text-[#FDFBF7] text-[10px] font-mono uppercase tracking-wider font-bold">
-                        <th className="py-3 px-4">Omschrijving</th>
-                        <th className="py-3 px-2 text-center">Aantal</th>
-                        <th className="py-3 px-4 text-right">Bedrag</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#C4BEB3]/50 bg-white">
-                      <tr>
-                        <td className="py-3.5 px-4 font-bold text-dark text-xs">
-                          Buitenkeuken Thermo Fraké - 240 × 80 cm
-                          <span className="block text-[10px] font-normal text-dark/60 mt-0.5">Houten bovenblad met keramische tegels, uitsparing Big Green Egg Large, drie kastjes.</span>
-                        </td>
-                        <td className="py-3.5 px-2 text-center font-mono font-bold">1</td>
-                        <td className="py-3.5 px-4 text-right font-mono font-bold text-primary text-sm whitespace-nowrap">€ 3.495,00</td>
-                      </tr>
-                      <tr>
-                        <td className="py-3.5 px-4 font-semibold text-dark text-xs">
-                          Bezorging inhuizen
-                          <span className="block text-[10px] font-normal text-dark/60 mt-0.5">Levering op de gewenste plek in jouw tuin.</span>
-                        </td>
-                        <td className="py-3.5 px-2 text-center font-mono font-bold">1</td>
-                        <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                          <span className="bg-emerald-100 text-emerald-800 text-[10px] font-mono font-bold px-2 py-0.5 rounded">Inbegrepen</span>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-
-                  {/* 2 Bottom Columns: Left Included Box & Right Dark Green Totals Box */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
-                    {/* Left Box: Included Checklist */}
-                    <div className="p-4 bg-[#EDE8DF]/70 rounded-xl border border-[#C4BEB3] space-y-2">
-                      <p className="font-mono text-[10px] uppercase font-bold text-accent tracking-wider">INBEGREPEN BIJ JOUW INVESTERING</p>
-                      <ul className="space-y-1.5 text-[11px] text-dark/80">
-                        <li className="flex items-center gap-2">✓ Volledig maatwerk, met de hand gemaakt</li>
-                        <li className="flex items-center gap-2">✓ Digitale maattekening vóór productie</li>
-                        <li className="flex items-center gap-2">✓ Oliebehandeling (naturel)</li>
-                        <li className="flex items-center gap-2">✓ Gratis bezorging en inhuizen</li>
-                        <li className="flex items-center gap-2">✓ Garantie op het product en montage</li>
-                      </ul>
-                    </div>
-
-                    {/* Right Box: Dark Green Totals Box (#3E4E36) */}
-                    <div className="p-5 bg-[#3E4E36] text-[#FDFBF7] rounded-xl space-y-3 flex flex-col justify-between shadow-md">
-                      <div className="space-y-1.5 text-xs font-mono">
-                        <div className="flex justify-between text-[#D6CFC2]"><span>Totaal excl. btw</span><span>€ 2.888,43</span></div>
-                        <div className="flex justify-between text-[#D6CFC2]"><span>Btw 21%</span><span>€ 606,57</span></div>
-                        <div className="flex justify-between text-base font-bold text-[#FDFBF7] pt-2 border-t border-[#526648]">
-                          <span>Totaal incl. btw</span>
-                          <span className="text-lg text-white font-mono">€ 3.495,00</span>
-                        </div>
-                      </div>
-                      <div className="p-2.5 bg-[#EDE8DF] text-primary text-[10px] font-mono rounded-lg font-bold text-center">
-                        Deze offerte is geldig tot en met 19 augustus 2026
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Payment Terms Cards (50% / 50%) */}
-                  <div className="pt-2 space-y-2">
-                    <p className="font-mono text-[10px] uppercase font-bold text-accent tracking-wider">BETAALTERMIJNEN IN TWEE STAPPEN</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-body">
-                      <div className="p-3.5 bg-white rounded-xl border border-[#C4BEB3] flex items-center gap-3">
-                        <span className="text-xl font-bold font-mono text-primary">50%</span>
-                        <div>
-                          <p className="font-bold text-dark text-xs">Bij akkoord € 1.747,50</p>
-                          <p className="text-[10px] text-dark/60 mt-0.5">Hiermee reserveren we de productie direct.</p>
-                        </div>
-                      </div>
-
-                      <div className="p-3.5 bg-white rounded-xl border border-[#C4BEB3] flex items-center gap-3">
-                        <span className="text-xl font-bold font-mono text-primary">50%</span>
-                        <div>
-                          <p className="font-bold text-dark text-xs">Bij levering € 1.747,50</p>
-                          <p className="text-[10px] text-dark/60 mt-0.5">Het restant betaal je pas wanneer de keuken staat.</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="text-right text-[10px] text-dark/50 font-mono font-semibold pt-2">Pagina 4 van 6</div>
-                </div>
-
-                {/* ========================================================= */}
-                {/* PAGE 5: PROCESS TIMELINE & GUARANTEES (#FDFBF7)            */}
-                {/* ========================================================= */}
-                <div className="bg-[#FDFBF7] rounded-xl shadow-lg border border-[#C4BEB3] p-6 sm:p-8 space-y-6 text-xs font-body text-dark">
-                  <div className="flex justify-between items-center border-b border-[#C4BEB3]/60 pb-2 text-[10px] font-mono text-accent font-bold">
-                    <span>VANUIT AMBACHT • WERKWIJZE</span>
-                    <span>Pagina 5 van 6</span>
-                  </div>
-
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-mono text-accent font-bold uppercase tracking-wider block">05 - VAN AKKOORD TOT OPLEVERING</span>
-                    <h3 className="text-xl font-serif font-bold text-primary">Zo werkt het in vijf stappen</h3>
-                  </div>
-
-                  {/* 5 Vertical Process Steps */}
-                  <div className="space-y-3 relative pl-2">
-                    {[
-                      { step: '1', title: 'Akkoord op de offerte', desc: 'Bevestig eenvoudig per mail of WhatsApp, of onderteken de akkoordpagina. Vanaf dat moment nemen wij alles uit handen.' },
-                      { step: '2', title: 'Digitale tekening ter bevestiging', desc: 'Je ontvangt een maattekening van jouw buitenkeuken. Zo weet je precies wat je krijgt en klopt al het werk vóór de productie start.' },
-                      { step: '3', title: 'Productie door onze vakspecialisten', badge: '3 TOT 5 WEKEN', desc: 'Jouw keuken wordt met de hand gemaakt door onze vakspecialisten. Tussentijds houden we je op de hoogte.' },
-                      { step: '4', title: 'Bezorging inhuizen', badge: 'GRATIS', desc: 'We leveren de buitenkeuken op het moment dat jou uitkomt. Isdein de tuin op de juiste plek.' },
-                      { step: '5', title: 'Garantie & nazorg', desc: 'Ook na de oplevering blijven we je vaste aanspreekpunt. Met garantie op het product en advies over onderhoud.' }
-                    ].map((s) => (
-                      <div key={s.step} className="flex items-start gap-3.5">
-                        <div className="w-7 h-7 rounded-full bg-[#3E4E36] text-[#FDFBF7] font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-xs">
-                          {s.step}
-                        </div>
-                        <div className="flex-1 bg-[#EDE8DF]/50 p-3 rounded-xl border border-[#C4BEB3]/60">
-                          <div className="flex items-center justify-between">
-                            <p className="font-bold text-primary text-xs">{s.title}</p>
-                            {s.badge && <span className="bg-[#70624F] text-[#FDFBF7] text-[9px] font-mono font-bold px-2 py-0.5 rounded">{s.badge}</span>}
-                          </div>
-                          <p className="text-[11px] text-dark/75 mt-0.5">{s.desc}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Founders Quote Box */}
-                  <div className="p-4 bg-[#EDE8DF] border border-[#C4BEB3] rounded-xl text-center space-y-1 italic font-serif">
-                    <p className="text-sm font-bold text-primary">"Geen massa. Geen tussenoplossing. Gewoon goed gemaakt. Voor jou."</p>
-                    <p className="text-[10px] font-mono text-accent font-semibold not-italic">Tim & Bram - Vanuit Ambacht</p>
-                  </div>
-
-                  {/* 2 Policy Guarantee Cards */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                    <div className="p-3 bg-white rounded-xl border border-[#C4BEB3] space-y-1">
-                      <p className="font-bold text-primary text-xs">Wijzigingen vóór productie</p>
-                      <p className="text-[10px] text-dark/70">Kleine korreltjes aanpassen? Tot het akkoord op de tekening verwerken we wijzigingen kosteloos in de opgestelde offerte.</p>
-                    </div>
-
-                    <div className="p-3 bg-white rounded-xl border border-[#C4BEB3] space-y-1">
-                      <p className="font-bold text-primary text-xs">Meerwerk en minderwerk</p>
-                      <p className="text-[10px] text-dark/70">Aanpassingen na akkoord stemmen we altijd samen af met heldere prijsopgave. Geen verrassingen achteraf.</p>
-                    </div>
-                  </div>
-
-                  <div className="text-right text-[10px] text-dark/50 font-mono font-semibold pt-2">Pagina 5 van 6</div>
-                </div>
-
-                {/* ========================================================= */}
-                {/* PAGE 6: APPROVAL & SIGNATURES (#FDFBF7)                    */}
-                {/* ========================================================= */}
-                <div className="bg-[#FDFBF7] rounded-xl shadow-lg border border-[#C4BEB3] p-6 sm:p-8 space-y-6 text-xs font-body text-dark">
-                  <div className="flex justify-between items-center border-b border-[#C4BEB3]/60 pb-2 text-[10px] font-mono text-accent font-bold">
-                    <span>VANUIT AMBACHT • AKKOORD</span>
-                    <span>Pagina 6 van 6</span>
-                  </div>
-
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-mono text-accent font-bold uppercase tracking-wider block">06 - AKKOORD</span>
-                    <h3 className="text-xl font-serif font-bold text-primary">Zullen we hem gaan maken?</h3>
-                  </div>
-
-                  {/* Top Dark Green CTA Box (#3E4E36) */}
-                  <div className="p-5 bg-[#3E4E36] text-[#FDFBF7] rounded-xl space-y-3 shadow-md">
-                    <div>
-                      <h4 className="text-base font-serif font-bold text-[#FDFBF7]">Akkoord geven kan in één minuut</h4>
-                      <p className="text-xs text-[#D6CFC2] mt-0.5">Stuur een korte bevestiging per WhatsApp of mail, of onderteken hieronder. Daarna ontvang je binnen enkele dagen de digitale maattekening ter bevestiging en gaan we voor je aan de slag.</p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2 pt-1">
-                      <a href="https://wa.me/31682008005" target="_blank" rel="noopener noreferrer" className="px-3.5 py-1.5 bg-[#70624F] hover:bg-[#5e5241] text-[#FDFBF7] text-xs font-mono font-bold rounded-lg transition-colors inline-flex items-center gap-1.5">
-                        💬 WhatsApp - 06 82 00 80 05
-                      </a>
-                      <a href="mailto:info@vanuitambacht.nl" className="px-3.5 py-1.5 bg-[#70624F] hover:bg-[#5e5241] text-[#FDFBF7] text-xs font-mono font-bold rounded-lg transition-colors inline-flex items-center gap-1.5">
-                        ✉️ info@vanuitambacht.nl
-                      </a>
-                    </div>
-                  </div>
-
-                  {/* 2 Physical Signature Cards */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="p-4 bg-[#EDE8DF]/70 rounded-xl border border-[#C4BEB3] space-y-4">
-                      <span className="text-[10px] font-mono uppercase font-bold text-accent tracking-wider block">VOOR AKKOORD - OPDRACHTGEVER</span>
-                      <p className="font-bold text-primary text-sm">{pdfPreviewQuote.customer || 'Bjorn Valk'}</p>
-                      <div className="space-y-3 pt-2 text-[10px] font-mono text-dark/60">
-                        <div className="border-b border-dark/40 pb-1">Datum: {pdfPreviewQuote.date || '21 juli 2026'}</div>
-                        <div className="border-b border-dark/40 pb-4">Handtekening:</div>
-                      </div>
-                    </div>
-
-                    <div className="p-4 bg-[#EDE8DF]/70 rounded-xl border border-[#C4BEB3] space-y-4">
-                      <span className="text-[10px] font-mono uppercase font-bold text-accent tracking-wider block">NAMENS VANUIT AMBACHT</span>
-                      <p className="font-bold text-primary text-sm">Tim & Bram</p>
-                      <div className="space-y-3 pt-2 text-[10px] font-mono text-dark/60">
-                        <div className="border-b border-dark/40 pb-1">Datum: {pdfPreviewQuote.date || '21 juli 2026'}</div>
-                        <div className="border-b border-dark/40 pb-4">Handtekening:</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <p className="text-[10px] text-dark/50 italic text-center">
-                    Door deze offerte digitaal te ondertekenen gaat u akkoord met het ontwerp en de prijsopbouw. Deze offerte is geldig tot en met 19 augustus 2026.
-                  </p>
-
-                  {/* Footer Company Details Grid (3 Columns) */}
-                  <div className="pt-4 border-t border-[#C4BEB3] grid grid-cols-3 gap-4 text-[10px] font-mono text-dark/70">
-                    <div>
-                      <span className="font-bold uppercase text-primary block">ADRES</span>
-                      Vanuit Ambacht B.V.<br />
-                      Keizersgracht 402<br />
-                      1016 GC Amsterdam
-                    </div>
-                    <div>
-                      <span className="font-bold uppercase text-primary block">CONTACT</span>
-                      06 82 00 80 05<br />
-                      info@vanuitambacht.nl<br />
-                      vanuitambacht.nl
-                    </div>
-                    <div>
-                      <span className="font-bold uppercase text-primary block">GEGEVENS</span>
-                      KvK 93067429<br />
-                      BTW NL866264863B01<br />
-                      IBAN NL48 INGB 0001 2345 67
-                    </div>
-                  </div>
-
-                  <div className="text-right text-[10px] text-dark/50 font-mono font-semibold pt-1">Pagina 6 van 6</div>
-                </div>
-
+              <div className="bg-[#EBE6DD] p-3 sm:p-6 rounded-2xl border border-[#C4BEB3]">
+                <Offerte6PagePDF quote={pdfPreviewQuote} />
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
+
+      {/* 100% CLEAN PDF PRINT PORTAL ATTACHED DIRECTLY TO DOCUMENT BODY */}
+      {pdfPreviewQuote && !editingQuote && createPortal(
+        <div id="printable-offerte-portal">
+          <Offerte6PagePDF quote={pdfPreviewQuote} />
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

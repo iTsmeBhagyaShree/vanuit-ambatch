@@ -1,16 +1,42 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Card from '../../components/Card';
 import Table from '../../components/Table';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
-import { Plus, Search, Filter, X, CheckCircle, Trash2, Edit2, RotateCcw, FileText, Download, Printer, Check } from 'lucide-react';
+import { Plus, Search, Filter, X, CheckCircle, Trash2, Edit2, RotateCcw, FileText, Download, Printer, Check, Send } from 'lucide-react';
 import { mockInvoices as defaultInvoices } from '../../utils/mockData';
 import { useLanguage } from '../../context/LanguageContext';
+import FactuurPDFTemplate from '../../components/FactuurPDFTemplate';
+
+import { convertLeadToCustomerOnInvoiceSent } from '../../utils/customerConversion';
+
+import { calculateOrderSettlement } from '../../utils/orderMatcher';
+import { calculateProjectMarginWithPurchasing, UNIFIED_PURCHASING_CATEGORY } from '../../utils/purchasingAllocator';
 
 export default function Invoices() {
   const { t, language } = useLanguage();
   const [invoices, setInvoices] = useState([]);
+  const [bankTxns, setBankTxns] = useState([]);
+
+  // Load bank transactions from localStorage for real-time settlement & project margin calculations
+  useEffect(() => {
+    try {
+      const savedBank = localStorage.getItem('app_bank_txns_v2') || localStorage.getItem('app_bank_txns');
+      if (savedBank) setBankTxns(JSON.parse(savedBank));
+    } catch(e) {}
+
+    const handleDataChanged = () => {
+      try {
+        const savedBank = localStorage.getItem('app_bank_txns_v2') || localStorage.getItem('app_bank_txns');
+        if (savedBank) setBankTxns(JSON.parse(savedBank));
+      } catch(e) {}
+    };
+
+    window.addEventListener('app_data_changed', handleDataChanged);
+    return () => window.removeEventListener('app_data_changed', handleDataChanged);
+  }, []);
 
   const translateInvoiceType = (typeStr) => {
     if (language !== 'EN' || !typeStr) return typeStr;
@@ -25,6 +51,8 @@ export default function Invoices() {
     if (language !== 'EN' || !statusStr) return statusStr;
     switch (statusStr) {
       case 'Betaald': return 'Paid';
+      case 'Verzonden': return 'Sent';
+      case 'Concept': return 'Concept';
       case 'Openstaand': return 'Pending';
       case 'Vervallen': return 'Overdue';
       default: return statusStr;
@@ -40,15 +68,14 @@ export default function Invoices() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [pdfInvoice, setPdfInvoice] = useState(null);
-  const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [toastMsg, setToastMsg] = useState('');
 
   // Form State for Manual Invoice Creation
   const [form, setForm] = useState({
     customer: '',
-    type: '50% Down Payment (Upfront)',
+    type: '50% Aanbetaling (Upfront)',
     amount: '',
-    status: 'Openstaand',
+    status: 'Concept',
     dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   });
 
@@ -69,26 +96,47 @@ export default function Invoices() {
 
   const showToast = (msg) => {
     setToastMsg(msg);
-    setTimeout(() => setToastMsg(''), 3000);
+    setTimeout(() => setToastMsg(''), 4000);
   };
 
-  const handleMarkAsPaid = (invId) => {
+  const handleSendInvoice = (invId) => {
     const targetInv = invoices.find(i => i.id === invId);
-    const updatedInvoices = invoices.map(i => i.id === invId ? { ...i, status: 'Betaald' } : i);
+    const updatedInvoices = invoices.map(i => i.id === invId ? { ...i, status: 'Verzonden', isSent: true } : i);
     setInvoices(updatedInvoices);
     localStorage.setItem('app_invoices', JSON.stringify(updatedInvoices));
 
     if (targetInv) {
-      const existingTxns = JSON.parse(localStorage.getItem('app_bank_txns') || '[]');
+      convertLeadToCustomerOnInvoiceSent(targetInv.customer, targetInv.id, targetInv.amount);
+    }
+    window.dispatchEvent(new Event('app_data_changed'));
+    showToast(language === 'EN' 
+      ? `Invoice "${invId}" sent! Lead "${targetInv?.customer || ''}" automatically converted to Active Customer!` 
+      : `Factuur "${invId}" verzonden! Lead "${targetInv?.customer || ''}" succesvol geconverteerd naar Actieve Klant!`);
+  };
+
+  const handleMarkAsPaid = (invId) => {
+    const targetInv = invoices.find(i => i.id === invId);
+    const updatedInvoices = invoices.map(i => i.id === invId ? { ...i, status: 'Betaald', totalReceived: getNumericAmount(i.amount, i.numericAmount), outstanding: 0 } : i);
+    setInvoices(updatedInvoices);
+    localStorage.setItem('app_invoices', JSON.stringify(updatedInvoices));
+
+    if (targetInv) {
+      const existingTxns = JSON.parse(localStorage.getItem('app_bank_txns_v2') || localStorage.getItem('app_bank_txns') || '[]');
       const newTxn = {
         id: `TXN-${Date.now().toString().slice(-4)}`,
         date: new Date().toISOString().split('T')[0],
         description: `Factuur Betaling: ${targetInv.customer} (${targetInv.id})`,
         amount: targetInv.amount || `€ ${targetInv.numericAmount}`,
+        credit: getNumericAmount(targetInv.amount, targetInv.numericAmount),
+        debit: 0,
         type: 'Income',
-        category: 'Factuur Opbrengst'
+        category: 'Revenue — Outdoor Kitchens',
+        orderId: targetInv.id,
+        invoiceRef: targetInv.id,
+        customerName: targetInv.customer,
+        allocationStatus: 'Allocated'
       };
-      localStorage.setItem('app_bank_txns', JSON.stringify([newTxn, ...existingTxns]));
+      localStorage.setItem('app_bank_txns_v2', JSON.stringify([newTxn, ...existingTxns]));
     }
     window.dispatchEvent(new Event('app_data_changed'));
     showToast(`Factuur "${invId}" gemarkeerd als Betaald!`);
@@ -115,7 +163,8 @@ export default function Invoices() {
       type: form.type,
       amount: `€ ${numVal.toLocaleString()}`,
       numericAmount: numVal,
-      status: form.status,
+      status: 'Concept',
+      isSent: false,
       dueDate: form.dueDate,
       createdDate: new Date().toISOString().split('T')[0]
     };
@@ -124,7 +173,8 @@ export default function Invoices() {
     setInvoices(updatedInvoices);
     localStorage.setItem('app_invoices', JSON.stringify(updatedInvoices));
     window.dispatchEvent(new Event('app_data_changed'));
-    showToast(`Nieuwe factuur ${newInv.id} aangemaakt!`);
+
+    showToast(`Factuur ${newInv.id} opgeslagen als Concept!`);
     setModalOpen(false);
   };
 
@@ -135,7 +185,6 @@ export default function Invoices() {
     return isNaN(val) ? 0 : val;
   };
 
-  // Filter & Sort Logic
   const processedInvoices = [...invoices]
     .filter(inv => {
       const matchesSearch = 
@@ -148,13 +197,12 @@ export default function Invoices() {
     })
     .sort((a, b) => {
       if (sortBy === 'newest') return new Date(b.createdDate || b.dueDate) - new Date(a.createdDate || a.dueDate);
-      if (sortBy === 'oldest') return new Date(a.createdDate || a.dueDate) - new Date(b.createdDate || b.dueDate);
+      if (sortBy === 'oldest') return new Date(a.createdDate || a.dueDate) - new Date(a.createdDate || a.dueDate);
       if (sortBy === 'amount-desc') return getNumericAmount(b.amount, b.numericAmount) - getNumericAmount(a.amount, a.numericAmount);
       if (sortBy === 'amount-asc') return getNumericAmount(a.amount, a.numericAmount) - getNumericAmount(b.amount, b.numericAmount);
       return 0;
     });
 
-  // Calculate Summary Stats
   const totalCount = invoices.length;
   const paidInvoices = invoices.filter(i => i.status === 'Betaald' || i.status === 'Paid');
   const openInvoices = invoices.filter(i => i.status === 'Openstaand' || i.status === 'Pending');
@@ -182,52 +230,114 @@ export default function Invoices() {
 
   const columns = [
     { header: t('screens.invoices.number'), accessor: 'id' },
-    { header: t('screens.invoices.customer'), accessor: 'customer' },
-    { header: t('screens.invoices.typeDescription'), render: (row) => <span>{translateInvoiceType(row.type)}</span> },
-    { header: t('screens.invoices.amount'), accessor: 'amount' },
     { 
-      header: 'Status', 
+      header: t('screens.invoices.customer'),
       render: (row) => (
-        <Badge variant={getBadgeVariant(row.status)}>
-          {translateInvoiceStatus(row.status)}
-        </Badge>
+        <div>
+          <p className="font-bold text-dark text-xs">{row.customer}</p>
+          <p className="text-[10px] text-dark/50">{translateInvoiceType(row.type)}</p>
+        </div>
       )
     },
-    { header: t('screens.invoices.dueDate'), accessor: 'dueDate' },
+    { 
+      header: 'Totaal Bedrag (incl. BTW)', 
+      render: (row) => <span className="font-mono font-bold text-xs">{row.amount || `€ ${row.numericAmount}`}</span> 
+    },
+    {
+      header: 'Ontvangen / Openstaand',
+      render: (row) => {
+        const orderVal = getNumericAmount(row.amount, row.numericAmount);
+        const settlement = calculateOrderSettlement({ id: row.id, totalAmount: orderVal }, bankTxns);
+        return (
+          <div className="font-mono text-xs leading-tight">
+            <p className="text-emerald-700 font-bold">Ontvangen: € {settlement.totalReceived.toLocaleString('nl-NL')}</p>
+            <p className={`font-bold ${settlement.outstanding > 0 ? 'text-amber-800' : 'text-dark/40'}`}>
+              Openstaand: € {settlement.outstanding.toLocaleString('nl-NL')}
+            </p>
+          </div>
+        );
+      }
+    },
+    { 
+      header: 'Project Inkoop & Marge',
+      render: (row) => {
+        const orderVal = getNumericAmount(row.amount, row.numericAmount);
+        const linkedPurchasing = bankTxns.filter(t => t.category === UNIFIED_PURCHASING_CATEGORY && (t.orderId === row.id || t.projectId === row.id || t.customerName === row.customer));
+        const marginInfo = calculateProjectMarginWithPurchasing(orderVal, linkedPurchasing);
+        return (
+          <div className="text-[11px] leading-tight space-y-1 font-mono">
+            <p className="text-blue-950 font-medium">Inkoop: € {marginInfo.totalPurchasing.toLocaleString('nl-NL')}</p>
+            <span className="inline-block px-2 py-0.5 bg-emerald-100 text-emerald-900 font-bold rounded-md">
+              Marge: € {marginInfo.projectMargin.toLocaleString('nl-NL')} ({marginInfo.marginPercentage}%)
+            </span>
+          </div>
+        );
+      }
+    },
+    { 
+      header: 'Status', 
+      render: (row) => {
+        const orderVal = getNumericAmount(row.amount, row.numericAmount);
+        const settlement = calculateOrderSettlement({ id: row.id, totalAmount: orderVal }, bankTxns);
+        const displayStatus = row.status === 'Betaald' || settlement.paymentStatus === 'Paid / Settled' 
+          ? 'Betaald' 
+          : settlement.paymentStatus === 'Partially Paid' 
+          ? 'Deels Betaald' 
+          : translateInvoiceStatus(row.status);
+        
+        return (
+          <Badge variant={displayStatus === 'Betaald' ? 'success' : displayStatus === 'Deels Betaald' ? 'warning' : getBadgeVariant(row.status)}>
+            {displayStatus}
+          </Badge>
+        );
+      }
+    },
     {
       header: t('screens.invoices.actions'),
-      render: (row) => (
-        <div className="flex flex-wrap items-center justify-end gap-1.5">
-          {row.status !== 'Betaald' && (
+      render: (row) => {
+        const isAlreadySent = row.status === 'Verzonden' || row.status === 'Betaald' || row.isSent;
+        return (
+          <div className="flex flex-wrap items-center justify-end gap-1.5">
+            {!isAlreadySent && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => handleSendInvoice(row.id)}
+                className="bg-primary hover:bg-primary/90 text-cream font-bold text-[11px] py-1 px-2.5 shadow-2xs flex items-center gap-1"
+              >
+                <Send className="w-3 h-3 text-amber-300" />
+                {language === 'EN' ? 'Send Invoice' : 'Verstuur Factuur'}
+              </Button>
+            )}
+            {row.status !== 'Betaald' && (
+              <Button
+                variant="custom"
+                size="sm"
+                onClick={() => handleMarkAsPaid(row.id)}
+                className="bg-green-700 hover:bg-green-800 text-white text-[11px] font-bold py-1 px-2"
+              >
+                <Check className="w-3 h-3 mr-1" /> {t('screens.invoices.paid')}
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setPdfInvoice(row)}
+              className="text-dark/70 hover:bg-[#D6CFC2]/40 text-[11px]"
+            >
+              <Printer className="w-3 h-3 mr-1" /> PDF
+            </Button>
             <Button
               variant="custom"
               size="sm"
-              onClick={() => handleMarkAsPaid(row.id)}
-              className="bg-green-600 hover:bg-green-700 text-white"
-              title={t('screens.invoices.markPaid')}
+              onClick={() => handleDeleteInvoice(row.id)}
+              className="text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 text-[11px]"
             >
-              <Check className="w-3.5 h-3.5 mr-1" /> {t('screens.invoices.paid')}
+              <Trash2 className="w-3 h-3" />
             </Button>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setPdfInvoice(row)}
-            className="text-dark/70 hover:bg-[#D6CFC2]/40"
-            title={t('screens.invoices.printPreview')}
-          >
-            <Printer className="w-3.5 h-3.5 mr-1" /> PDF
-          </Button>
-          <Button
-            variant="custom"
-            size="sm"
-            onClick={() => handleDeleteInvoice(row.id)}
-            className="text-red-600 bg-red-50 hover:bg-red-100 border border-red-200"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </Button>
-        </div>
-      )
+          </div>
+        );
+      }
     }
   ];
 
@@ -432,7 +542,7 @@ export default function Invoices() {
               initial={{ scale: 0.95, opacity: 0 }} 
               animate={{ scale: 1, opacity: 1 }} 
               exit={{ scale: 0.95, opacity: 0 }} 
-              className="relative w-full max-w-xl bg-white border border-[#D6CFC2] rounded-2xl p-4 sm:p-6 shadow-2xl z-10 space-y-4 max-h-[92vh] overflow-y-auto"
+              className="relative w-full max-w-4xl bg-[#EDE8DF] border border-[#C4BEB3] rounded-2xl p-4 sm:p-6 shadow-2xl z-10 space-y-4 max-h-[95vh] overflow-y-auto"
             >
               {/* Modal Header */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-[#D6CFC2] pb-3 print:hidden">
@@ -443,7 +553,7 @@ export default function Invoices() {
                   </h3>
                 </div>
                 <div className="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">
-                  <Button size="sm" icon={Printer} onClick={() => window.print()} className="text-xs">
+                  <Button size="sm" icon={Printer} onClick={() => window.print()} className="text-xs font-bold">
                     <span className="hidden sm:inline">Afdrukken / </span>Export PDF
                   </Button>
                   <button onClick={() => setPdfInvoice(null)} className="p-1.5 text-dark/40 hover:text-dark rounded-lg hover:bg-dark/5 transition-colors">
@@ -452,68 +562,20 @@ export default function Invoices() {
                 </div>
               </div>
 
-              {/* Printable Invoice Card */}
-              <div className="p-4 sm:p-6 bg-[#F8F7F4] rounded-xl border border-[#D6CFC2] space-y-5 text-xs text-dark/80 font-body">
-                {/* Brand & Invoice Info Header */}
-                <div className="flex flex-col sm:flex-row justify-between items-start gap-3 pb-4 border-b border-[#D6CFC2]/60">
-                  <div>
-                    <h2 className="text-lg sm:text-xl font-heading font-bold text-primary tracking-tight">VANUIT AMBACHT</h2>
-                    <p className="text-[10px] text-dark/50 font-mono">Exclusieve Houtbouw & Buitenkeukens</p>
-                  </div>
-                  <div className="sm:text-right">
-                    <p className="font-bold text-dark text-sm sm:text-base font-mono">{pdfInvoice.id}</p>
-                    <p className="text-dark/60 text-[11px] font-mono">Vervaldatum: {pdfInvoice.dueDate}</p>
-                    <Badge variant={getBadgeVariant(pdfInvoice.status)} className="mt-1">{pdfInvoice.status}</Badge>
-                  </div>
-                </div>
-
-                {/* Client & Invoice Meta Box */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-white rounded-xl border border-[#D6CFC2]/50 shadow-xs">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase text-dark/40 tracking-wider">Factuur Aan (Client):</p>
-                    <p className="font-bold text-dark text-xs sm:text-sm mt-0.5">{pdfInvoice.customer}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase text-dark/40 tracking-wider">Omschrijving / Type:</p>
-                    <p className="font-bold text-dark text-xs sm:text-sm mt-0.5">{pdfInvoice.type}</p>
-                  </div>
-                </div>
-
-                {/* Line Items Table */}
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="border-b border-[#D6CFC2] text-[10px] uppercase text-dark/50 font-bold tracking-wider">
-                        <th className="py-2 pr-2">Omschrijving</th>
-                        <th className="py-2 text-right pl-2">Bedrag</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#D6CFC2]/30">
-                      <tr>
-                        <td className="py-3 pr-2 font-semibold text-dark text-xs">
-                          {pdfInvoice.type} voor project ({pdfInvoice.customer})
-                        </td>
-                        <td className="py-3 text-right pl-2 font-mono font-bold text-primary text-xs sm:text-sm whitespace-nowrap">
-                          {pdfInvoice.amount}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Totals Row */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pt-3 border-t border-[#D6CFC2]">
-                  <span className="text-[11px] text-dark/50">Inclusief 21% BTW</span>
-                  <div className="text-right flex items-center gap-2 self-end sm:self-auto">
-                    <span className="text-xs font-semibold text-dark/70">Totaal Te Voldoen:</span>
-                    <span className="text-sm sm:text-base font-bold text-primary font-mono whitespace-nowrap">{pdfInvoice.amount}</span>
-                  </div>
-                </div>
-              </div>
+              {/* Exact 100% Match Official Dutch Factuur Template */}
+              <FactuurPDFTemplate invoice={pdfInvoice} />
             </motion.div>
           </div>
         )}
       </AnimatePresence>
+
+      {/* 100% CLEAN PRINT PORTAL ATTACHED DIRECTLY TO DOCUMENT BODY */}
+      {pdfInvoice && createPortal(
+        <div id="printable-factuur-portal">
+          <FactuurPDFTemplate invoice={pdfInvoice} />
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

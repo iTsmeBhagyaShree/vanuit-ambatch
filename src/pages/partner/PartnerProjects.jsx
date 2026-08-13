@@ -1,11 +1,12 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Card from '../../components/Card';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
-import { Calendar, Briefcase, Clock, Upload, FileText, CheckCircle, Eye, Edit3, X, Filter, MapPin, DollarSign, Download, Compass, ShieldCheck, FileCheck, Layers } from 'lucide-react';
+import { Calendar, Briefcase, Clock, Upload, FileText, CheckCircle, Eye, Edit3, X, Filter, MapPin, DollarSign, Download, Compass, ShieldCheck, FileCheck, Layers, Camera, Image as ImageIcon, Sparkles, Bell } from 'lucide-react';
 import { mockProjects } from '../../utils/mockData';
 import { useNavigate } from 'react-router-dom';
 import projectImg from '../../assets/outdoor_project_card.png';
+import heroImg from '/dasbordes images.png';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -16,6 +17,8 @@ export default function PartnerProjects() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [selectedProject, setSelectedProject] = useState(null);
   const [editProject, setEditProject] = useState(null);
+  const [uploadPhotoProject, setUploadPhotoProject] = useState(null);
+  const [photoForm, setPhotoForm] = useState({ title: '', desc: '', img: projectImg });
   const [toastMsg, setToastMsg] = useState('');
 
   // Default active logged-in partner name
@@ -78,6 +81,56 @@ export default function PartnerProjects() {
     setProjects(prev => prev.map(p => p.id === editProject.id ? editProject : p));
     showToast(`Project "${editProject.name}" voortgang bijgewerkt!`);
     setEditProject(null);
+  };
+
+  // REVERSE FLOW: Partner uploads photo -> Notifies Admin & Updates Customer Portal Photos
+  const handleUploadPartnerPhoto = (e) => {
+    e.preventDefault();
+    if (!uploadPhotoProject) return;
+
+    const newPhoto = {
+      id: Date.now(),
+      projectId: uploadPhotoProject.id,
+      projectTitle: uploadPhotoProject.name,
+      title: photoForm.title.trim() || 'Voortgangsfoto Uit Werkplaats',
+      phase: `Fasedatum: ${new Date().toLocaleDateString(language === 'NL' ? 'nl-NL' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' })}`,
+      description: photoForm.desc.trim() || 'Foto geüpload door vakman.',
+      img: photoForm.img || projectImg,
+      craftsman: currentPartnerName,
+      uploaderRole: 'partner',
+      createdAt: new Date().toISOString()
+    };
+
+    // 1. Save to app_project_photos
+    const existingPhotosStr = localStorage.getItem('app_project_photos');
+    const existingPhotos = existingPhotosStr ? JSON.parse(existingPhotosStr) : [];
+    const updatedPhotos = [newPhoto, ...existingPhotos];
+    localStorage.setItem('app_project_photos', JSON.stringify(updatedPhotos));
+
+    // 2. Save Notification for Admin in app_admin_notifications
+    const newAdminNotif = {
+      id: `NOTIF-${Date.now()}`,
+      type: 'partner_photo_upload',
+      title: `📸 Nieuwe Foto Geüpload!`,
+      message: `Vakman ${currentPartnerName} heeft een nieuwe voortgangsfoto geüpload voor project "${uploadPhotoProject.name}" (${uploadPhotoProject.id}).`,
+      projectName: uploadPhotoProject.name,
+      projectId: uploadPhotoProject.id,
+      partnerName: currentPartnerName,
+      photoTitle: newPhoto.title,
+      time: new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }),
+      date: new Date().toISOString().split('T')[0],
+      unread: true
+    };
+    const savedNotifs = JSON.parse(localStorage.getItem('app_admin_notifications') || '[]');
+    localStorage.setItem('app_admin_notifications', JSON.stringify([newAdminNotif, ...savedNotifs]));
+
+    window.dispatchEvent(new Event('app_data_changed'));
+    showToast(language === 'EN' 
+      ? `📸 Photo uploaded! Admin notified of progress update for ${uploadPhotoProject.name}!` 
+      : `📸 Foto geüpload! Beheerder is per melding op de hoogte gebracht van uw update!`);
+
+    setUploadPhotoProject(null);
+    setPhotoForm({ title: '', desc: '', img: projectImg });
   };
 
   const handleDownloadBlueprint = (fileName) => {
@@ -232,14 +285,17 @@ Generated for Partner Craftsman Workspace
             </div>
 
             {/* Action Buttons */}
-            <div className="px-3 sm:px-4 pb-3.5 pt-1 flex gap-2">
+            <div className="px-3 sm:px-4 pb-3.5 pt-1 flex flex-wrap gap-1.5">
               <Button size="sm" variant="outline" icon={Edit3} className="flex-1 text-xs justify-center whitespace-nowrap" onClick={() => setEditProject({ ...project })}>
                 <span className="sm:hidden">{label('Voortgang', 'Voortgang')}</span>
                 <span className="hidden sm:inline">{label('Update Progress', 'Voortgang bijwerken')}</span>
               </Button>
+              <Button size="sm" variant="custom" icon={Camera} className="bg-[#33422C] text-cream hover:bg-[#33422C]/90 text-xs justify-center whitespace-nowrap px-2.5" onClick={() => { setUploadPhotoProject(project); setPhotoForm({ title: `${project.name} - Werkplaatsvoortgang`, desc: 'Kwaliteitscontrole en montage in werkplaats voltooid.', img: projectImg }); }}>
+                <span>📸 {label('Upload Photo', 'Foto Uploaden')}</span>
+              </Button>
               <Button size="sm" icon={Eye} className="flex-1 text-xs justify-center whitespace-nowrap" onClick={() => setSelectedProject(project)}>
                 <span className="sm:hidden">{label('Details', 'Details')}</span>
-                <span className="hidden sm:inline">{label('View Specifications', 'Specificaties bekijken')}</span>
+                <span className="hidden sm:inline">{label('View Specifications', 'Specificaties')}</span>
               </Button>
             </div>
           </Card>
@@ -371,6 +427,89 @@ Generated for Partner Craftsman Workspace
               <div className="flex justify-end pt-2">
                 <Button onClick={() => setSelectedProject(null)}>Sluiten</Button>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* UPLOAD PARTNER PHOTO MODAL (NOTIFIES ADMIN & UPDATES CUSTOMER PORTAL) */}
+      <AnimatePresence>
+        {uploadPhotoProject && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-[#EDE8DF] border border-[#C4BEB3] rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl text-xs font-body">
+              <div className="flex justify-between items-center pb-2 border-b border-[#D6CFC2]">
+                <div className="flex items-center gap-2">
+                  <Camera className="w-5 h-5 text-primary" />
+                  <h3 className="text-lg font-heading font-bold text-primary">
+                    {language === 'EN' ? 'Upload Build Photo & Notify Admin' : 'Voortgangsfoto Uploaden & Beheerder Melden'}
+                  </h3>
+                </div>
+                <button onClick={() => setUploadPhotoProject(null)} className="text-dark/40 hover:text-dark"><X className="w-5 h-5" /></button>
+              </div>
+
+              <form onSubmit={handleUploadPartnerPhoto} className="space-y-3">
+                <div className="p-3 bg-white/80 rounded-xl border border-[#D6CFC2]/60 space-y-1">
+                  <span className="text-[10px] text-dark/50 uppercase font-bold block">Gekoppeld Project</span>
+                  <span className="font-bold text-primary text-sm block">{uploadPhotoProject.name} ({uploadPhotoProject.id})</span>
+                  <span className="text-[11px] text-dark/60 font-mono block">Opleverlocatie: {uploadPhotoProject.deliveryAddress}</span>
+                </div>
+
+                <div>
+                  <label className="block text-dark/70 font-semibold mb-1 uppercase tracking-wider">Foto Titel / Onderwerp *</label>
+                  <input
+                    type="text"
+                    required
+                    value={photoForm.title}
+                    onChange={e => setPhotoForm(prev => ({ ...prev, title: e.target.value }))}
+                    className="w-full p-2.5 bg-white border border-[#D6CFC2] rounded-lg font-bold text-dark"
+                    placeholder="e.g. Massief Teakhout Frame Gezaagd"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-dark/70 font-semibold mb-1 uppercase tracking-wider">Werkplaats Toelichting *</label>
+                  <textarea
+                    required
+                    rows={3}
+                    value={photoForm.desc}
+                    onChange={e => setPhotoForm(prev => ({ ...prev, desc: e.target.value }))}
+                    className="w-full p-2.5 bg-white border border-[#D6CFC2] rounded-lg text-dark"
+                    placeholder="Korte toelichting over de voortgang..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-dark/70 font-semibold mb-1 uppercase tracking-wider">Kies Afbeelding / Foto Sample</label>
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setPhotoForm(prev => ({ ...prev, img: projectImg }))}
+                      className={`p-2 rounded-xl border text-center transition-all ${photoForm.img === projectImg ? 'border-primary ring-2 ring-primary/20 bg-primary/10' : 'border-[#D6CFC2] bg-white'}`}
+                    >
+                      <img src={projectImg} alt="Sample 1" className="h-16 w-full object-cover rounded-lg mb-1" />
+                      <span className="text-[10px] font-bold text-dark block">📸 Hout Keuken Frame</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPhotoForm(prev => ({ ...prev, img: heroImg }))}
+                      className={`p-2 rounded-xl border text-center transition-all ${photoForm.img === heroImg ? 'border-primary ring-2 ring-primary/20 bg-primary/10' : 'border-[#D6CFC2] bg-white'}`}
+                    >
+                      <img src={heroImg} alt="Sample 2" className="h-16 w-full object-cover rounded-lg mb-1" />
+                      <span className="text-[10px] font-bold text-dark block">📸 Betonblad Polijsten</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-[11px] flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                  <span>Beheerder (Tim & Bram) ontvangt direct een automatische melding bij het opslaan!</span>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-3 border-t border-[#D6CFC2]">
+                  <Button type="button" variant="outline" onClick={() => setUploadPhotoProject(null)}>Annuleren</Button>
+                  <Button type="submit" icon={Upload} className="bg-primary text-cream font-bold">Foto Uploaden & Melden →</Button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}

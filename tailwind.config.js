@@ -16,6 +16,7 @@ export default {
         'cream-dark': '#C4BEB3', // Borders
       },
       fontFamily: {
+        serif: ['"Cormorant Garamond"', 'Georgia', 'serif'],
         heading: ['"Cormorant Garamond"', 'Georgia', 'serif'],
         body: ['Montserrat', 'sans-serif'],
       },

@@ -1,9 +1,11 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Card from '../../components/Card';
 import Table from '../../components/Table';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
-import { Plus, Search, Filter, Trash2, Edit2, X, CheckCircle, RotateCcw, Compass, MapPin, Calendar, UserCheck, Layers, FileText, CheckSquare, Sparkles, Truck, ShoppingBag, Download } from 'lucide-react';
+import ProjectTracker from '../../components/ProjectTracker';
+import { Plus, Search, Filter, Trash2, Edit2, X, CheckCircle, RotateCcw, Compass, MapPin, Calendar, UserCheck, Layers, FileText, CheckSquare, Sparkles, Truck, ShoppingBag, Download, Camera } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { mockProjects, mockLeads, mockPartners } from '../../utils/mockData';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../../context/LanguageContext';
@@ -11,9 +13,19 @@ import { tValue } from '../../utils/translator';
 
 export default function Projects() {
   const { t, language } = useLanguage();
+  const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [leadsList, setLeadsList] = useState([]);
   const [partnersList, setPartnersList] = useState([]);
+  const [activeProjectDetail, setActiveProjectDetail] = useState(null);
+
+  useEffect(() => {
+    const handleResetProjectsView = () => {
+      setActiveProjectDetail(null);
+    };
+    window.addEventListener('app_reset_projects_view', handleResetProjectsView);
+    return () => window.removeEventListener('app_reset_projects_view', handleResetProjectsView);
+  }, []);
   
   // Search & Filters State
   const [activeTab, setActiveTab] = useState('All');
@@ -289,7 +301,14 @@ export default function Projects() {
   };
 
   const mainColumns = [
-    { header: 'ID', accessor: 'id' },
+    { 
+      header: 'ID', 
+      render: (row) => (
+        <span className="font-mono text-xs font-bold text-primary">
+          {row.id}
+        </span>
+      ) 
+    },
     { 
       header: 'Category Division',
       style: { minWidth: '220px' },
@@ -318,13 +337,9 @@ export default function Projects() {
     { 
       header: 'Project Name', 
       render: (row) => (
-        <button
-          onClick={() => setBlueprintModalProject(row)}
-          className="font-bold text-primary hover:underline text-left text-xs"
-          title="Click to view technical blueprint modal"
-        >
-          {translateProjectName(row.name)}
-        </button>
+        <span className="font-bold text-primary text-xs flex items-center gap-1">
+          <span>{translateProjectName(row.name)}</span>
+        </span>
       )
     },
     { header: 'Customer', accessor: 'customer' },
@@ -379,15 +394,6 @@ export default function Projects() {
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => setBlueprintModalProject(row)}
-            className="text-primary hover:bg-[#D6CFC2]/40"
-            title="Open Technical Blueprint"
-          >
-            <Compass className="w-3.5 h-3.5 mr-1" /> Blueprint
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
             onClick={() => handleOpenEditModal(row)}
             className="text-dark/70 hover:bg-[#D6CFC2]/40"
           >
@@ -407,7 +413,14 @@ export default function Projects() {
   ];
 
   const orderColumns = [
-    { header: 'Order ID', accessor: 'id' },
+    { 
+      header: 'Order ID', 
+      render: (row) => (
+        <span className="font-mono text-xs font-bold text-primary">
+          {row.id}
+        </span>
+      ) 
+    },
     { 
       header: language === 'EN' ? 'Product Division' : 'Product Categorie',
       style: { minWidth: '180px' },
@@ -426,7 +439,11 @@ export default function Projects() {
     },
     { 
       header: language === 'EN' ? 'Webshop Item' : 'Webshop Artikel', 
-      render: (row) => <span className="font-bold text-dark text-xs">{translateProjectName(row.name)}</span>
+      render: (row) => (
+        <span className="font-bold text-primary text-xs flex items-center gap-1">
+          <span>{translateProjectName(row.name)}</span>
+        </span>
+      )
     },
     { header: language === 'EN' ? 'Customer' : 'Klant', accessor: 'customer' },
     { 
@@ -454,6 +471,15 @@ export default function Projects() {
       header: language === 'EN' ? 'Actions' : 'Acties',
       render: (row) => (
         <div className="flex items-center gap-1.5 whitespace-nowrap">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => navigate('/admin/photos')}
+            className="text-primary hover:bg-[#D6CFC2]/40"
+            title="Manage Project Photos"
+          >
+            <Camera className="w-3.5 h-3.5 mr-1 text-accent" /> {language === 'EN' ? 'Photos' : 'Foto\'s'}
+          </Button>
           <Button 
             variant="ghost" 
             size="sm" 
@@ -597,8 +623,31 @@ export default function Projects() {
     showToast(`Blueprint PDF geopend voor afdrukken/download: ${fileName}`);
   };
 
+  const [adminNotifs, setAdminNotifs] = useState([]);
+
+  useEffect(() => {
+    const loadNotifs = () => {
+      try {
+        const saved = localStorage.getItem('app_admin_notifications');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) setAdminNotifs(parsed);
+        }
+      } catch (e) {}
+    };
+    loadNotifs();
+    window.addEventListener('storage', loadNotifs);
+    window.addEventListener('app_data_changed', loadNotifs);
+    return () => {
+      window.removeEventListener('storage', loadNotifs);
+      window.removeEventListener('app_data_changed', loadNotifs);
+    };
+  }, []);
+
+  const unreadPhotoNotifs = adminNotifs.filter(n => n.type === 'partner_photo_upload');
+
   return (
-    <div className="space-y-6 text-[#4A4A43] font-body">
+    <div className="space-y-6 text-[#4A4A43] font-body relative">
       {/* Toast Notification */}
       <AnimatePresence>
         {toastMsg && (
@@ -614,7 +663,22 @@ export default function Projects() {
         )}
       </AnimatePresence>
 
-      {/* Page Header */}
+      {/* DEDICATED PROJECT DETAIL TRACKER VIEW (Full Page Replace) */}
+      {activeProjectDetail ? (
+        <ProjectTracker
+          project={activeProjectDetail}
+          partnersList={partnersList}
+          onClose={() => setActiveProjectDetail(null)}
+          onUpdateProject={(updated) => {
+            setActiveProjectDetail(updated);
+            const updatedProjects = projects.map(p => p.id === updated.id ? updated : p);
+            setProjects(updatedProjects);
+            localStorage.setItem('app_projects', JSON.stringify(updatedProjects));
+          }}
+        />
+      ) : (
+        <>
+          {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-heading font-bold text-primary">
@@ -629,6 +693,43 @@ export default function Projects() {
           {language === 'EN' ? '+ New Project' : '+ Nieuw Project'}
         </Button>
       </div>
+
+      {/* Admin Notification Banner for Partner Photo Uploads */}
+      <AnimatePresence>
+        {unreadPhotoNotifs.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="p-3.5 bg-amber-500/15 border border-amber-500/40 rounded-xl text-amber-950 text-xs flex flex-wrap items-center justify-between gap-3 shadow-xs"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-amber-600 text-white flex items-center justify-center font-bold flex-shrink-0">
+                📸
+              </div>
+              <div className="min-w-0">
+                <span className="font-bold block truncate">
+                  {unreadPhotoNotifs[0].title} — {unreadPhotoNotifs[0].message}
+                </span>
+                <span className="text-[10px] text-amber-900/80 font-mono">
+                  {unreadPhotoNotifs[0].date} om {unreadPhotoNotifs[0].time} • Vakman {unreadPhotoNotifs[0].partnerName}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                const cleared = adminNotifs.filter(n => n.id !== unreadPhotoNotifs[0].id);
+                setAdminNotifs(cleared);
+                localStorage.setItem('app_admin_notifications', JSON.stringify(cleared));
+                showToast('Melding gemarkeerd als gelezen.');
+              }}
+              className="px-3 py-1 bg-amber-700 hover:bg-amber-800 text-white font-bold rounded-lg text-[11px] flex-shrink-0"
+            >
+              ✓ Marker als Gelezen
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-[#D6CFC2] pb-2">
@@ -885,6 +986,8 @@ export default function Projects() {
           </div>
         )}
       </AnimatePresence>
+        </>
+      )}
     </div>
   );
 }

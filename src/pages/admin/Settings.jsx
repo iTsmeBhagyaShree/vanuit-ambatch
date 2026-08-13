@@ -1,9 +1,9 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import Badge from '../../components/Badge';
-import { Building2, Upload, Palette, Bell, Save, CheckCircle, Users, Plus, Trash2, Edit2, Shield, Sliders, Hash, Percent, X, UserPlus, ToggleLeft, ToggleRight, FileText, MessageSquare } from 'lucide-react';
+import { Building2, Upload, Palette, Bell, Save, CheckCircle, Users, Plus, Trash2, Edit2, Shield, Sliders, Hash, Percent, X, UserPlus, ToggleLeft, ToggleRight, FileText, MessageSquare, Layers, Wrench, FileCode, FolderPlus, DollarSign, TrendingUp, PieChart } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
 export default function Settings() {
@@ -29,9 +29,22 @@ export default function Settings() {
     return saved ? JSON.parse(saved) : {
       template1: "Dear {client_name}, thank you for reaching out to Vanuit Ambacht regarding your {product_category} inquiry. We would love to discuss your requirements in detail. When would it suit you to talk? Kind regards, Tim & Bram - Vanuit Ambacht",
       template2: "Dear {client_name}, we wanted to follow up regarding your {product_category} inquiry. Please let us know if you have any questions or when you would be available for a brief phone call. Kind regards, Tim & Bram - Vanuit Ambacht",
-      template3: "Dear {client_name}, following up regarding your {product_category} project with Vanuit Ambacht. We are happy to help you finalize the specifications whenever you are ready. Best regards, Tim & Bram - Vanuit Ambacht"
     };
   });
+  const [addTemplateModalOpen, setAddTemplateModalOpen] = useState(false);
+  const [templateForm, setTemplateForm] = useState({ title: '', text: '' });
+
+  const handleAddTemplateSubmit = (e) => {
+    e.preventDefault();
+    if (!templateForm.text.trim()) return showToast('Vul een berichtsjabloon in.');
+    const key = `template_${Date.now()}`;
+    const updated = { ...messageTemplates, [key]: templateForm.text.trim() };
+    setMessageTemplates(updated);
+    localStorage.setItem('app_auto_templates_v1', JSON.stringify(updated));
+    showToast(language === 'EN' ? 'New message template added!' : 'Nieuw berichtsjabloon toegevoegd!');
+    setTemplateForm({ title: '', text: '' });
+    setAddTemplateModalOpen(false);
+  };
 
   // -------------------------------------------------------------
   // 1. COMPANY DETAILS & NUMBERING STATE
@@ -96,11 +109,17 @@ export default function Settings() {
   // -------------------------------------------------------------
   // 3. FIELD-SET CONFIGURATION STATE (PRD 4.12)
   // -------------------------------------------------------------
-  const [selectedProductType, setSelectedProductType] = useState('buitenverblijf'); // 'buitenverblijf' | 'overkapping' | 'poolhouse'
+  const [selectedProductType, setSelectedProductType] = useState('buitenkeuken'); // 'buitenkeuken' | 'buitenverblijf' | 'overkapping' | 'poolhouse'
   
   const [fieldSets, setFieldSets] = useState(() => {
     const saved = localStorage.getItem('app_fieldset_config');
     return saved ? JSON.parse(saved) : {
+      buitenkeuken: [
+        { id: 'f-001', label: 'Werkblad Type & Afwerking', type: 'select', options: ['Gepolijst Beton Cire (8cm Zwart)', 'Graniet Zwart Mat', 'RVS Werkblad', 'Massief Teak Hout'], required: true },
+        { id: 'f-002', label: 'Houtsoort Onderstel', type: 'select', options: ['Thermo Fraké Hout (Recommended)', 'Massief Teakhout', 'Eikenhout', 'Zwart Gepoedercoat Staal'], required: true },
+        { id: 'f-003', label: 'Inbouw Kamado Cutout', type: 'select', options: ['Big Green Egg Large', 'Kamado Joe Classic III', 'Bastard Large', 'Geen Kamado Cutout'], required: true },
+        { id: 'f-004', label: 'Inbouw RVS Spoelbak & Kraan', type: 'select', options: ['Zwarte Mengkraan + RVS Spoelbak', 'Koperen Kraan + Keramische Bak', 'Geen spoelbak'], required: false }
+      ],
       buitenverblijf: [
         { id: 'f-101', label: 'Isolatie Type (Dak & Wand)', type: 'select', options: ['PIR 80mm', 'Steenwol 100mm', 'Geen isolatie'], required: true },
         { id: 'f-102', label: 'Glaswand Optie', type: 'select', options: ['Glazen schuifwanden (5-rail)', 'Vaste glazen wanden', 'Geen glas'], required: true },
@@ -127,6 +146,198 @@ export default function Settings() {
     optionsStr: '',
     required: true
   });
+
+  // -------------------------------------------------------------
+  // 5. DYNAMIC CATEGORIES MANAGEMENT STATE
+  // -------------------------------------------------------------
+  const [dynamicCategories, setDynamicCategories] = useState(() => {
+    const saved = localStorage.getItem('app_dynamic_categories');
+    return saved ? JSON.parse(saved) : [
+      { id: 'cat-1', name: 'Buitenkeukens', icon: '🔥', description: 'Maatwerk houten & beton buitenkeukens', status: 'Actief' },
+      { id: 'cat-2', name: 'Kliko-ombouw', icon: '🗑️', description: 'Duurzame bergingen voor afvalcontainers', status: 'Actief' },
+      { id: 'cat-3', name: 'Snijplanken', icon: '🪵', description: 'Luxe houten snijplanken & hakblokken', status: 'Actief' },
+      { id: 'cat-4', name: 'Overkappingen', icon: '☂️', description: 'Eiken gebint & lamellen overkappingen', status: 'Actief' }
+    ];
+  });
+  const [addCategoryModalOpen, setAddCategoryModalOpen] = useState(false);
+  const [categoryForm, setCategoryForm] = useState({ name: '', icon: '🪵', description: '' });
+
+  const handleAddCategorySubmit = (e) => {
+    e.preventDefault();
+    if (!categoryForm.name.trim()) return showToast('Vul een categorienaam in.');
+    const newCat = {
+      id: `cat-${Date.now()}`,
+      name: categoryForm.name.trim(),
+      icon: categoryForm.icon || '📦',
+      description: categoryForm.description || 'Nieuwe product categorie',
+      status: 'Actief'
+    };
+    const updated = [...dynamicCategories, newCat];
+    setDynamicCategories(updated);
+    localStorage.setItem('app_dynamic_categories', JSON.stringify(updated));
+    window.dispatchEvent(new Event('app_data_changed'));
+    showToast(`Nieuwe categorie "${newCat.name}" aangemaakt!`);
+    setCategoryForm({ name: '', icon: '🪵', description: '' });
+    setAddCategoryModalOpen(false);
+  };
+
+  const handleDeleteCategory = (catId) => {
+    const updated = dynamicCategories.filter(c => c.id !== catId);
+    setDynamicCategories(updated);
+    localStorage.setItem('app_dynamic_categories', JSON.stringify(updated));
+    window.dispatchEvent(new Event('app_data_changed'));
+    showToast('Categorie verwijderd.');
+  };
+
+  // -------------------------------------------------------------
+  // 6. PARTNER PRICE BREAKDOWN CONFIGURATION STATE (NESTED SECTIONS & FIELDS)
+  // -------------------------------------------------------------
+  const [partnerBreakdownConfig, setPartnerBreakdownConfig] = useState(() => {
+    const saved = localStorage.getItem('app_partner_breakdown_sections_v2');
+    return saved ? JSON.parse(saved) : [
+      {
+        id: 'sec-materials',
+        title: 'Material Cost (Hout & Grondstoffen)',
+        icon: '🪵',
+        fields: [
+          { id: 'f-mat-1', label: 'Hout & Grondstoffen Koste (€)', required: true },
+          { id: 'f-mat-2', label: 'Aanrechtblad & Afwerking (€)', required: true }
+        ]
+      },
+      {
+        id: 'sec-labor',
+        title: 'Labour Cost (Arbeid & Ambacht)',
+        icon: '🔨',
+        fields: [
+          { id: 'f-lab-1', label: 'Werkplaats Fabricage & Uren (€)', required: true }
+        ]
+      },
+      {
+        id: 'sec-transport',
+        title: 'Transport Cost (Transport & Logistiek)',
+        icon: '🚚',
+        fields: [
+          { id: 'f-tra-1', label: 'Vracht & Leveringskoste (€)', required: true }
+        ]
+      },
+      {
+        id: 'sec-installation',
+        title: 'Installation Cost (Montage & Plaatsing)',
+        icon: '🏗️',
+        fields: [
+          { id: 'f-ins-1', label: 'Montage op Locatie (€)', required: true }
+        ]
+      },
+      {
+        id: 'sec-other',
+        title: 'Other Cost (Overige Kosten & Vergunning)',
+        icon: '💼',
+        fields: [
+          { id: 'f-oth-1', label: 'Overige Werkzaamheden (€)', required: false }
+        ]
+      }
+    ];
+  });
+
+  // -------------------------------------------------------------
+  // 7. PROFIT & LOSS CONFIGURATION & TARGET MARGINS STATE
+  // -------------------------------------------------------------
+  const [plConfig, setPlConfig] = useState(() => {
+    const saved = localStorage.getItem('app_pl_config_v1') || localStorage.getItem('app_pl_settings');
+    return saved ? JSON.parse(saved) : {
+      targetMargin: 30,
+      warningMargin: 15,
+      monthlyOverhead: 2500,
+      categoryTargets: {
+        'Outdoor Kitchens': 35,
+        'Canopies': 30,
+        'Bin Storage': 25,
+        'Poolhouse': 40,
+        'Terraces': 28
+      }
+    };
+  });
+
+  const savePlConfig = () => {
+    localStorage.setItem('app_pl_config_v1', JSON.stringify(plConfig));
+    localStorage.setItem('app_pl_settings', JSON.stringify(plConfig));
+    window.dispatchEvent(new Event('app_data_changed'));
+    showToast(language === 'EN' ? 'Profit & Loss target margins & overhead saved!' : 'Winst & Verlies doelstellingen & parameters opgeslagen!');
+  };
+
+  const [addSectionModalOpen, setAddSectionModalOpen] = useState(false);
+  const [sectionForm, setSectionForm] = useState({ title: '', icon: '🪵' });
+  const [addFieldToSectionModalOpen, setAddFieldToSectionModalOpen] = useState(false);
+  const [targetSectionId, setTargetSectionId] = useState(null);
+  const [sectionFieldForm, setSectionFieldForm] = useState({ label: '', required: true });
+
+  const handleAddSectionSubmit = (e) => {
+    e.preventDefault();
+    if (!sectionForm.title.trim()) return showToast('Vul een sectienaam in.');
+    const newSec = {
+      id: `sec-${Date.now()}`,
+      title: sectionForm.title.trim(),
+      icon: sectionForm.icon || '📦',
+      fields: [
+        { id: `f-${Date.now()}`, label: 'Standaard Koste (€)', required: true }
+      ]
+    };
+    const updated = [...partnerBreakdownConfig, newSec];
+    setPartnerBreakdownConfig(updated);
+    localStorage.setItem('app_partner_breakdown_sections_v2', JSON.stringify(updated));
+    localStorage.setItem('app_partner_breakdown_config', JSON.stringify(updated));
+    window.dispatchEvent(new Event('app_data_changed'));
+    showToast(`Nieuwe Prijsopbouw Sectie "${newSec.title}" toegevoegd!`);
+    setSectionForm({ title: '', icon: '🪵' });
+    setAddSectionModalOpen(false);
+  };
+
+  const handleAddFieldToSectionSubmit = (e) => {
+    e.preventDefault();
+    if (!sectionFieldForm.label.trim() || !targetSectionId) return showToast('Vul een veldnaam in.');
+    const newField = {
+      id: `f-${Date.now()}`,
+      label: sectionFieldForm.label.trim(),
+      required: sectionFieldForm.required
+    };
+    const updated = partnerBreakdownConfig.map(sec => {
+      if (sec.id === targetSectionId) {
+        return { ...sec, fields: [...(sec.fields || []), newField] };
+      }
+      return sec;
+    });
+    setPartnerBreakdownConfig(updated);
+    localStorage.setItem('app_partner_breakdown_sections_v2', JSON.stringify(updated));
+    localStorage.setItem('app_partner_breakdown_config', JSON.stringify(updated));
+    window.dispatchEvent(new Event('app_data_changed'));
+    showToast(`Nieuw veld "${newField.label}" toegevoegd aan sectie!`);
+    setSectionFieldForm({ label: '', required: true });
+    setAddFieldToSectionModalOpen(false);
+    setTargetSectionId(null);
+  };
+
+  const handleDeleteSection = (secId) => {
+    const updated = partnerBreakdownConfig.filter(s => s.id !== secId);
+    setPartnerBreakdownConfig(updated);
+    localStorage.setItem('app_partner_breakdown_sections_v2', JSON.stringify(updated));
+    localStorage.setItem('app_partner_breakdown_config', JSON.stringify(updated));
+    window.dispatchEvent(new Event('app_data_changed'));
+    showToast('Sectie verwijderd.');
+  };
+
+  const handleDeleteFieldFromSection = (secId, fieldId) => {
+    const updated = partnerBreakdownConfig.map(sec => {
+      if (sec.id === secId) {
+        return { ...sec, fields: sec.fields.filter(f => f.id !== fieldId) };
+      }
+      return sec;
+    });
+    setPartnerBreakdownConfig(updated);
+    localStorage.setItem('app_partner_breakdown_sections_v2', JSON.stringify(updated));
+    localStorage.setItem('app_partner_breakdown_config', JSON.stringify(updated));
+    window.dispatchEvent(new Event('app_data_changed'));
+    showToast('Veld uit sectie verwijderd.');
+  };
 
   // Sync colors to CSS variables
   useEffect(() => {
@@ -276,13 +487,13 @@ export default function Settings() {
           <span>{language === 'EN' ? 'Company Details' : 'Bedrijfsgegevens & Nummering'}</span>
         </button>
         <button
-          onClick={() => setActiveTab('Users')}
+          onClick={() => setActiveTab('Categories')}
           className={`px-3.5 py-2 rounded-xl text-xs font-bold font-body transition-all flex items-center gap-2 whitespace-nowrap flex-shrink-0 ${
-            activeTab === 'Users' ? 'bg-primary text-cream shadow-sm' : 'bg-white/80 text-dark/70 hover:bg-[#EDE8DF]'
+            activeTab === 'Categories' ? 'bg-primary text-cream shadow-sm' : 'bg-white/80 text-dark/70 hover:bg-[#EDE8DF]'
           }`}
         >
-          <Users className="w-4 h-4 flex-shrink-0 text-primary" />
-          <span>{language === 'EN' ? 'User Management' : 'Gebruikersbeheer'}</span>
+          <Layers className="w-4 h-4 flex-shrink-0 text-primary" />
+          <span>{language === 'EN' ? 'Categories Manager' : 'Product Categorieën'}</span>
         </button>
         <button
           onClick={() => setActiveTab('FieldSet')}
@@ -292,6 +503,42 @@ export default function Settings() {
         >
           <Sliders className="w-4 h-4 flex-shrink-0 text-primary" />
           <span>{language === 'EN' ? 'Product Fields Configurator' : 'Veldinstellingen Configuratie'}</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('PartnerBreakdown')}
+          className={`px-3.5 py-2 rounded-xl text-xs font-bold font-body transition-all flex items-center gap-2 whitespace-nowrap flex-shrink-0 ${
+            activeTab === 'PartnerBreakdown' ? 'bg-primary text-cream shadow-sm' : 'bg-white/80 text-dark/70 hover:bg-[#EDE8DF]'
+          }`}
+        >
+          <Wrench className="w-4 h-4 flex-shrink-0 text-primary" />
+          <span>{language === 'EN' ? 'Partner Cost Breakdown' : 'Partner Prijsopbouw'}</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('ProfitLossConfig')}
+          className={`px-3.5 py-2 rounded-xl text-xs font-bold font-body transition-all flex items-center gap-2 whitespace-nowrap flex-shrink-0 ${
+            activeTab === 'ProfitLossConfig' ? 'bg-primary text-cream shadow-sm' : 'bg-white/80 text-dark/70 hover:bg-[#EDE8DF]'
+          }`}
+        >
+          <TrendingUp className="w-4 h-4 flex-shrink-0 text-primary" />
+          <span>{language === 'EN' ? 'P&L Target Margins' : 'Winst & Verlies Marges'}</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('Users')}
+          className={`px-3.5 py-2 rounded-xl text-xs font-bold font-body transition-all flex items-center gap-2 whitespace-nowrap flex-shrink-0 ${
+            activeTab === 'Users' ? 'bg-primary text-cream shadow-sm' : 'bg-white/80 text-dark/70 hover:bg-[#EDE8DF]'
+          }`}
+        >
+          <Users className="w-4 h-4 flex-shrink-0 text-primary" />
+          <span>{language === 'EN' ? 'User Management' : 'Gebruikersbeheer'}</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('QuoteTemplate')}
+          className={`px-3.5 py-2 rounded-xl text-xs font-bold font-body transition-all flex items-center gap-2 whitespace-nowrap flex-shrink-0 ${
+            activeTab === 'QuoteTemplate' ? 'bg-primary text-cream shadow-sm' : 'bg-white/80 text-dark/70 hover:bg-[#EDE8DF]'
+          }`}
+        >
+          <FileText className="w-4 h-4 flex-shrink-0 text-primary" />
+          <span>{language === 'EN' ? 'Quote Template Fields' : 'Offerte Sjabloon Velden'}</span>
         </button>
         <button
           onClick={() => setActiveTab('Templates')}
@@ -440,6 +687,139 @@ export default function Settings() {
       )}
 
       {/* ========================================================= */}
+      {/* DYNAMIC CATEGORIES MANAGER TAB                            */}
+      {/* ========================================================= */}
+      {activeTab === 'Categories' && (
+        <div className="space-y-6 font-body text-[#4A4A43]">
+          <div className="bg-[#EDE8DF]/60 p-4 rounded-xl border border-[#D6CFC2] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div>
+              <h3 className="font-heading font-bold text-primary text-base">
+                {language === 'EN' ? 'Dynamic Product Categories Manager' : 'Product Categorieën Beheerder'}
+              </h3>
+              <p className="text-dark/60 text-xs">
+                {language === 'EN'
+                  ? 'Add or remove product categories dynamically without updating code. Changes update all lead filters & forms.'
+                  : 'Voeg productcategorieën toe of verwijder ze zonder code. Wijzigingen worden overal direct bijgewerkt.'}
+              </p>
+            </div>
+            <Button icon={Plus} onClick={() => setAddCategoryModalOpen(true)}>
+              {language === 'EN' ? '+ Add Category' : '+ Categorie Toevoegen'}
+            </Button>
+          </div>
+
+          <Card title={language === 'EN' ? 'Active Product Categories' : 'Actieve Product Categorieën'} icon={Layers} p="p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {dynamicCategories.map((cat) => (
+                <div key={cat.id} className="p-4 bg-white border border-[#D6CFC2] rounded-xl flex items-start justify-between gap-3 shadow-2xs">
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl p-2 bg-[#EDE8DF] rounded-xl">{cat.icon}</span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-primary text-sm font-heading">{cat.name}</h4>
+                        <Badge variant="success" className="text-[9px]">{cat.status || 'Actief'}</Badge>
+                      </div>
+                      <p className="text-xs text-dark/60 mt-1 font-body">{cat.description}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteCategory(cat.id)}
+                    className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Delete Category"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* DYNAMIC PARTNER COST BREAKDOWN CONFIGURATOR TAB (NESTED SECTIONS & FIELDS) */}
+      {/* ========================================================= */}
+      {activeTab === 'PartnerBreakdown' && (
+        <div className="space-y-6 font-body text-[#4A4A43]">
+          <div className="bg-[#EDE8DF]/60 p-4 rounded-xl border border-[#D6CFC2] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div>
+              <h3 className="font-heading font-bold text-primary text-base">
+                {language === 'EN' ? 'Dynamic Partner Price Breakdown Configurator' : 'Partner Prijsopbouw Secties & Velden'}
+              </h3>
+              <p className="text-dark/60 text-xs">
+                {language === 'EN'
+                  ? 'Define dynamic cost breakdown sections and specific cost input fields for craftsman partners.'
+                  : 'Beheer dynamische kostensecties en specifieke invulvelden voor partner prijsaanvragen.'}
+              </p>
+            </div>
+            <Button icon={Plus} onClick={() => setAddSectionModalOpen(true)}>
+              {language === 'EN' ? '+ Add New Section' : '+ Nieuwe Sectie Toevoegen'}
+            </Button>
+          </div>
+
+          <div className="space-y-4">
+            {partnerBreakdownConfig.map((sec) => (
+              <Card 
+                key={sec.id} 
+                title={`${sec.icon || '📦'} ${sec.title}`} 
+                icon={Wrench} 
+                p="p-4"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between border-b border-[#D6CFC2]/60 pb-2">
+                    <span className="text-xs font-bold text-dark/60 uppercase">
+                      {language === 'EN' ? 'Configured Fields in Section:' : 'Velden in deze Sectie:'}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        icon={Plus}
+                        onClick={() => {
+                          setTargetSectionId(sec.id);
+                          setAddFieldToSectionModalOpen(true);
+                        }}
+                        className="text-xs py-1 px-2.5 bg-white text-primary border-primary/30 hover:bg-primary/5"
+                      >
+                        {language === 'EN' ? '+ Add Field' : '+ Veld Toevoegen'}
+                      </Button>
+                      <button
+                        onClick={() => handleDeleteSection(sec.id)}
+                        className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete Entire Section"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {sec.fields && sec.fields.map((field) => (
+                      <div key={field.id} className="p-3 bg-[#F8F7F4] border border-[#D6CFC2] rounded-xl flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="w-3.5 h-3.5 text-primary/70" />
+                          <div>
+                            <span className="font-bold text-dark">{field.label}</span>
+                            {field.required && <Badge variant="warning" className="text-[8px] ml-1.5">Required (€)</Badge>}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteFieldFromSection(sec.id, field.id)}
+                          className="p-1 text-red-400 hover:text-red-600 rounded"
+                          title="Delete Field"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
       {/* TAB 2: GEBRUIKERSBEHEER & ROLES MANAGEMENT (PRD 4.12) */}
       {/* ========================================================= */}
       {activeTab === 'Users' && (
@@ -538,10 +918,11 @@ export default function Settings() {
           </div>
 
           {/* Product Type Sub-Tabs */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {[
-              { id: 'buitenverblijf', label: language === 'EN' ? '🏡 Outdoor Living' : '🏡 Buitenverblijf' },
-              { id: 'overkapping', label: language === 'EN' ? '☂️ Canopy' : '☂️ Overkapping' },
+              { id: 'buitenkeuken', label: language === 'EN' ? '🍳 Outdoor Kitchens' : '🍳 Buitenkeukens' },
+              { id: 'buitenverblijf', label: language === 'EN' ? '🏡 Outdoor Buildings' : '🏡 Buitenverblijven' },
+              { id: 'overkapping', label: language === 'EN' ? '☂️ Canopy' : '☂️ Overkappingen' },
               { id: 'poolhouse', label: language === 'EN' ? '🏊 Poolhouse' : '🏊 Poolhouse' }
             ].map((pt) => (
               <button
@@ -599,10 +980,112 @@ export default function Settings() {
       )}
 
       {/* ========================================================= */}
+      {/* TAB: OFFERTE SJABLOON DYNAMIC FIELDS CONFIGURATOR         */}
+      {/* ========================================================= */}
+      {activeTab === 'QuoteTemplate' && (
+        <div className="space-y-6 font-body">
+          <Card 
+            title={language === 'EN' ? 'Quote Proposal Dynamic Field Defaults' : 'Offerte Sjabloon Dynamische Velden & Standaardwaarden'} 
+            icon={FileText}
+            topRightAction={{
+              label: language === 'EN' ? '+ Add Presets' : '+ Standaardopties Beheren',
+              icon: Plus,
+              onClick: () => showToast(language === 'EN' ? 'Template presets saved automatically!' : 'Sjabloon opties automatisch opgeslagen!')
+            }}
+          >
+            <div className="space-y-6 text-xs text-dark">
+              <p className="text-dark/60">
+                {language === 'EN'
+                  ? 'Configure the dynamic specifications (Wood Types, BBQ Integrations, Build Times, Payment Terms) that render inside the 6-Page Branded PDF Proposal.'
+                  : 'Beheer de dynamische specificaties (Houtsoorten, BBQ Inbouw, Bouwtijden, Betalingstermijnen) die automatisch in de 6-Pagina Merkofferte worden geladen.'}
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 bg-[#F8F7F4] rounded-xl border border-[#D6CFC2] space-y-2">
+                  <label className="font-bold text-primary text-xs uppercase tracking-wider block">🪵 Houtsoorten & Materiaal Opties</label>
+                  <input
+                    type="text"
+                    defaultValue="Douglas, Thermo Fraké, Eikenhout, Padouk, Massief Teak"
+                    onChange={(e) => {
+                      localStorage.setItem('app_wood_types_config', e.target.value);
+                      showToast('Houtsoorten opgeslagen!');
+                    }}
+                    className="w-full p-2.5 bg-white border border-[#D6CFC2] rounded-lg text-xs font-semibold"
+                  />
+                  <p className="text-[10px] text-dark/50">Komma gescheiden lijst van beschikbare houtsoorten voor offertes.</p>
+                </div>
+
+                <div className="p-4 bg-[#F8F7F4] rounded-xl border border-[#D6CFC2] space-y-2">
+                  <label className="font-bold text-primary text-xs uppercase tracking-wider block">🔥 BBQ & Apparatuur Integratie Presets</label>
+                  <input
+                    type="text"
+                    defaultValue="Big Green Egg Large, Kamado Joe Classic, Weber Genesis, RVS Spoelbak & Kraan"
+                    onChange={(e) => {
+                      localStorage.setItem('app_bbq_presets_config', e.target.value);
+                      showToast('BBQ inbouw opties opgeslagen!');
+                    }}
+                    className="w-full p-2.5 bg-white border border-[#D6CFC2] rounded-lg text-xs font-semibold"
+                  />
+                  <p className="text-[10px] text-dark/50">Inbouwopties voor keukens en buitenverblijven.</p>
+                </div>
+
+                <div className="p-4 bg-[#F8F7F4] rounded-xl border border-[#D6CFC2] space-y-2">
+                  <label className="font-bold text-primary text-xs uppercase tracking-wider block">⏱️ Standaard Levertijd & Bouwtijd</label>
+                  <input
+                    type="text"
+                    defaultValue="2 tot 3 weken op locatie, na schouw"
+                    onChange={(e) => {
+                      localStorage.setItem('app_buildtime_config', e.target.value);
+                      showToast('Standaard levertijd opgeslagen!');
+                    }}
+                    className="w-full p-2.5 bg-white border border-[#D6CFC2] rounded-lg text-xs font-semibold"
+                  />
+                  <p className="text-[10px] text-dark/50">Wordt getoond in het specificatieblok op pagina 3 van de offerte.</p>
+                </div>
+
+                <div className="p-4 bg-[#F8F7F4] rounded-xl border border-[#D6CFC2] space-y-2">
+                  <label className="font-bold text-primary text-xs uppercase tracking-wider block">💶 Betalingsschema (Termijnen)</label>
+                  <select
+                    defaultValue="50/50"
+                    onChange={(e) => {
+                      localStorage.setItem('app_payment_scheme_config', e.target.value);
+                      showToast(`Betalingsschema gewijzigd naar ${e.target.value}!`);
+                    }}
+                    className="w-full p-2.5 bg-white border border-[#D6CFC2] rounded-lg text-xs font-bold text-primary"
+                  >
+                    <option value="50/50">50% Bij Akkoord & 50% Bij Levering</option>
+                    <option value="40/40/20">40% Bij Akkoord, 40% Bij Start Bouw, 20% Bij Oplevering</option>
+                  </select>
+                  <p className="text-[10px] text-dark/50">Bepaalt de termijnkaartjes op pagina 4 van de offerte.</p>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* ========================================================= */}
       {/* TAB 4: AUTO-MESSAGE TEMPLATES MANAGER (SECTION 2.3)       */}
       {/* ========================================================= */}
       {activeTab === 'Templates' && (
         <div className="space-y-6">
+          {/* Consistent Top Action Header Banner */}
+          <div className="bg-[#EDE8DF]/60 p-4 rounded-xl border border-[#D6CFC2] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div>
+              <h3 className="font-heading font-bold text-primary text-base">
+                {language === 'EN' ? 'Auto-Message Templates Manager' : 'Berichtsjablonen Beheerder'}
+              </h3>
+              <p className="text-dark/60 text-xs">
+                {language === 'EN'
+                  ? 'Configure automated WhatsApp & Email message templates for client communication.'
+                  : 'Beheer automatische WhatsApp & E-mail berichtsjablonen voor klantomgang.'}
+              </p>
+            </div>
+            <Button icon={Plus} onClick={() => setAddTemplateModalOpen(true)}>
+              {language === 'EN' ? '+ Add New Template' : '+ Nieuw Sjabloon Toevoegen'}
+            </Button>
+          </div>
+
           <Card 
             title={language === 'EN' ? 'Auto-Message Templates Manager' : 'Berichtsjablonen Beheerder'} 
             icon={MessageSquare}
@@ -685,6 +1168,68 @@ export default function Settings() {
         </div>
       )}
 
+      {/* ========================================================= */}
+      {/* TAB 8: PROFIT & LOSS TARGETS & OVERHEAD PARAMETERS */}
+      {/* ========================================================= */}
+      {activeTab === 'ProfitLossConfig' && (
+        <div className="space-y-6">
+          <Card title={language === 'EN' ? 'Profit & Loss Configuration & Target Margins' : 'Winst & Verlies Configuratie & Marge Doelstellingen'} icon={TrendingUp}>
+            <div className="space-y-4 text-xs font-body">
+              <p className="text-dark/60">
+                {language === 'EN'
+                  ? 'Configure target profit margins, warning thresholds, and fixed monthly overhead. Changes here dynamically update Profit & Loss calculations across the system.'
+                  : 'Stel hier de gewenste winstmarge doelen, waarschuwingsdrempels en vaste overheadkosten in. Wijzigingen werken direct door op alle Winst & Verlies berekeningen.'}
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 bg-white rounded-xl border border-[#D6CFC2] space-y-2">
+                  <label className="block font-bold text-primary uppercase text-[10px] flex items-center gap-1">
+                    <Percent className="w-4 h-4 text-emerald-700" /> {language === 'EN' ? 'Target Gross Margin (%)' : 'Streef Winstmarge (%)'}
+                  </label>
+                  <input
+                    type="number"
+                    value={plConfig.targetMargin}
+                    onChange={e => setPlConfig(prev => ({ ...prev, targetMargin: parseFloat(e.target.value) || 0 }))}
+                    className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg font-bold text-emerald-800 text-sm"
+                  />
+                  <p className="text-[10px] text-dark/50">{language === 'EN' ? 'Projects at or above this margin are marked Healthy.' : 'Projecten met deze marge worden als gezond aangemerkt.'}</p>
+                </div>
+
+                <div className="p-4 bg-white rounded-xl border border-[#D6CFC2] space-y-2">
+                  <label className="block font-bold text-primary uppercase text-[10px] flex items-center gap-1">
+                    <Percent className="w-4 h-4 text-amber-600" /> {language === 'EN' ? 'Warning Margin Threshold (%)' : 'Waarschuwing Marge Drempel (%)'}
+                  </label>
+                  <input
+                    type="number"
+                    value={plConfig.warningMargin}
+                    onChange={e => setPlConfig(prev => ({ ...prev, warningMargin: parseFloat(e.target.value) || 0 }))}
+                    className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg font-bold text-amber-800 text-sm"
+                  />
+                  <p className="text-[10px] text-dark/50">{language === 'EN' ? 'Margins below this threshold trigger a warning badge.' : 'Marges onder deze drempel geven een waarschuwing.'}</p>
+                </div>
+
+                <div className="p-4 bg-white rounded-xl border border-[#D6CFC2] space-y-2">
+                  <label className="block font-bold text-primary uppercase text-[10px] flex items-center gap-1">
+                    <DollarSign className="w-4 h-4 text-primary" /> {language === 'EN' ? 'Monthly Fixed Overhead (€)' : 'Maandelijkse Overhead (€)'}
+                  </label>
+                  <input
+                    type="number"
+                    value={plConfig.monthlyOverhead}
+                    onChange={e => setPlConfig(prev => ({ ...prev, monthlyOverhead: parseFloat(e.target.value) || 0 }))}
+                    className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg font-bold text-primary text-sm"
+                  />
+                  <p className="text-[10px] text-dark/50">{language === 'EN' ? 'Fixed monthly operating expenses deducted from gross profit.' : 'Vaste maandelijkse kosten voor netto berekeningen.'}</p>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-[#D6CFC2] flex justify-end">
+                <Button icon={Save} onClick={savePlConfig}>{language === 'EN' ? 'Save P&L Settings' : 'Winst & Verlies Instellingen Opslaan'}</Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
       {/* INVITE USER MODAL */}
       <AnimatePresence>
         {inviteModalOpen && (
@@ -748,6 +1293,132 @@ export default function Settings() {
                 <div className="flex justify-end gap-2 pt-3 border-t border-cream-dark/60">
                   <Button type="button" variant="outline" onClick={() => setAddFieldModalOpen(false)}>{t('common.cancel')}</Button>
                   <Button type="submit">{language === 'EN' ? 'Save Field' : 'Veld Opslaan'}</Button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      {/* ADD CATEGORY MODAL */}
+      <AnimatePresence>
+        {addCategoryModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-dark/60 backdrop-blur-sm" onClick={() => setAddCategoryModalOpen(false)} />
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="relative w-full max-w-md bg-[#EDE8DF] border border-[#C4BEB3] rounded-2xl p-6 shadow-2xl z-10 space-y-4 text-xs">
+              <div className="flex items-center justify-between border-b border-[#D6CFC2] pb-3">
+                <h3 className="text-lg font-heading font-bold text-primary">{language === 'EN' ? 'Add New Category' : 'Nieuwe Categorie Toevoegen'}</h3>
+                <button onClick={() => setAddCategoryModalOpen(false)} className="p-1 text-dark/40 hover:text-dark"><X className="w-5 h-5" /></button>
+              </div>
+
+              <form onSubmit={handleAddCategorySubmit} className="space-y-3 font-body">
+                <div>
+                  <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'EN' ? 'Category Name' : 'Categorienaam'}</label>
+                  <input type="text" required value={categoryForm.name} onChange={e => setCategoryForm(prev => ({ ...prev, name: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg" placeholder="b.v. Luxe Pergola / Tuinkamer" />
+                </div>
+                <div>
+                  <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'EN' ? 'Icon Emoji' : 'Icoon Emoji'}</label>
+                  <input type="text" value={categoryForm.icon} onChange={e => setCategoryForm(prev => ({ ...prev, icon: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg font-mono text-base" placeholder="🏡" />
+                </div>
+                <div>
+                  <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'EN' ? 'Description' : 'Omschrijving'}</label>
+                  <textarea value={categoryForm.description} onChange={e => setCategoryForm(prev => ({ ...prev, description: e.target.value }))} rows={2} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg resize-none" placeholder="Korte toelichting over dit product type..." />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-3 border-t border-[#D6CFC2]">
+                  <Button type="button" variant="outline" onClick={() => setAddCategoryModalOpen(false)}>{t('common.cancel')}</Button>
+                  <Button type="submit">{language === 'EN' ? 'Save Category' : 'Categorie Opslaan'}</Button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ADD NEW SECTION MODAL */}
+      <AnimatePresence>
+        {addSectionModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-dark/60 backdrop-blur-sm" onClick={() => setAddSectionModalOpen(false)} />
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="relative w-full max-w-md bg-[#EDE8DF] border border-[#C4BEB3] rounded-2xl p-6 shadow-2xl z-10 space-y-4 text-xs">
+              <div className="flex items-center justify-between border-b border-[#D6CFC2] pb-3">
+                <h3 className="text-lg font-heading font-bold text-primary">{language === 'EN' ? 'Add Cost Breakdown Section' : 'Nieuwe Prijsopbouw Sectie'}</h3>
+                <button onClick={() => setAddSectionModalOpen(false)} className="p-1 text-dark/40 hover:text-dark"><X className="w-5 h-5" /></button>
+              </div>
+
+              <form onSubmit={handleAddSectionSubmit} className="space-y-3 font-body">
+                <div>
+                  <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'EN' ? 'Section Title' : 'Sectienaam'}</label>
+                  <input type="text" required value={sectionForm.title} onChange={e => setSectionForm(prev => ({ ...prev, title: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg" placeholder="b.v. Fundering & Grondwerk" />
+                </div>
+                <div>
+                  <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'EN' ? 'Section Icon Emoji' : 'Pictogram Emoji'}</label>
+                  <input type="text" value={sectionForm.icon} onChange={e => setSectionForm(prev => ({ ...prev, icon: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg" placeholder="🏗️" />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-3 border-t border-[#D6CFC2]">
+                  <Button type="button" variant="outline" onClick={() => setAddSectionModalOpen(false)}>{t('common.cancel')}</Button>
+                  <Button type="submit">{language === 'EN' ? 'Save Section' : 'Sectie Opslaan'}</Button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ADD FIELD TO SECTION MODAL */}
+      <AnimatePresence>
+        {addFieldToSectionModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-dark/60 backdrop-blur-sm" onClick={() => setAddFieldToSectionModalOpen(false)} />
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="relative w-full max-w-md bg-[#EDE8DF] border border-[#C4BEB3] rounded-2xl p-6 shadow-2xl z-10 space-y-4 text-xs">
+              <div className="flex items-center justify-between border-b border-[#D6CFC2] pb-3">
+                <h3 className="text-lg font-heading font-bold text-primary">{language === 'EN' ? 'Add Cost Field to Section' : 'Nieuw Kostenveld Toevoegen'}</h3>
+                <button onClick={() => setAddFieldToSectionModalOpen(false)} className="p-1 text-dark/40 hover:text-dark"><X className="w-5 h-5" /></button>
+              </div>
+
+              <form onSubmit={handleAddFieldToSectionSubmit} className="space-y-3 font-body">
+                <div>
+                  <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'EN' ? 'Cost Field Label (€)' : 'Veld Omschrijving (€)'}</label>
+                  <input type="text" required value={sectionFieldForm.label} onChange={e => setSectionFieldForm(prev => ({ ...prev, label: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg" placeholder="b.v. Graafwerkzaamheden (€)" />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-3 border-t border-[#D6CFC2]">
+                  <Button type="button" variant="outline" onClick={() => setAddFieldToSectionModalOpen(false)}>{t('common.cancel')}</Button>
+                  <Button type="submit">{language === 'EN' ? 'Save Field' : 'Veld Opslaan'}</Button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      {/* ADD NEW TEMPLATE MODAL */}
+      <AnimatePresence>
+        {addTemplateModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-dark/60 backdrop-blur-sm" onClick={() => setAddTemplateModalOpen(false)} />
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="relative w-full max-w-md bg-[#EDE8DF] border border-[#C4BEB3] rounded-2xl p-6 shadow-2xl z-10 space-y-4 text-xs">
+              <div className="flex items-center justify-between border-b border-[#D6CFC2] pb-3">
+                <h3 className="text-lg font-heading font-bold text-primary">{language === 'EN' ? 'Add Message Template' : 'Nieuw Berichtsjabloon Toevoegen'}</h3>
+                <button onClick={() => setAddTemplateModalOpen(false)} className="p-1 text-dark/40 hover:text-dark"><X className="w-5 h-5" /></button>
+              </div>
+
+              <form onSubmit={handleAddTemplateSubmit} className="space-y-3 font-body">
+                <div>
+                  <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'EN' ? 'Template Text' : 'Sjabloon Tekst'}</label>
+                  <textarea
+                    required
+                    rows={4}
+                    value={templateForm.text}
+                    onChange={e => setTemplateForm(prev => ({ ...prev, text: e.target.value }))}
+                    className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs"
+                    placeholder="Dear {client_name}, ..."
+                  />
+                  <p className="text-[10px] text-dark/50 mt-1">Available tags: <code className="font-bold text-primary">{'{client_name}'}</code>, <code className="font-bold text-primary">{'{product_category}'}</code>, <code className="font-bold text-primary">{'{company_name}'}</code></p>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-3 border-t border-[#D6CFC2]">
+                  <Button type="button" variant="outline" onClick={() => setAddTemplateModalOpen(false)}>{t('common.cancel')}</Button>
+                  <Button type="submit">{language === 'EN' ? 'Save Template' : 'Sjabloon Opslaan'}</Button>
                 </div>
               </form>
             </motion.div>

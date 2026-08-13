@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Card from '../../components/Card';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
@@ -85,30 +85,40 @@ export default function Tasks() {
     completed: t.status === 'Voltooid'
   }));
 
-  // Load Initial Data
+  // Load Initial Data & listen for dynamic updates
   useEffect(() => {
-    const savedTasks = localStorage.getItem('app_tasks_v2');
-    if (savedTasks) {
-      try {
-        const parsed = JSON.parse(savedTasks);
-        if (Array.isArray(parsed) && parsed.length > 0) setTasks(parsed);
-        else setTasks(defaultMockTasks);
-      } catch (e) { setTasks(defaultMockTasks); }
-    } else {
-      setTasks(defaultMockTasks);
-      localStorage.setItem('app_tasks_v2', JSON.stringify(defaultMockTasks));
-      localStorage.setItem('app_tasks', JSON.stringify(defaultMockTasks));
-    }
+    const loadTasksData = () => {
+      const savedTasks = localStorage.getItem('app_tasks_v2') || localStorage.getItem('app_tasks');
+      if (savedTasks) {
+        try {
+          const parsed = JSON.parse(savedTasks);
+          if (Array.isArray(parsed) && parsed.length > 0) setTasks(parsed);
+          else setTasks(defaultMockTasks);
+        } catch (e) { setTasks(defaultMockTasks); }
+      } else {
+        setTasks(defaultMockTasks);
+        localStorage.setItem('app_tasks_v2', JSON.stringify(defaultMockTasks));
+        localStorage.setItem('app_tasks', JSON.stringify(defaultMockTasks));
+      }
 
-    const savedProjects = localStorage.getItem('app_projects');
-    if (savedProjects) {
-      try { setProjectsList(JSON.parse(savedProjects)); } catch(e){}
-    } else setProjectsList(mockProjects);
+      const savedProjects = localStorage.getItem('app_projects');
+      if (savedProjects) {
+        try { setProjectsList(JSON.parse(savedProjects)); } catch(e){}
+      } else setProjectsList(mockProjects);
 
-    const savedLeads = localStorage.getItem('app_leads_v2') || localStorage.getItem('app_leads');
-    if (savedLeads) {
-      try { setLeadsList(JSON.parse(savedLeads)); } catch(e){}
-    } else setLeadsList(mockLeads);
+      const savedLeads = localStorage.getItem('app_leads_v2') || localStorage.getItem('app_leads');
+      if (savedLeads) {
+        try { setLeadsList(JSON.parse(savedLeads)); } catch(e){}
+      } else setLeadsList(mockLeads);
+    };
+
+    loadTasksData();
+    window.addEventListener('app_data_changed', loadTasksData);
+    window.addEventListener('storage', loadTasksData);
+    return () => {
+      window.removeEventListener('app_data_changed', loadTasksData);
+      window.removeEventListener('storage', loadTasksData);
+    };
   }, [modalOpen]);
 
   const showToast = (msg) => {

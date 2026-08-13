@@ -1,5 +1,5 @@
 /* Google Fonts – Cormorant Garamond (Headings) & Montserrat (Body/UI) */
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,600;1,700&display=swap');
 
 
 @tailwind base;
@@ -34,7 +34,7 @@
     line-height: 1.6;
   }
 
-  h1, h2, h3, .font-heading {
+  h1, h2, h3, .font-heading, .font-serif {
     font-family: 'Cormorant Garamond', Georgia, serif;
     color: var(--primary-color, #3E4E36); /* Brandbook Forest Green */
     font-weight: 700;
@@ -157,54 +157,104 @@
   transform: translateY(1px);
 }
 
+/* Screen state: hide portals */
+#printable-factuur-portal,
+#printable-offerte-portal {
+  display: none;
+}
+
 /* ========================================================= */
 /* GLOBAL PRINT & PDF EXPORT STYLES (@media print) */
 /* ========================================================= */
 @media print {
-  /* Hide background navigation, sidebar, topbar, and overlays */
-  aside,
-  nav,
-  header,
-  .no-print,
-  div[class*="backdrop-blur"],
-  div[class*="bg-dark/"] {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  /* Hide entire React App #root layout during print */
+  #root {
     display: none !important;
   }
 
-  /* Reset body and page container for clean print output */
+  /* Hide header, footer, navigation, sidebar */
+  aside, nav, header, button, .no-print {
+    display: none !important;
+  }
+
+  /* Body reset for clean print output */
   html, body {
     background: #ffffff !important;
     color: #000000 !important;
     margin: 0 !important;
     padding: 0 !important;
-    width: 100% !important;
+    width: 210mm !important;
     height: auto !important;
     overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
-  /* Make fixed modal overlays relative and full page */
-  .fixed.inset-0 {
-    position: relative !important;
-    inset: auto !important;
-    background: transparent !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    box-shadow: none !important;
+  /* Show ONLY direct body portals #printable-factuur-portal and #printable-offerte-portal */
+  #printable-factuur-portal,
+  #printable-offerte-portal {
     display: block !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    z-index: 9999999 !important;
   }
 
-  .fixed.inset-0 > div,
-  .fixed.inset-0 div[class*="relative"] {
+  #printable-factuur-portal #printable-factuur,
+  #printable-offerte-portal {
     box-shadow: none !important;
     border: none !important;
-    background: #ffffff !important;
-    max-width: 100% !important;
-    width: 100% !important;
-    max-height: none !important;
-    overflow: visible !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
     padding: 0 !important;
     margin: 0 !important;
+    background: #ffffff !important;
+  }
+
+  /* STRICT A4 SHEET BOUNDARIES FOR PDF PAGES */
+  .offerte-pdf-container {
+    width: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .offerte-pdf-page {
+    width: 210mm !important;
+    height: 297mm !important;
+    max-height: 297mm !important;
+    box-sizing: border-box !important;
+    padding: 10mm 12mm !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
   }
 }
+
+.offerte-pdf-page {
+  break-after: page;
+  page-break-after: always;
+}
+
+.offerte-pdf-page:last-child {
+  break-after: auto;
+  page-break-after: auto;
+}
+

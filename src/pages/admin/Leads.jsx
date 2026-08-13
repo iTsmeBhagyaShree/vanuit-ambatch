@@ -6,7 +6,7 @@ import Table from '../../components/Table';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
 import WorkflowTracker from '../../components/WorkflowTracker';
-import { Plus, Search, Filter, X, CheckCircle, Trash2, Edit2, RotateCcw, AlertTriangle, ChevronDown, Download, Upload, GitCommit, Send } from 'lucide-react';
+import { Plus, Search, Filter, X, CheckCircle, Trash2, Edit2, RotateCcw, AlertTriangle, ChevronDown, Download, Upload, GitCommit, Send, FileText, Sparkles } from 'lucide-react';
 import { mockLeads as defaultLeads } from '../../utils/mockData';
 import { useLanguage } from '../../context/LanguageContext';
 import { tValue } from '../../utils/translator';
@@ -26,12 +26,46 @@ export default function Leads() {
   const [lastContactFilter, setLastContactFilter] = useState('All');
   const [sortBy, setSortBy] = useState('newest');
 
+  // Dynamic Categories state
+  const [dynamicCategoriesList, setDynamicCategoriesList] = useState(() => {
+    try {
+      const saved = localStorage.getItem('app_dynamic_categories');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [
+      { id: 'cat-1', name: 'Buitenkeukens' },
+      { id: 'cat-2', name: 'Kliko-ombouw' },
+      { id: 'cat-3', name: 'Snijplanken' },
+      { id: 'cat-4', name: 'Overkappingen' }
+    ];
+  });
+
+  const loadCategoriesData = () => {
+    try {
+      const saved = localStorage.getItem('app_dynamic_categories');
+      if (saved) setDynamicCategoriesList(JSON.parse(saved));
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    loadCategoriesData();
+    window.addEventListener('app_data_changed', loadCategoriesData);
+    return () => window.removeEventListener('app_data_changed', loadCategoriesData);
+  }, []);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
   const [toastMsg, setToastMsg] = useState('');
   const [csvDropdownOpen, setCsvDropdownOpen] = useState(false);
   const csvFileInputRef = useRef(null);
   const csvDropdownRef = useRef(null);
+
+  // Custom Dropdown States for Modal (Guaranteed Downward Expansion)
+  const [sizeDropdownOpen, setSizeDropdownOpen] = useState(false);
+  const [cityDropdownOpen, setCityDropdownOpen] = useState(false);
+  const [productTypeDropdownOpen, setProductTypeDropdownOpen] = useState(false);
+  const [sourceDropdownOpen, setSourceDropdownOpen] = useState(false);
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
 
   // React Portal Status Dropdown state
   const [statusPortalPos, setStatusPortalPos] = useState(null);
@@ -632,9 +666,21 @@ export default function Leads() {
               handleOpenPartnerWizard(row);
             }}
             className="text-primary hover:bg-primary/10 flex-shrink-0"
-            title="Partner Price Request Wizard"
+            title={language === 'EN' ? 'Partner Price Request Wizard' : 'Partner Prijsaanvraag Wizard'}
           >
             <Send className="w-3.5 h-3.5" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveWorkflowLead({ ...row, requiresPartner: false, workflowStep: 2 });
+            }}
+            className="text-amber-700 hover:bg-amber-100/60 flex-shrink-0"
+            title={language === 'EN' ? 'Direct Customer Quote (Bypass Partner)' : 'Directe Klantofferte (Sla Partner Over)'}
+          >
+            <FileText className="w-3.5 h-3.5" />
           </Button>
           <Button 
             variant="ghost" 
@@ -688,10 +734,16 @@ export default function Leads() {
             handleOpenPartnerWizard(target);
           }}
           onUpdateStatus={(id, newStep) => {
-            const updatedLeads = leads.map(l => l.id === id ? { ...l, workflowStep: newStep } : l);
+            const updatedLeads = leads.map(l => l.id === id ? { 
+              ...l, 
+              workflowStep: newStep, 
+              status: newStep === 5 ? (language === 'EN' ? 'Won' : 'Gewonnen') : l.status 
+            } : l);
             setLeads(updatedLeads);
-            localStorage.setItem('app_leads_v2', JSON.stringify(updatedLeads));
-            showToast(`Workflow updated to Step ${newStep}!`);
+            saveLeadsToStorage(updatedLeads);
+            showToast(newStep === 5 
+              ? (language === 'EN' ? 'Lead successfully converted to Project!' : 'Lead succesvol omgezet naar Project!')
+              : `Workflow updated to Step ${newStep}!`);
           }}
         />
       ) : (
@@ -815,11 +867,11 @@ export default function Leads() {
                     className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs font-body focus:outline-none text-[#4A4A43]"
                   >
                     <option value="All">{language === 'NL' ? 'Alle (All)' : 'All Products'}</option>
-                    <option value="buitenkeuken">{language === 'NL' ? 'Buitenkeuken' : 'Outdoor Kitchen'}</option>
-                    <option value="buitenverblijf">{language === 'NL' ? 'Buitenverblijf' : 'Outdoor Living'}</option>
-                    <option value="overkapping">{language === 'NL' ? 'Overkapping' : 'Canopy'}</option>
-                    <option value="poolhouse">{language === 'NL' ? 'Poolhouse' : 'Poolhouse'}</option>
-                    <option value="kliko">{language === 'NL' ? 'Kliko-ombouw' : 'Bin Storage'}</option>
+                    {dynamicCategoriesList.map((cat) => (
+                      <option key={cat.id || cat.name} value={cat.name.toLowerCase()}>
+                        {(cat.icon ? `${cat.icon} ` : '') + cat.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -884,7 +936,7 @@ export default function Leads() {
       {/* LEAD FORM MODAL (ADD & EDIT) */}
       <AnimatePresence>
         {modalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 pt-10 sm:pt-6">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -945,72 +997,227 @@ export default function Leads() {
                       placeholder="john@outdoors.nl"
                     />
                   </div>
-                  <div>
+                  {/* LOCATION / CITY CUSTOM DROPDOWN */}
+                  <div className="relative">
                     <label className="block text-xs font-semibold text-dark/60 mb-1 font-body uppercase tracking-wider">{language === 'EN' ? 'Location / City' : 'Locatie / Stad'}</label>
-                    <input
-                      type="text"
-                      value={form.location}
-                      onChange={e => setForm(prev => ({ ...prev, location: e.target.value }))}
-                      className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/20 text-[#4A4A43]"
-                      placeholder={language === 'EN' ? 'e.g. Amsterdam, NL' : 'b.v. Amsterdam, NL'}
-                    />
+                    <button
+                      type="button"
+                      onClick={() => setCityDropdownOpen(!cityDropdownOpen)}
+                      className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs sm:text-sm font-body focus:outline-none text-[#4A4A43] flex items-center justify-between shadow-xs"
+                    >
+                      <span className="truncate">{form.location || (language === 'EN' ? '— Select City —' : '— Selecteer Stad —')}</span>
+                      <ChevronDown className={`w-4 h-4 text-dark/40 transition-transform ${cityDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {cityDropdownOpen && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setCityDropdownOpen(false)} />
+                        <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg shadow-xl max-h-48 overflow-y-auto divide-y divide-[#EDE8DF]">
+                          {['', 'Amsterdam', 'Rotterdam', 'Den Haag', 'Utrecht', 'Eindhoven', 'Haarlem', 'Groningen', 'Breda', 'Tilburg', 'Almere', 'Nijmegen', 'Arnhem', 'Apeldoorn', 'Zwolle', 'Maastricht', 'Delft', 'Leiden', 'Dordrecht', 'Anders / Other'].map((city, idx) => (
+                            <div
+                              key={idx}
+                              onClick={() => {
+                                setForm(prev => ({ ...prev, location: city }));
+                                setCityDropdownOpen(false);
+                              }}
+                              className={`px-3 py-2 text-xs cursor-pointer hover:bg-primary/10 transition-colors ${form.location === city ? 'bg-primary/15 font-bold text-primary' : 'text-dark'}`}
+                            >
+                              {city === '' ? (language === 'EN' ? '— Select City —' : '— Selecteer Stad —') : city}
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
+                  {/* PRODUCT TYPE CUSTOM DROPDOWN */}
+                  <div className="relative">
                     <label className="block text-xs font-semibold text-dark/60 mb-1 font-body uppercase tracking-wider">{language === 'EN' ? 'Product Type' : 'Product Type'}</label>
-                    <select
-                      value={form.productType}
-                      onChange={e => setForm(prev => ({ ...prev, productType: e.target.value }))}
-                      className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs sm:text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/20 text-[#4A4A43] truncate pr-6"
+                    <button
+                      type="button"
+                      onClick={() => setProductTypeDropdownOpen(!productTypeDropdownOpen)}
+                      className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs sm:text-sm font-body focus:outline-none text-[#4A4A43] flex items-center justify-between shadow-xs"
                     >
-                      <option value="buitenkeuken">{language === 'EN' ? 'Outdoor Kitchen' : 'Buitenkeuken'}</option>
-                      <option value="buitenverblijf">{language === 'EN' ? 'Outdoor Living' : 'Buitenverblijf'}</option>
-                      <option value="overkapping">{language === 'EN' ? 'Canopy / Pergola' : 'Overkapping'}</option>
-                      <option value="poolhouse">{language === 'EN' ? 'Poolhouse' : 'Poolhouse'}</option>
-                      <option value="kliko">{language === 'EN' ? 'Bin Storage' : 'Kliko-ombouw'}</option>
-                    </select>
+                      <span className="truncate">
+                        {form.productType === 'buitenkeuken' ? (language === 'EN' ? 'Outdoor Kitchen' : 'Buitenkeuken') :
+                         form.productType === 'buitenverblijf' ? (language === 'EN' ? 'Garden / Outdoor Building' : 'Buitenverblijf / Tuinkamer') :
+                         form.productType === 'overkapping' ? (language === 'EN' ? 'Canopy / Pergola' : 'Overkapping / Pergola') :
+                         form.productType === 'poolhouse' ? 'Poolhouse' :
+                         form.productType === 'kliko' ? (language === 'EN' ? 'Bin Storage' : 'Kliko-ombouw') :
+                         (form.productType || (language === 'EN' ? 'Outdoor Kitchen' : 'Buitenkeuken'))}
+                      </span>
+                      <ChevronDown className={`w-4 h-4 text-dark/40 transition-transform ${productTypeDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {productTypeDropdownOpen && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setProductTypeDropdownOpen(false)} />
+                        <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg shadow-xl max-h-48 overflow-y-auto divide-y divide-[#EDE8DF]">
+                          {[
+                            { val: 'buitenkeuken', label: language === 'EN' ? 'Outdoor Kitchen' : 'Buitenkeuken' },
+                            { val: 'buitenverblijf', label: language === 'EN' ? 'Garden / Outdoor Building' : 'Buitenverblijf / Tuinkamer' },
+                            { val: 'overkapping', label: language === 'EN' ? 'Canopy / Pergola' : 'Overkapping / Pergola' },
+                            { val: 'poolhouse', label: 'Poolhouse' },
+                            { val: 'kliko', label: language === 'EN' ? 'Bin Storage' : 'Kliko-ombouw' },
+                            ...(() => {
+                              try {
+                                const dynCats = JSON.parse(localStorage.getItem('app_dynamic_categories') || '[]');
+                                return dynCats
+                                  .filter(c => !['buitenkeuken','buitenverblijf','overkapping','poolhouse','kliko'].includes((c.name||'').toLowerCase()))
+                                  .map(c => ({ val: c.name, label: c.name }));
+                              } catch(e) { return []; }
+                            })()
+                          ].map((pt, idx) => (
+                            <div
+                              key={idx}
+                              onClick={() => {
+                                setForm(prev => ({ ...prev, productType: pt.val }));
+                                setProductTypeDropdownOpen(false);
+                              }}
+                              className={`px-3 py-2 text-xs cursor-pointer hover:bg-primary/10 transition-colors ${form.productType === pt.val ? 'bg-primary/15 font-bold text-primary' : 'text-dark'}`}
+                            >
+                              {pt.label}
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
-                  <div>
+
+                  {/* DESIRED SIZE CUSTOM DROPDOWN (GUARANTEED DOWNWARDS ONLY) */}
+                  <div className="relative">
                     <label className="block text-xs font-semibold text-dark/60 mb-1 font-body uppercase tracking-wider">{language === 'EN' ? 'Desired Size' : 'Gewenste Maat'}</label>
-                    <input
-                      type="text"
-                      value={form.size}
-                      onChange={e => setForm(prev => ({ ...prev, size: e.target.value }))}
-                      className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs sm:text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/20 text-[#4A4A43]"
-                      placeholder="e.g. 3x4m"
-                    />
+                    <button
+                      type="button"
+                      onClick={() => setSizeDropdownOpen(!sizeDropdownOpen)}
+                      className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs sm:text-sm font-body focus:outline-none text-[#4A4A43] flex items-center justify-between shadow-xs"
+                    >
+                      <span className="truncate">{form.size || (language === 'EN' ? '— Select Size —' : '— Selecteer Maat —')}</span>
+                      <ChevronDown className={`w-4 h-4 text-dark/40 transition-transform ${sizeDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {sizeDropdownOpen && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setSizeDropdownOpen(false)} />
+                        <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg shadow-xl max-h-48 overflow-y-auto divide-y divide-[#EDE8DF]">
+                          {[
+                            { val: '', label: language === 'EN' ? '— Select Size —' : '— Selecteer Maat —' },
+                            { val: '1x2m', label: '1 × 2 m' },
+                            { val: '2x2m', label: '2 × 2 m' },
+                            { val: '2x3m', label: '2 × 3 m' },
+                            { val: '3x2m', label: '3 × 2 m' },
+                            { val: '3x3m', label: '3 × 3 m' },
+                            { val: '3x4m', label: '3 × 4 m' },
+                            { val: '4x3m', label: '4 × 3 m' },
+                            { val: '4x4m', label: '4 × 4 m' },
+                            { val: '5x3m', label: '5 × 3 m' },
+                            { val: '5x4m', label: '5 × 4 m' },
+                            { val: '6x4m', label: '6 × 4 m' },
+                            { val: '8x4m', label: '8 × 4 m' },
+                            { val: '10x4m', label: '10 × 4 m' },
+                            { val: 'Op maat / Custom', label: 'Op maat / Custom' }
+                          ].map((sz, idx) => (
+                            <div
+                              key={idx}
+                              onClick={() => {
+                                setForm(prev => ({ ...prev, size: sz.val }));
+                                setSizeDropdownOpen(false);
+                              }}
+                              className={`px-3 py-2 text-xs cursor-pointer hover:bg-primary/10 transition-colors ${form.size === sz.val ? 'bg-primary/15 font-bold text-primary' : 'text-dark'}`}
+                            >
+                              {sz.label}
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
+                  {/* SOURCE / CAMPAIGN CUSTOM DROPDOWN */}
+                  <div className="relative">
                     <label className="block text-xs font-semibold text-dark/60 mb-1 font-body uppercase tracking-wider">{language === 'EN' ? 'Source / Campaign' : 'Bron / Campagne'}</label>
-                    <select
-                      value={form.source}
-                      onChange={e => setForm(prev => ({ ...prev, source: e.target.value }))}
-                      className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs sm:text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/20 text-[#4A4A43] truncate pr-6"
+                    <button
+                      type="button"
+                      onClick={() => setSourceDropdownOpen(!sourceDropdownOpen)}
+                      className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs sm:text-sm font-body focus:outline-none text-[#4A4A43] flex items-center justify-between shadow-xs"
                     >
-                      <option value="Google Ads">Google Ads</option>
-                      <option value="Facebook">Facebook</option>
-                      <option value="Direct">Direct</option>
-                      <option value="Referral">Referral</option>
-                    </select>
+                      <span className="truncate">{form.source || 'Google Ads'}</span>
+                      <ChevronDown className={`w-4 h-4 text-dark/40 transition-transform ${sourceDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {sourceDropdownOpen && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setSourceDropdownOpen(false)} />
+                        <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg shadow-xl max-h-48 overflow-y-auto divide-y divide-[#EDE8DF]">
+                          {[
+                            { val: 'Google Ads', label: 'Google Ads' },
+                            { val: 'Facebook', label: 'Facebook / Instagram' },
+                            { val: 'Direct', label: 'Direct / Telefonisch' },
+                            { val: 'Referral', label: 'Referral / Aanbeveling' },
+                            { val: 'Website', label: 'Website Contact Form' },
+                            { val: 'Email', label: 'Email Campagne' },
+                            { val: 'Beurs', label: 'Beurs / Event' },
+                            { val: 'Anders', label: 'Anders / Other' }
+                          ].map((src, idx) => (
+                            <div
+                              key={idx}
+                              onClick={() => {
+                                setForm(prev => ({ ...prev, source: src.val }));
+                                setSourceDropdownOpen(false);
+                              }}
+                              className={`px-3 py-2 text-xs cursor-pointer hover:bg-primary/10 transition-colors ${form.source === src.val ? 'bg-primary/15 font-bold text-primary' : 'text-dark'}`}
+                            >
+                              {src.label}
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
-                  <div>
+
+                  {/* STATUS CUSTOM DROPDOWN */}
+                  <div className="relative">
                     <label className="block text-xs font-semibold text-dark/60 mb-1 font-body uppercase tracking-wider">{language === 'EN' ? 'Status' : 'Status'}</label>
-                    <select
-                      value={form.status}
-                      onChange={e => setForm(prev => ({ ...prev, status: e.target.value }))}
-                      className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs sm:text-sm font-body focus:outline-none focus:ring-2 focus:ring-primary/20 text-[#4A4A43] truncate pr-6"
+                    <button
+                      type="button"
+                      onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                      className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs sm:text-sm font-body focus:outline-none text-[#4A4A43] flex items-center justify-between shadow-xs"
                     >
-                      <option value="Nieuw">{language === 'EN' ? 'New' : 'Nieuw'}</option>
-                      <option value="In gesprek">{language === 'EN' ? 'In Conversation' : 'In gesprek'}</option>
-                      <option value="Offerte verstuurd">{language === 'EN' ? 'Quote Sent' : 'Offerte verstuurd'}</option>
-                      <option value="Gewonnen">{language === 'EN' ? 'Won' : 'Gewonnen'}</option>
-                      <option value="Verloren">{language === 'EN' ? 'Lost' : 'Verloren'}</option>
-                    </select>
+                      <span className="truncate">
+                        {form.status === 'Nieuw' ? (language === 'EN' ? 'New' : 'Nieuw') :
+                         form.status === 'In gesprek' ? (language === 'EN' ? 'In Conversation' : 'In gesprek') :
+                         form.status === 'Offerte verstuurd' ? (language === 'EN' ? 'Quote Sent' : 'Offerte verstuurd') :
+                         form.status === 'Gewonnen' ? (language === 'EN' ? 'Won' : 'Gewonnen') :
+                         form.status === 'Verloren' ? (language === 'EN' ? 'Lost' : 'Verloren') :
+                         (form.status || (language === 'EN' ? 'New' : 'Nieuw'))}
+                      </span>
+                      <ChevronDown className={`w-4 h-4 text-dark/40 transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {statusDropdownOpen && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setStatusDropdownOpen(false)} />
+                        <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg shadow-xl max-h-48 overflow-y-auto divide-y divide-[#EDE8DF]">
+                          {[
+                            { val: 'Nieuw', label: language === 'EN' ? 'New' : 'Nieuw' },
+                            { val: 'In gesprek', label: language === 'EN' ? 'In Conversation' : 'In gesprek' },
+                            { val: 'Offerte verstuurd', label: language === 'EN' ? 'Quote Sent' : 'Offerte verstuurd' },
+                            { val: 'Gewonnen', label: language === 'EN' ? 'Won' : 'Gewonnen' },
+                            { val: 'Verloren', label: language === 'EN' ? 'Lost' : 'Verloren' }
+                          ].map((st, idx) => (
+                            <div
+                              key={idx}
+                              onClick={() => {
+                                setForm(prev => ({ ...prev, status: st.val }));
+                                setStatusDropdownOpen(false);
+                              }}
+                              className={`px-3 py-2 text-xs cursor-pointer hover:bg-primary/10 transition-colors ${form.status === st.val ? 'bg-primary/15 font-bold text-primary' : 'text-dark'}`}
+                            >
+                              {st.label}
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 

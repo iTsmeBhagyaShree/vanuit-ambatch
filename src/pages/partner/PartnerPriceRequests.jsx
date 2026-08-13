@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import Card from '../../components/Card';
 import Badge from '../../components/Badge';
@@ -67,11 +67,66 @@ export default function PartnerPriceRequests() {
   const [toastMsg, setToastMsg] = useState('');
   const [activeTab, setActiveTab] = useState('open');
 
+  const [partnerBreakdownSchema, setPartnerBreakdownSchema] = useState(() => {
+    try {
+      const saved = localStorage.getItem('app_partner_breakdown_sections_v2') || localStorage.getItem('app_partner_breakdown_config');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [
+      {
+        id: 'sec-materials',
+        title: 'Material Cost (Hout & Grondstoffen)',
+        icon: '🪵',
+        fields: [
+          { id: 'f-mat-1', label: 'Hout & Grondstoffen Koste (€)', required: true },
+          { id: 'f-mat-2', label: 'Aanrechtblad & Afwerking (€)', required: true }
+        ]
+      },
+      {
+        id: 'sec-labor',
+        title: 'Labour Cost (Arbeid & Ambacht)',
+        icon: '🔨',
+        fields: [
+          { id: 'f-lab-1', label: 'Werkplaats Fabricage & Uren (€)', required: true }
+        ]
+      },
+      {
+        id: 'sec-transport',
+        title: 'Transport Cost (Transport & Logistiek)',
+        icon: '🚚',
+        fields: [
+          { id: 'f-tra-1', label: 'Vracht & Leveringskoste (€)', required: true }
+        ]
+      },
+      {
+        id: 'sec-installation',
+        title: 'Installation Cost (Montage & Plaatsing)',
+        icon: '🏗️',
+        fields: [
+          { id: 'f-ins-1', label: 'Montage op Locatie (€)', required: true }
+        ]
+      },
+      {
+        id: 'sec-other',
+        title: 'Other Cost (Overige Kosten & Vergunning)',
+        icon: '💼',
+        fields: [
+          { id: 'f-oth-1', label: 'Overige Werkzaamheden (€)', required: false }
+        ]
+      }
+    ];
+  });
+
   // Load from localStorage or fallback defaults
   useEffect(() => {
     const loadRequests = () => {
       const savedOpen = localStorage.getItem('app_partner_requests');
       const savedSubmitted = localStorage.getItem('app_partner_submitted_offers');
+      const savedBreakdown = localStorage.getItem('app_partner_breakdown_sections_v2') || localStorage.getItem('app_partner_breakdown_config');
+
+      if (savedBreakdown) {
+        try { setPartnerBreakdownSchema(JSON.parse(savedBreakdown)); } catch(e) {}
+      }
 
       if (savedOpen) {
         try { setOpen(JSON.parse(savedOpen)); } catch (e) { setOpen(DEFAULT_OPEN_REQUESTS); }
@@ -103,7 +158,37 @@ export default function PartnerPriceRequests() {
   };
 
   const handleInput = (reqId, field, value) => {
-    setFormData(prev => ({ ...prev, [reqId]: { ...(prev[reqId] || {}), [field]: value } }));
+    setFormData(prev => {
+      const currentForm = { ...(prev[reqId] || {}), [field]: value };
+      
+      // Auto-calculate Total Build Price sum from all dynamic section fields
+      let calculatedTotal = 0;
+      let hasFieldCost = false;
+
+      (partnerBreakdownSchema || []).forEach(sec => {
+        if (sec.fields) {
+          sec.fields.forEach(f => {
+            const val = parseFloat(currentForm[f.id]);
+            if (!isNaN(val) && val > 0) {
+              calculatedTotal += val;
+              hasFieldCost = true;
+            }
+          });
+        } else {
+          const val = parseFloat(currentForm[sec.id]);
+          if (!isNaN(val) && val > 0) {
+            calculatedTotal += val;
+            hasFieldCost = true;
+          }
+        }
+      });
+
+      if (hasFieldCost && field !== 'price') {
+        currentForm.price = calculatedTotal;
+      }
+
+      return { ...prev, [reqId]: currentForm };
+    });
   };
 
   const handleSubmit = (req) => {
@@ -256,6 +341,53 @@ export default function PartnerPriceRequests() {
                             <p className="text-[10px] font-bold uppercase text-dark/40 mb-1">{language === 'NL' ? 'Projectspecificaties' : 'Project Specs'}</p>
                             <p className="text-sm text-dark font-body">{specs}</p>
                           </div>
+
+                          {/* NESTED DYNAMIC PARTNER SECTIONS & FIELDS (Configured from Admin Settings) */}
+                          {partnerBreakdownSchema && partnerBreakdownSchema.length > 0 && (
+                            <div className="space-y-3">
+                              <p className="text-[10px] font-bold uppercase text-primary tracking-wider flex items-center justify-between">
+                                <span>{language === 'NL' ? 'Gedetailleerde Prijsopbouw per Sectie' : 'Detailed Cost Breakdown per Section'}</span>
+                                <span className="text-[9px] text-dark/40 font-mono">Configured by Admin ⚙️</span>
+                              </p>
+                              <div className="space-y-3">
+                                {partnerBreakdownSchema.map((sec) => (
+                                  <div key={sec.id || sec.title} className="p-3.5 bg-white rounded-xl border border-[#D6CFC2] space-y-2 shadow-2xs">
+                                    <h5 className="text-xs font-bold text-primary font-heading flex items-center gap-1.5 border-b border-[#D6CFC2]/50 pb-1.5">
+                                      <span>{sec.icon || '📦'}</span>
+                                      <span>{sec.title || sec.label}</span>
+                                    </h5>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                      {sec.fields ? (
+                                        sec.fields.map((field) => (
+                                          <div key={field.id}>
+                                            <label className="block text-[10px] font-bold text-dark/60 mb-0.5">{field.label}</label>
+                                            <input
+                                              type="number"
+                                              value={form[field.id] || ''}
+                                              onChange={e => handleInput(req.id, field.id, e.target.value)}
+                                              placeholder="€ 0.00"
+                                              className="w-full px-2.5 py-1.5 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs outline-none focus:ring-1 focus:ring-primary/20"
+                                            />
+                                          </div>
+                                        ))
+                                      ) : (
+                                        <div>
+                                          <label className="block text-[10px] font-bold text-dark/60 mb-0.5">{sec.label}</label>
+                                          <input
+                                            type="number"
+                                            value={form[sec.id] || ''}
+                                            onChange={e => handleInput(req.id, sec.id, e.target.value)}
+                                            placeholder="€ 0.00"
+                                            className="w-full px-2.5 py-1.5 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs outline-none focus:ring-1 focus:ring-primary/20"
+                                          />
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
 
                           {/* Form Fields */}
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

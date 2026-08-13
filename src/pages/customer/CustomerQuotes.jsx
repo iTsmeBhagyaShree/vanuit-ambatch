@@ -1,9 +1,10 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../../components/Card';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
 import { useLanguage } from '../../context/LanguageContext';
+import { safeSetItem } from '../../utils/storageHelper';
 import { CheckCircle, XCircle, FileText, Download, Sparkles, Check, CreditCard, ShieldCheck, Copy, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -59,8 +60,7 @@ export default function CustomerQuotes() {
           }
         ];
         setQuotes(defaultQuotes);
-        localStorage.setItem('app_quotes', JSON.stringify(defaultQuotes));
-        localStorage.setItem('app_quotes_v1', JSON.stringify(defaultQuotes));
+        safeSetItem('app_quotes', defaultQuotes);
       }
     };
 
@@ -81,8 +81,7 @@ export default function CustomerQuotes() {
   const handleAcceptQuote = (quote) => {
     const updated = quotes.map(q => q.id === quote.id ? { ...q, status: 'Geaccepteerd' } : q);
     setQuotes(updated);
-    localStorage.setItem('app_quotes', JSON.stringify(updated));
-    localStorage.setItem('app_quotes_v1', JSON.stringify(updated));
+    safeSetItem('app_quotes', updated);
 
     // Auto Create Project
     const existingProjects = JSON.parse(localStorage.getItem('app_projects') || '[]');
@@ -98,7 +97,7 @@ export default function CustomerQuotes() {
         quoteId: quote.id,
         value: quote.amount
       };
-      localStorage.setItem('app_projects', JSON.stringify([newProject, ...existingProjects]));
+      safeSetItem('app_projects', [newProject, ...existingProjects]);
     }
 
     // Auto Create 2 Invoices (50% Deposit & 50% Final)
@@ -124,7 +123,7 @@ export default function CustomerQuotes() {
       quoteId: quote.id
     };
     const existingInvoices = JSON.parse(localStorage.getItem('app_invoices') || '[]');
-    localStorage.setItem('app_invoices', JSON.stringify([inv1, inv2, ...existingInvoices]));
+    safeSetItem('app_invoices', [inv1, inv2, ...existingInvoices]);
 
     // Auto update lead
     const savedLeads = localStorage.getItem('app_leads_v2') || localStorage.getItem('app_leads');
@@ -132,8 +131,8 @@ export default function CustomerQuotes() {
       try {
         const leads = JSON.parse(savedLeads);
         const updatedLeads = leads.map(l => l.name === quote.customer ? { ...l, status: 'Gewonnen' } : l);
-        localStorage.setItem('app_leads_v2', JSON.stringify(updatedLeads));
-        localStorage.setItem('app_leads', JSON.stringify(updatedLeads));
+        safeSetItem('app_leads_v2', updatedLeads);
+        safeSetItem('app_leads', updatedLeads);
       } catch (e) {}
     }
 
@@ -145,8 +144,7 @@ export default function CustomerQuotes() {
   const handleDeclineQuote = (quote) => {
     const updated = quotes.map(q => q.id === quote.id ? { ...q, status: 'Afgewezen' } : q);
     setQuotes(updated);
-    localStorage.setItem('app_quotes', JSON.stringify(updated));
-    localStorage.setItem('app_quotes_v1', JSON.stringify(updated));
+    safeSetItem('app_quotes', updated);
     window.dispatchEvent(new Event('app_data_changed'));
     showToast(language === 'EN' ? 'Quote marked as declined.' : 'Offerte is afgewezen.');
   };
