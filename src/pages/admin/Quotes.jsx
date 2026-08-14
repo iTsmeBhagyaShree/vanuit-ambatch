@@ -12,11 +12,7 @@ import { Plus, Search, Filter, X, Check, CheckCircle, Trash2, Edit2, RotateCcw, 
 import { mockQuotes as defaultQuotes } from '../../utils/mockData';
 import { useLanguage } from '../../context/LanguageContext';
 import { safeSetItem } from '../../utils/storageHelper';
-<<<<<<< HEAD
-import { downloadQuotePdf } from '../../utils/pdfGenerator';
-=======
-import { downloadDirectPdfFile } from '../../utils/pdfGenerator';
->>>>>>> bb806fc27c3a65ebe7561e51010baf5237363a83
+import { downloadQuotePdf, downloadDirectPdfFile } from '../../utils/pdfGenerator';
 
 
 // Helper to get raw numeric value from formatted amount string (e.g. "€ 12,500" -> 12500)
@@ -1107,24 +1103,16 @@ export default function Quotes() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">
-<<<<<<< HEAD
-                  <Button size="sm" icon={Download} onClick={() => {
-                    const fileName = downloadQuotePdf(pdfPreviewQuote);
-                    showToast(language === 'EN' ? `PDF downloaded: ${fileName}` : `PDF gedownload: ${fileName}`);
-                  }} className="text-xs">
-                    {language === 'EN' ? 'Download PDF' : 'Download PDF'}
-=======
                   <Button 
                     size="sm" 
                     icon={Download} 
                     onClick={() => {
-                      const downloadedName = downloadDirectPdfFile(pdfPreviewQuote);
+                      const downloadedName = downloadQuotePdf(pdfPreviewQuote);
                       showToast(language === 'EN' ? `✓ Downloaded ${downloadedName}!` : `✓ ${downloadedName} gedownload!`);
                     }} 
                     className="text-xs font-bold bg-[#D97706] hover:bg-[#B45309] text-white shadow-sm cursor-pointer"
                   >
                     {language === 'EN' ? 'Download PDF File' : 'Download PDF Bestand'}
->>>>>>> bb806fc27c3a65ebe7561e51010baf5237363a83
                   </Button>
                   <Button size="sm" icon={Printer} onClick={() => window.print()} className="text-xs bg-[#EDE8DF] text-dark hover:bg-[#D6CFC2]">
                     {language === 'EN' ? 'Print' : 'Afdrukken'}

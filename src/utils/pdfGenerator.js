@@ -1,6 +1,5 @@
 import { jsPDF } from 'jspdf';
 
-<<<<<<< HEAD
 // ─────────────────────────────────────────────────────────────────
 // VANUIT AMBACHT — Unified Real PDF Generator
 // All functions produce actual .pdf files via jsPDF doc.save()
@@ -235,7 +234,10 @@ export function downloadQuotePdf(quote) {
   );
 
   drawFooter(doc, 1);
-=======
+  doc.save(fileName);
+  return fileName;
+}
+
 /**
  * Vanuit Ambacht — Direct Client-Side Vector PDF File Generator
  * Generates an official, beautiful branded PDF document matching the preview 100%
@@ -437,7 +439,6 @@ export function downloadDirectPdfFile(quoteData = {}) {
   doc.text(`Bestand: ${fileName}`, 20, 285);
 
   // DIRECT AUTOMATIC FILE DOWNLOAD TO USER'S DOWNLOADS FOLDER
->>>>>>> bb806fc27c3a65ebe7561e51010baf5237363a83
   doc.save(fileName);
   return fileName;
 }
@@ -710,4 +711,3 @@ export function downloadDocumentPdf(docObj) {
 }
 
 // ── 5. Legacy named export (backwards compat) ─────────────────────
-export { downloadQuotePdf as downloadDirectPdfFile };
