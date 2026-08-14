@@ -21,6 +21,13 @@ const getNumericAmount = (amtStr) => {
   return isNaN(val) ? 0 : val;
 };
 
+// Helper to safely extract customer name string (customer can be string OR object from QuoteEditor)
+const getCustomerName = (customer) => {
+  if (!customer) return '';
+  if (typeof customer === 'object') return customer.name || customer.firstName || '';
+  return String(customer);
+};
+
 // Bulletproof Clipboard Copy Helper with execCommand fallback
 const copyTextToClipboard = async (text) => {
   try {
@@ -192,7 +199,6 @@ export default function Quotes() {
       }
       safeSetItem('app_quotes_v2', updatedList);
       safeSetItem('app_quotes', updatedList);
-      return updatedList;
       return updatedList;
     });
 
@@ -502,7 +508,7 @@ export default function Quotes() {
   // Process and sort quotes list
   const processedQuotes = [...quotes]
     .filter(quote => {
-      const custName = (quote.customer || '').toLowerCase();
+      const custName = getCustomerName(quote.customer).toLowerCase();
       const projName = (quote.project || '').toLowerCase();
       const qId = (quote.id || '').toLowerCase();
       const query = searchQuery.toLowerCase();
@@ -517,7 +523,7 @@ export default function Quotes() {
       if (sortBy === 'oldest') return new Date(a.date || 0) - new Date(b.date || 0);
       if (sortBy === 'amount-desc') return getNumericAmount(b.amount) - getNumericAmount(a.amount);
       if (sortBy === 'amount-asc') return getNumericAmount(a.amount) - getNumericAmount(b.amount);
-      if (sortBy === 'customer-asc') return (a.customer || '').localeCompare(b.customer || '');
+      if (sortBy === 'customer-asc') return getCustomerName(a.customer).localeCompare(getCustomerName(b.customer));
       return 0;
     });
 
@@ -566,7 +572,7 @@ export default function Quotes() {
     setQuotes(updatedQuotes);
     localStorage.setItem('app_quotes', JSON.stringify(updatedQuotes));
     autoGenerateInvoicesAndProjectForAcceptedQuote(updatedQuoteObj);
-    showToast(language === 'EN' ? `Quote converted to Project for ${quote.customer}!` : `Offerte omgezet naar Project voor ${quote.customer}!`);
+    showToast(language === 'EN' ? `Quote converted to Project for ${getCustomerName(quote.customer)}!` : `Offerte omgezet naar Project voor ${getCustomerName(quote.customer)}!`);
   };
 
   const translateProjectName = (name) => {
@@ -608,7 +614,7 @@ export default function Quotes() {
         );
       }
     },
-    { header: language === 'EN' ? 'Customer' : 'Klantnaam', accessor: 'customer' },
+    { header: language === 'EN' ? 'Customer' : 'Klantnaam', render: (row) => <span>{getCustomerName(row.customer)}</span> },
     { header: language === 'EN' ? 'Project' : 'Project', render: (row) => <span>{translateProjectName(row.project)}</span> },
     { header: language === 'EN' ? 'Amount' : 'Bedrag', accessor: 'amount' },
     { 
@@ -677,7 +683,7 @@ export default function Quotes() {
             <Edit2 className="w-3.5 h-3.5" />
           </button>
           <button 
-            onClick={() => handleDeleteQuote(row.id, row.customer)}
+            onClick={() => handleDeleteQuote(row.id, getCustomerName(row.customer))}
             className="p-1 sm:p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors inline-flex items-center justify-center flex-shrink-0 cursor-pointer"
             title="Delete Quote"
           >
@@ -712,7 +718,7 @@ export default function Quotes() {
             initial={{ opacity: 0, y: -20 }} 
             animate={{ opacity: 1, y: 0 }} 
             exit={{ opacity: 0, y: -20 }} 
-            className="fixed top-4 right-4 z-[99999] flex items-center gap-2 bg-[#33422C] text-white px-4 py-3 rounded-xl shadow-xl text-xs font-body font-semibold"
+            className="fixed top-20 right-4 z-[99999] flex items-center gap-2 bg-[#33422C] text-white px-4 py-3 rounded-xl shadow-xl text-xs font-body font-semibold"
           >
             <CheckCircle className="w-4 h-4 text-[#D97706]" />
             {toastMsg}
