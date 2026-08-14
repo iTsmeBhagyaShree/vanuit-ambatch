@@ -218,9 +218,10 @@
     border: none !important;
     width: 210mm !important;
     max-width: 210mm !important;
-    padding: 0 !important;
+    padding: 6mm 8mm !important;
     margin: 0 !important;
     background: #ffffff !important;
+    color: #2B3028 !important;
   }
 
   /* STRICT A4 SHEET BOUNDARIES FOR PDF PAGES */

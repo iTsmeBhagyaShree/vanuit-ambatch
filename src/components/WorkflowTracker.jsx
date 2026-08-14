@@ -236,6 +236,14 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
   const [step2Material, setStep2Material] = useState('Douglas');
   const [isPriceRequestSent, setIsPriceRequestSent] = useState(false);
 
+  // Partner Form State (Declared early so all step handlers can access it)
+  const [partnerForm, setPartnerForm] = useState({
+    partnerName: 'Sven Hoek',
+    company: 'Hoek Bouw',
+    buildPrice: '8500',
+    deliveryWeek: 'Week 49 (Dec 2023)'
+  });
+
   // Step 3 — Partner Price Received (Internal Cost — NEVER shown to customer or partner)
   const [partnerCostPrice, setPartnerCostPrice] = useState('');
   const [partnerValidUntil, setPartnerValidUntil] = useState(() => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
@@ -510,8 +518,26 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
       customer: customerName,
       customerEmail,
       customerPhone,
+      quoteId: 'OF-2026331',
+      value: `€ ${step4TotalInclVat.toLocaleString('nl-NL')}`,
+      numericAmount: step4TotalInclVat,
       category: customerCategory || 'Buitenkeukens',
+      dimensions: step2Size || '8,00 × 4,00 m',
+      woodType: step2Material || 'Thermo Fraké',
+      material: step2Material || 'Thermo Fraké with concrete countertop',
+      products: [
+        { 
+          description: `Maatwerk ${customerCategory || 'Buitenkeuken'} (${step2Size || '8,00 × 4,00 m'})`, 
+          quantity: 1, 
+          unitPrice: step4CustomerPriceExclVat 
+        }
+      ],
       partner: 'Ruben Verbeij — RV Meubels',
+      partnerCost: effectivePartnerCost,
+      margin: step4MarginAmount,
+      marginPercent: step4MarginPercent,
+      isPartnerConfirmed: false,
+      partnerStatus: 'Pending Confirmation',
       progress: 10,
       deadline: '2026-09-27',
       totalAmount: `€ ${step4TotalInclVat.toLocaleString('nl-NL')}`,
@@ -576,16 +602,27 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
   };
 
   // Step 7 — Create Project State (Final Check & Partner Privacy Unlock)
-  const [step7SelectedPartner, setStep7SelectedPartner] = useState('Ruben Verbeij — RV Meubels');
+  const initialStep2Partner = partnerForm?.partnerName || lead?.partner || 'Ruben Verbeij — RV Meubels';
+  const [step7SelectedPartner, setStep7SelectedPartner] = useState(initialStep2Partner);
   const [step7PartnerChangeReason, setStep7PartnerChangeReason] = useState('');
   const [step7StartDate, setStep7StartDate] = useState('2026-09-02');
   const [step7CompletionDate, setStep7CompletionDate] = useState('2026-09-27');
   const [step7InternalNote, setStep7InternalNote] = useState('Workshop pre-assembly scheduled. Site installation date agreed.');
   const [step7Confirmed, setStep7Confirmed] = useState(false);
 
+  // Sync Step 2 partner to Step 7 when partnerForm updates
+  useEffect(() => {
+    if (partnerForm?.partnerName) {
+      setStep7SelectedPartner(partnerForm.partnerName);
+    }
+  }, [partnerForm?.partnerName]);
+
   const handleConfirmProjectStep7 = () => {
-    if (step7SelectedPartner !== 'Ruben Verbeij — RV Meubels' && !step7PartnerChangeReason.trim()) {
-      showToast(language === 'EN' ? 'Please specify a reason for choosing another partner.' : 'Geef een reden op voor het kiezen van een andere partner.');
+    const originalPartner = partnerForm?.partnerName || lead?.partner || 'Ruben Verbeij — RV Meubels';
+    if (step7SelectedPartner !== originalPartner && !step7PartnerChangeReason.trim()) {
+      showToast(language === 'EN' 
+        ? `Why are you changing the partner? Please specify a mandatory reason before confirming.` 
+        : `Waarom verander je van partner? Geef een verplichte reden op voordat u bevestigt.`);
       return;
     }
 
@@ -602,10 +639,15 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
       category: customerCategory || 'Buitenkeukens',
       partner: step7SelectedPartner,
       partnerReason: step7PartnerChangeReason,
+      isPartnerConfirmed: true,
+      partnerStatus: 'Final / Locked',
+      partnerCost: effectivePartnerCost,
+      margin: step4MarginAmount,
       startDate: step7StartDate,
       deadline: step7CompletionDate,
       progress: 25,
       totalAmount: `€ ${step4TotalInclVat.toLocaleString('nl-NL')}`,
+      numericAmount: step4TotalInclVat,
       status: 'In execution',
       internalNote: step7InternalNote,
       confirmedAt: new Date().toISOString()
@@ -697,13 +739,6 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
     customer: customerName,
     partner: 'Sven Hoek (Hoek Bouw)',
     deadline: '2023-12-12',
-  });
-
-  const [partnerForm, setPartnerForm] = useState({
-    partnerName: 'Sven Hoek',
-    company: 'Hoek Bouw',
-    buildPrice: '8500',
-    deliveryWeek: 'Week 49 (Dec 2023)'
   });
 
   const [invoiceForm, setInvoiceForm] = useState({
@@ -2956,18 +2991,18 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
                         </select>
 
                         {/* Mandatory Reason if selecting another partner */}
-                        {step7SelectedPartner !== 'Ruben Verbeij — RV Meubels' && (
+                        {step7SelectedPartner !== (partnerForm?.partnerName || lead?.partner || 'Ruben Verbeij — RV Meubels') && (
                           <div className="pt-2 animate-fade-in space-y-1">
                             <label className="block text-[10px] font-bold text-amber-900 uppercase">
-                              Reason for choosing another partner * (Mandatory)
+                              Why are you changing the partner? * (Mandatory Reason)
                             </label>
                             <input
                               type="text"
                               required
                               value={step7PartnerChangeReason}
                               onChange={(e) => setStep7PartnerChangeReason(e.target.value)}
-                              placeholder="Specify reason for selecting another partner..."
-                              className="w-full px-3 py-2 bg-amber-50 border border-amber-300 rounded-xl text-xs font-semibold text-amber-950"
+                              placeholder="Why are you changing the partner? (e.g. Schedule conflict, capacity limit...)"
+                              className="w-full px-3 py-2 bg-amber-50 border border-amber-300 rounded-xl text-xs font-semibold text-amber-950 focus:ring-2 focus:ring-amber-500/20"
                             />
                           </div>
                         )}

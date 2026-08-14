@@ -20,6 +20,10 @@ export default function Invoices() {
   const { t, language } = useLanguage();
   const [invoices, setInvoices] = useState([]);
   const [bankTxns, setBankTxns] = useState([]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [pdfInvoice, setPdfInvoice] = useState(null);
+  const [confirmSendInvoiceModal, setConfirmSendInvoiceModal] = useState(null);
+  const [toastMsg, setToastMsg] = useState('');
 
   // Load bank transactions from localStorage for real-time settlement & project margin calculations
   useEffect(() => {
@@ -66,10 +70,6 @@ export default function Invoices() {
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [statusFilter, setStatusFilter] = useState('All');
   const [sortBy, setSortBy] = useState('newest');
-
-  const [modalOpen, setModalOpen] = useState(false);
-  const [pdfInvoice, setPdfInvoice] = useState(null);
-  const [toastMsg, setToastMsg] = useState('');
 
   // Form State for Manual Invoice Creation
   const [form, setForm] = useState({
@@ -312,8 +312,8 @@ export default function Invoices() {
               <Button
                 variant="primary"
                 size="sm"
-                onClick={() => handleSendInvoice(row.id)}
-                className="bg-primary hover:bg-primary/90 text-cream font-bold text-[11px] py-1 px-2.5 shadow-2xs flex items-center gap-1"
+                onClick={() => setConfirmSendInvoiceModal(row)}
+                className="bg-primary hover:bg-primary/90 text-cream font-bold text-[11px] py-1 px-2.5 shadow-2xs flex items-center gap-1 cursor-pointer"
               >
                 <Send className="w-3 h-3 text-amber-300" />
                 {language === 'EN' ? 'Send Invoice' : 'Verstuur Factuur'}
@@ -577,6 +577,51 @@ export default function Invoices() {
 
               {/* Exact 100% Match Official Dutch Factuur Template */}
               <FactuurPDFTemplate invoice={pdfInvoice} />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* EXPLICIT CONFIRMATION MODAL FOR SENDING INVOICE (NO AUTOMATIC SENDING) */}
+      <AnimatePresence>
+        {confirmSendInvoiceModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-dark/70 backdrop-blur-xs" onClick={() => setConfirmSendInvoiceModal(null)} />
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative w-full max-w-md bg-[#EDE8DF] border border-[#C4BEB3] rounded-2xl p-6 shadow-2xl z-10 space-y-4 font-body text-[#4A4A43]">
+              <div className="flex items-center gap-3 border-b border-[#C4BEB3] pb-3">
+                <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
+                  <Send className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-heading font-bold text-base text-primary">
+                    {language === 'EN' ? 'Confirm Send Invoice' : 'Factuur Verzenden Bevestigen'}
+                  </h3>
+                  <p className="text-[11px] text-dark/60">Geen automatische verzending. Expliciete bevestiging vereist.</p>
+                </div>
+              </div>
+
+              <p className="text-xs leading-relaxed text-dark/80">
+                {language === 'EN' 
+                  ? `Are you sure you want to send Invoice ${confirmSendInvoiceModal.id} (${confirmSendInvoiceModal.amount}) to ${confirmSendInvoiceModal.customer}?` 
+                  : `Weet u zeker dat u Factuur ${confirmSendInvoiceModal.id} (${confirmSendInvoiceModal.amount}) wilt versturen naar ${confirmSendInvoiceModal.customer}?`}
+              </p>
+
+              <div className="flex gap-2 pt-2 justify-end">
+                <Button variant="outline" size="sm" onClick={() => setConfirmSendInvoiceModal(null)}>
+                  {language === 'EN' ? 'Cancel' : 'Annuleren'}
+                </Button>
+                <Button 
+                  size="sm" 
+                  onClick={() => {
+                    const targetId = confirmSendInvoiceModal.id;
+                    setConfirmSendInvoiceModal(null);
+                    handleSendInvoice(targetId);
+                  }}
+                  className="bg-primary text-cream font-bold cursor-pointer"
+                >
+                  ✓ {language === 'EN' ? 'Confirm & Send' : 'Bevestig & Verstuur'}
+                </Button>
+              </div>
             </motion.div>
           </div>
         )}

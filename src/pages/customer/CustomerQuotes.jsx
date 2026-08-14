@@ -5,6 +5,7 @@ import Badge from '../../components/Badge';
 import Button from '../../components/Button';
 import { useLanguage } from '../../context/LanguageContext';
 import { safeSetItem } from '../../utils/storageHelper';
+import { downloadDirectPdfFile } from '../../utils/pdfGenerator';
 import { CheckCircle, XCircle, FileText, Download, Sparkles, Check, CreditCard, ShieldCheck, Copy, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -83,22 +84,37 @@ export default function CustomerQuotes() {
     setQuotes(updated);
     safeSetItem('app_quotes', updated);
 
-    // Auto Create Project
+    // Auto Create / Update Project (Prevent duplicates & carry over all quote data)
     const existingProjects = JSON.parse(localStorage.getItem('app_projects') || '[]');
-    if (!existingProjects.some(p => p.quoteId === quote.id)) {
-      const newProject = {
-        id: `PRJ-${Math.floor(100 + Math.random() * 900)}`,
-        name: quote.project,
-        customer: quote.customer,
-        partner: 'Sven Hoek (Hoek Bouw)',
-        progress: 10,
-        deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        status: 'In Progress',
-        quoteId: quote.id,
-        value: quote.amount
-      };
-      safeSetItem('app_projects', [newProject, ...existingProjects]);
+    const totalVal = parseFloat((quote.amount || '').replace(/[^0-9.]/g, '')) || 0;
+    const existingIdx = existingProjects.findIndex(p => p.quoteId === quote.id || (p.customer === quote.customer && p.name === quote.project));
+
+    const projectPayload = {
+      id: existingIdx >= 0 ? existingProjects[existingIdx].id : `PRJ-${Math.floor(100 + Math.random() * 900)}`,
+      name: quote.project,
+      customer: quote.customer,
+      partner: quote.partner || existingProjects[existingIdx]?.partner || 'Sven Hoek (Hoek Bouw)',
+      partnerCost: quote.partnerCost || Math.round(totalVal * 0.65),
+      margin: quote.margin || Math.round(totalVal * 0.35),
+      products: quote.items || quote.products || [],
+      progress: existingIdx >= 0 ? existingProjects[existingIdx].progress : 0,
+      deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      status: 'In Progress',
+      orderStatus: 'In voorbereiding',
+      quoteId: quote.id,
+      value: quote.amount,
+      numericAmount: totalVal,
+      isPartnerConfirmed: existingIdx >= 0 ? (existingProjects[existingIdx].isPartnerConfirmed || false) : false,
+      partnerStatus: existingIdx >= 0 ? (existingProjects[existingIdx].partnerStatus || 'Pending Confirmation') : 'Pending Confirmation'
+    };
+
+    let updatedProjectsList = [];
+    if (existingIdx >= 0) {
+      updatedProjectsList = existingProjects.map((p, i) => i === existingIdx ? { ...p, ...projectPayload } : p);
+    } else {
+      updatedProjectsList = [projectPayload, ...existingProjects];
     }
+    safeSetItem('app_projects', updatedProjectsList);
 
     // Auto Create 2 Invoices (50% Deposit & 50% Final)
     const numAmount = parseFloat((quote.amount || '').replace(/[^0-9.]/g, '')) || 1000;
@@ -272,6 +288,17 @@ export default function CustomerQuotes() {
                     >
                       <Copy className="w-3.5 h-3.5 mr-1" />
                       {language === 'EN' ? 'Copy Link' : 'Kopieer Link'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        const fn = downloadDirectPdfFile(quote);
+                        showToast(language === 'EN' ? `✓ Downloaded ${fn}!` : `✓ ${fn} gedownload!`);
+                      }}
+                      className="flex-1 sm:flex-none text-[11px] font-bold py-1 px-3 bg-[#D97706] hover:bg-[#B45309] text-white shadow-xs cursor-pointer"
+                    >
+                      <Download className="w-3.5 h-3.5 mr-1" />
+                      {language === 'EN' ? 'Download PDF' : 'Download PDF'}
                     </Button>
                     <a
                       href={`/offerte/${quote.id}`}
