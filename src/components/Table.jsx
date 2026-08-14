@@ -21,7 +21,7 @@ export default function Table({ columns, data, keyField = 'id', getRowClassName,
   return (
     <>
       {/* Mobile Card List View (< md screens) */}
-      <div className="md:hidden space-y-3">
+      <div className="md:hidden space-y-3 w-full max-w-full overflow-hidden">
         {data.length > 0 ? (
           data.map((row, rIdx) => (
             <div 
@@ -30,7 +30,7 @@ export default function Table({ columns, data, keyField = 'id', getRowClassName,
                 if (e.target.closest('button, input, select, a, option')) return;
                 if (onRowClick) onRowClick(row);
               }}
-              className={`p-4 bg-[#F8F7F4] border border-[#C4BEB3]/60 rounded-2xl space-y-2.5 text-xs font-body shadow-xs hover:border-primary/40 transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
+              className={`p-3.5 sm:p-4 bg-[#F8F7F4] border border-[#C4BEB3]/60 rounded-2xl space-y-3 text-xs font-body shadow-xs hover:border-primary/40 transition-colors w-full max-w-full overflow-hidden ${onRowClick ? 'cursor-pointer' : ''}`}
             >
               {columns.map((col, cIdx) => {
                 const headerRaw = typeof col.header === 'string' ? col.header : '';
@@ -41,7 +41,7 @@ export default function Table({ columns, data, keyField = 'id', getRowClassName,
                 // 1. Actions Column: Render at bottom as clean action bar
                 if (isActions) {
                   return (
-                    <div key={cIdx} className="pt-2.5 mt-2.5 border-t border-[#C4BEB3]/40 flex items-center justify-end gap-1.5 w-full min-w-0 overflow-x-auto no-scrollbar">
+                    <div key={cIdx} className="pt-2.5 mt-2.5 border-t border-[#C4BEB3]/40 flex flex-wrap items-center justify-end gap-1.5 w-full min-w-0">
                       {cellContent}
                     </div>
                   );
@@ -50,7 +50,7 @@ export default function Table({ columns, data, keyField = 'id', getRowClassName,
                 // 2. Primary Item Column (Column 0): Render as top title header block
                 if (cIdx === 0) {
                   return (
-                    <div key={cIdx} className="pb-2.5 mb-2.5 border-b border-[#C4BEB3]/40 flex items-center justify-between gap-3 min-w-0">
+                    <div key={cIdx} className="pb-2 mb-1 border-b border-[#C4BEB3]/40 flex items-center justify-between gap-3 min-w-0 w-full">
                       <div className="min-w-0 flex-1 text-left font-semibold text-dark text-xs sm:text-sm">
                         {cellContent}
                       </div>
@@ -58,13 +58,13 @@ export default function Table({ columns, data, keyField = 'id', getRowClassName,
                   );
                 }
 
-                // 3. Regular Data Columns: Render as key-value pairs with responsive wrapping
+                // 3. Regular Data Columns: Stack label on top, value on bottom (100% full width, zero overflow)
                 return (
-                  <div key={cIdx} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 sm:gap-3 min-w-0 py-0.5">
+                  <div key={cIdx} className="flex flex-col justify-start items-start gap-1 min-w-0 w-full overflow-hidden">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-dark/50 flex-shrink-0">
                       {headerText}
                     </span>
-                    <div className="text-left sm:text-right font-medium text-dark/90 min-w-0 break-words flex-1 w-full sm:w-auto">
+                    <div className="text-left font-medium text-dark/90 min-w-0 w-full max-w-full overflow-hidden">
                       {cellContent}
                     </div>
                   </div>
