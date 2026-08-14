@@ -965,7 +965,171 @@ export default function Projects() {
           </AnimatePresence>
         </div>
 
-        <Table columns={columns} data={filteredProjects} />
+        {/* ============================================================ */}
+        {/* MOBILE CARD VIEW — 100% custom, no Table.jsx, no overflow   */}
+        {/* ============================================================ */}
+        <div className="md:hidden space-y-4">
+          {filteredProjects.length === 0 ? (
+            <div className="p-8 text-center text-xs font-body text-dark/40 rounded-2xl border border-[#C4BEB3]/35 bg-[#F8F7F4]">
+              {language === 'EN' ? 'No projects found.' : 'Geen projecten gevonden.'}
+            </div>
+          ) : filteredProjects.map((row) => {
+            const isConfirmed = row.isPartnerConfirmed || row.partnerStatus === 'Final / Locked';
+            const projName = (row.name || '').toLowerCase();
+            const cat = row.category || (projName.includes('kliko') ? 'Kliko-ombouw' : projName.includes('snijplanken') ? 'Snijplanken' : 'Buitenkeukens');
+            const logoSrc = cat.includes('Kliko') ? '/logo_kliko.png' : cat.includes('Snijplanken') ? '/logo_snijplanken.png' : '/logo_buitenkeukens.png';
+            const orderVal = Number(row.numericAmount || row.amount || row.price || 6990);
+            const settlement = calculateOrderSettlement({ id: row.id, totalAmount: orderVal }, bankTxns);
+            const linkedPurchasing = bankTxns.filter(t => t.category === UNIFIED_PURCHASING_CATEGORY && (t.projectRef === row.id || t.orderId === row.id || t.projectId === row.id || (t.customerName && (row.customer || '').toLowerCase().includes(t.customerName.toLowerCase()))));
+            const marginInfo = calculateProjectMarginWithPurchasing(orderVal, linkedPurchasing);
+
+            return (
+              <div
+                key={row.id}
+                className="bg-[#F8F7F4] border border-[#C4BEB3]/60 rounded-2xl p-4 space-y-3 shadow-xs hover:border-primary/40 transition-colors w-full"
+              >
+                {/* Card Header: ID + Status */}
+                <div className="flex items-center justify-between gap-2 pb-2 border-b border-[#C4BEB3]/40">
+                  <span className="font-mono text-xs font-bold text-primary">{row.id}</span>
+                  <Badge variant={row.status === 'Completed' || row.status === 'Afgerond' ? 'success' : row.status === 'In Progress' || row.status === 'In uitvoering' ? 'primary' : 'warning'}>
+                    {tValue(row.status, language)}
+                  </Badge>
+                </div>
+
+                {/* Category */}
+                <div className="flex items-center gap-2">
+                  <img src={logoSrc} alt={cat} className="h-5 max-w-[60px] object-contain mix-blend-multiply flex-shrink-0" />
+                  <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">{translateCategory(cat)}</span>
+                </div>
+
+                {/* Project Name */}
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-dark/50 block mb-0.5">Project Name</span>
+                  <span className="font-bold text-primary text-xs">{translateProjectName(row.name)}</span>
+                </div>
+
+                {/* Customer */}
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-dark/50 block mb-0.5">Customer</span>
+                  <span className="text-xs text-dark/80 font-medium">{row.customer}</span>
+                </div>
+
+                {/* Assigned Partner & Confirmation — 100% vertical, no flex-row */}
+                <div className="w-full">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-dark/50 block mb-1.5">Assigned Partner</span>
+                  {isConfirmed ? (
+                    <div className="flex items-center justify-between gap-2 bg-emerald-50 border border-emerald-300 p-2 rounded-lg text-xs">
+                      <span className="font-bold text-emerald-900 truncate">🔒 {row.partner}</span>
+                      <button
+                        onClick={() => handleUnlockPartnerAssignment(row.id)}
+                        className="text-[10px] text-emerald-700 hover:text-emerald-900 underline font-semibold flex-shrink-0 cursor-pointer"
+                      >
+                        Wijzigen
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2 w-full">
+                      <select
+                        value={row.partner}
+                        onChange={(e) => handleInlinePartnerChange(row.id, e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body font-semibold text-dark/80 focus:outline-none focus:ring-1 focus:ring-primary/40 cursor-pointer"
+                      >
+                        <option value="Unassigned">{language === 'EN' ? 'Unassigned' : 'Niet toegewezen'}</option>
+                        {partnersList.map((p, idx) => (
+                          <option key={idx} value={p.name}>{p.name} ({p.company})</option>
+                        ))}
+                      </select>
+                      {row.partner && row.partner !== 'Unassigned' && (
+                        <button
+                          onClick={() => handleConfirmPartnerForGood(row.id)}
+                          className="w-full py-2 px-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold cursor-pointer flex items-center justify-center gap-1.5"
+                        >
+                          ✓ Bevestig Partner Definitief
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Progress */}
+                <div className="w-full">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-dark/50 block mb-1.5">Progress</span>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range"
+                      min="0" max="100" step="5"
+                      value={row.progress || 0}
+                      onChange={(e) => handleProgressUpdate(row.id, e.target.value)}
+                      className="flex-1 accent-primary cursor-pointer h-1.5 bg-[#EDE8DF] rounded-lg"
+                    />
+                    <span className="text-[11px] font-bold text-primary font-mono w-9 text-right">{row.progress || 0}%</span>
+                  </div>
+                </div>
+
+                {/* Deadline */}
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-dark/50 block mb-0.5">Deadline</span>
+                  <span className="text-xs text-dark/80 font-medium font-mono">{row.deadline}</span>
+                </div>
+
+                {/* Payments */}
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-dark/50 block mb-1">Klantenbetalingen</span>
+                  <div className="font-mono text-xs leading-tight space-y-0.5">
+                    <p className="text-emerald-700 font-bold">Ontvangen: € {settlement.totalReceived.toLocaleString('nl-NL')}</p>
+                    <p className={`font-bold ${settlement.outstanding > 0 ? 'text-amber-800' : 'text-emerald-900'}`}>
+                      {settlement.outstanding > 0 ? `Open: € ${settlement.outstanding.toLocaleString('nl-NL')}` : '✓ Betaald / Settled'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Margin */}
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-dark/50 block mb-1">Inkoop &amp; Project Marge</span>
+                  <div className="text-xs font-mono space-y-0.5">
+                    <p className="text-blue-950 font-medium">Inkoop: € {marginInfo.totalPurchasing.toLocaleString('nl-NL')}</p>
+                    <span className="inline-block px-2 py-0.5 bg-emerald-100 text-emerald-900 font-bold rounded-md">
+                      Marge: € {marginInfo.projectMargin.toLocaleString('nl-NL')} ({marginInfo.marginPercentage}%)
+                    </span>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="pt-2 border-t border-[#C4BEB3]/40 flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="ghost" size="sm"
+                    onClick={() => setDirectUploadProject(row)}
+                    className="flex-1 min-w-[120px] text-primary hover:bg-[#D6CFC2]/40 font-bold cursor-pointer justify-center"
+                  >
+                    <Camera className="w-3.5 h-3.5 mr-1 text-accent" />
+                    {language === 'EN' ? 'Upload Photos' : "Foto's Uploaden"}
+                  </Button>
+                  <Button
+                    variant="ghost" size="sm"
+                    onClick={() => handleOpenEditModal(row)}
+                    className="text-dark/70 hover:bg-[#D6CFC2]/40"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button
+                    variant="custom" size="sm"
+                    onClick={() => handleDeleteProject(row.id, row.name)}
+                    className="text-red-600 bg-red-50 hover:bg-red-100 border border-red-200"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ============================================================ */}
+        {/* DESKTOP TABLE VIEW — shown only >= md                        */}
+        {/* ============================================================ */}
+        <div className="hidden md:block">
+          <Table columns={columns} data={filteredProjects} />
+        </div>
       </Card>
 
       {/* PROJECT DETAIL TECHNICAL BLUEPRINT POPUP MODAL */}
