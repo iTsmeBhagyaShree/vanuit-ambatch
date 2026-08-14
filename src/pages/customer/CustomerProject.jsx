@@ -1,55 +1,110 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAuth } from '../../hooks/useAuth';
 import Card from '../../components/Card';
 import Badge from '../../components/Badge';
-import { CheckCircle2, Circle, Clock, Calendar, MapPin, Wrench, ShieldCheck, Compass, Sparkles } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, Calendar, MapPin, Wrench, ShieldCheck, Compass, Sparkles, Camera, Eye, X, ArrowRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 export default function CustomerProject() {
   const { t, language } = useLanguage();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
-  const getDisplayValue = (key, val) => {
-    if (language !== 'EN') return val;
-    if (key === 'address' && val === 'Keizersgracht 420, 1016 GC Amsterdam') return '420 King Street, 1016 GC London';
-    if (key === 'craftsman' && val === 'Sven Hoek (Hoek Bouw)') return 'Sven Hoek (Hoek Construction)';
-    if (key === 'customer' && val === 'Jan de Vries') return 'John Miller';
-    return val;
-  };
-
-  const currentProject = {
+  const [activeProject, setActiveProject] = useState({
     id: 'P-2001',
-    name: 'Luxury Outdoor Kitchen Amsterdam',
-    division: 'Buitenkeukens op maat',
-    customer: 'Jan de Vries',
+    name: language === 'EN' ? 'Luxury Outdoor Kitchen Amsterdam' : 'Luxe Teak Buitenkeuken Amsterdam',
+    division: language === 'EN' ? 'Custom Outdoor Kitchens' : 'Buitenkeukens op maat',
+    customer: user?.name || (language === 'EN' ? 'John Miller' : 'Jan de Vries'),
     address: 'Keizersgracht 420, 1016 GC Amsterdam',
     expectedDelivery: '15 November 2026',
     craftsman: 'Sven Hoek (Hoek Bouw)',
-    progress: 45
+    progress: 45,
+    status: 'In Progress'
+  });
+
+  const [sharedPhotos, setSharedPhotos] = useState([]);
+  const [selectedPhotoModal, setSelectedPhotoModal] = useState(null);
+
+  const loadCustomerProjectData = () => {
+    try {
+      const currentCustName = user?.name || (language === 'EN' ? 'John Miller' : 'Jan de Vries');
+
+      // Load Projects
+      const savedProjects = localStorage.getItem('app_projects');
+      if (savedProjects) {
+        const parsed = JSON.parse(savedProjects);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const match = parsed.find(p => 
+            (p.customer || '').toLowerCase().includes(currentCustName.toLowerCase()) ||
+            currentCustName.toLowerCase().includes((p.customer || '').toLowerCase())
+          ) || parsed[0];
+
+          if (match) {
+            setActiveProject({
+              id: match.id || 'P-2001',
+              name: match.name || (language === 'EN' ? 'Luxury Outdoor Kitchen' : 'Luxe Buitenkeuken'),
+              division: match.category || (language === 'EN' ? 'Custom Outdoor Kitchens' : 'Buitenkeukens op maat'),
+              customer: match.customer || currentCustName,
+              address: match.deliveryAddress || 'Keizersgracht 420, 1016 GC Amsterdam',
+              expectedDelivery: match.deadline || '15 November 2026',
+              craftsman: match.partner && match.partner !== 'Unassigned' ? match.partner : 'Sven Hoek (Hoek Bouw)',
+              progress: Number(match.progress) || 45,
+              status: match.status || 'In Progress'
+            });
+          }
+        }
+      }
+
+      // Load Shared Photos
+      const savedPhotos = localStorage.getItem('app_project_photos');
+      if (savedPhotos) {
+        const parsedP = JSON.parse(savedPhotos);
+        if (Array.isArray(parsedP) && parsedP.length > 0) {
+          const visiblePhotos = parsedP.filter(p => p.isShared !== false);
+          setSharedPhotos(visiblePhotos);
+        }
+      }
+    } catch (e) {}
   };
+
+  useEffect(() => {
+    loadCustomerProjectData();
+    window.addEventListener('storage', loadCustomerProjectData);
+    window.addEventListener('app_data_changed', loadCustomerProjectData);
+    return () => {
+      window.removeEventListener('storage', loadCustomerProjectData);
+      window.removeEventListener('app_data_changed', loadCustomerProjectData);
+    };
+  }, [language, user]);
+
+  const progressVal = activeProject.progress;
 
   const timelineSteps = [
     { 
-      title: language === 'EN' ? '1. Quote Accepted' : '1. Offerte Akkoord', 
+      title: language === 'EN' ? '1. Quote Accepted & Design Approval' : '1. Offerte Akkoord & Ontwerp', 
       date: '01 Oct 2026', 
       status: 'completed', 
-      desc: language === 'EN' ? 'Quote Q-4001 approved and deposit received.' : 'Offerte Q-4001 goedgekeurd en aanbetaling ontvangen.' 
+      desc: language === 'EN' ? 'Quote approved and workshop production queued.' : 'Offerte goedgekeurd en productie ingepland.' 
     },
     { 
-      title: language === 'EN' ? '2. Materials Ordered & Checked' : '2. Materialen Besteld & Gecontroleerd', 
+      title: language === 'EN' ? '2. Premium Materials Sourced' : '2. Materialen Besteld & Gecontroleerd', 
       date: '05 Oct 2026', 
-      status: 'completed', 
-      desc: language === 'EN' ? 'Solid teak wood and granite countertop delivered to workshop.' : 'Massief teak hout en granieten werkblad geleverd in werkplaats.' 
+      status: progressVal >= 25 ? 'completed' : 'active', 
+      desc: language === 'EN' ? 'Solid teak wood and concrete top components delivered to workshop.' : 'Massief teakhout en betonblad onderdelen ontvangen in werkplaats.' 
     },
     { 
-      title: language === 'EN' ? '3. Workshop Construction' : '3. Werkplaats Constructie', 
+      title: language === 'EN' ? '3. Workshop Build & Crafting' : '3. Werkplaats Constructie & Bouw', 
       date: '15 Oct 2026', 
-      status: 'active', 
-      desc: language === 'EN' ? 'Craftsman Sven Hoek is currently building the teak frame and concrete slab.' : 'Vakman Sven Hoek bouwt momenteel het teakhouten frame en betonblad.' 
+      status: progressVal >= 100 ? 'completed' : progressVal >= 25 ? 'active' : 'pending', 
+      desc: language === 'EN' ? `Craftsman ${activeProject.craftsman} is currently fabricating frame, drawers & finish.` : `Vakman ${activeProject.craftsman} bouwt het frame, de lades en afwerking.` 
     },
     { 
-      title: language === 'EN' ? '4. Delivery & On-Site Assembly' : '4. Oplevering & Locatie Montage', 
-      date: language === 'EN' ? '15 Nov 2026 (Expected)' : '15 Nov 2026 (Verwacht)', 
-      status: 'pending', 
-      desc: language === 'EN' ? 'Connecting taps and final inspection at your location in Amsterdam.' : 'Kranen aansluiten en eindinspectie op uw locatie in Amsterdam.' 
+      title: language === 'EN' ? '4. On-Site Assembly & Final Delivery' : '4. Oplevering & Locatie Montage', 
+      date: activeProject.expectedDelivery, 
+      status: progressVal >= 100 ? 'completed' : 'pending', 
+      desc: language === 'EN' ? `Final installation, appliance connection and sign-off at ${activeProject.address}.` : `Eindmontage, aansluiting apparatuur en oplevering op locatie.` 
     },
   ];
 
@@ -60,15 +115,15 @@ export default function CustomerProject() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold text-accent">{currentProject.id}</span>
-              <Badge variant="primary">{language === 'EN' ? 'Custom Outdoor Kitchens' : currentProject.division}</Badge>
+              <span className="text-xs font-mono font-bold text-accent">{activeProject.id}</span>
+              <Badge variant="primary">{activeProject.division}</Badge>
             </div>
-            <h2 className="text-lg sm:text-2xl font-heading font-bold text-primary mt-1 leading-snug">{currentProject.name}</h2>
+            <h2 className="text-lg sm:text-2xl font-heading font-bold text-primary mt-1 leading-snug">{activeProject.name}</h2>
           </div>
           <div className="bg-white/80 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl border border-[#D6CFC2] text-left sm:text-right w-full sm:w-auto">
-            <span className="text-[10px] text-dark/50 font-bold uppercase block">{language === 'EN' ? 'Expected Delivery' : 'Verwachte Oplevering'}</span>
+            <span className="text-[10px] text-dark/50 font-bold uppercase block">{language === 'EN' ? 'Target Delivery' : 'Verwachte Oplevering'}</span>
             <span className="text-xs font-bold text-primary flex items-center gap-1 mt-0.5 sm:justify-end">
-              <Calendar className="w-3.5 h-3.5 text-accent flex-shrink-0" /> {currentProject.expectedDelivery}
+              <Calendar className="w-3.5 h-3.5 text-accent flex-shrink-0" /> {activeProject.expectedDelivery}
             </span>
           </div>
         </div>
@@ -79,18 +134,64 @@ export default function CustomerProject() {
             <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
             <div className="min-w-0">
               <span className="text-[10px] text-dark/50 font-bold uppercase block">{language === 'EN' ? 'Delivery Location' : 'Opleverlocatie'}</span>
-              <span className="font-semibold text-dark truncate block">{getDisplayValue('address', currentProject.address)}</span>
+              <span className="font-semibold text-dark truncate block">{activeProject.address}</span>
             </div>
           </div>
           <div className="flex items-center gap-2 bg-white/70 p-2 sm:p-2.5 rounded-xl border border-[#D6CFC2]/40 min-w-0">
             <Wrench className="w-4 h-4 text-primary flex-shrink-0" />
             <div className="min-w-0">
               <span className="text-[10px] text-dark/50 font-bold uppercase block">{language === 'EN' ? 'Assigned Craftsman' : 'Toegewezen Vakman'}</span>
-              <span className="font-semibold text-primary truncate block">{getDisplayValue('craftsman', currentProject.craftsman)}</span>
+              <span className="font-semibold text-primary truncate block">{activeProject.craftsman}</span>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Live Workshop Photos Section */}
+      <Card 
+        title={language === 'EN' ? `Recent Workshop Photo Updates (${sharedPhotos.length})` : `Werkplaats Foto-Updates (${sharedPhotos.length})`} 
+        icon={Camera}
+      >
+        <div className="space-y-3">
+          {sharedPhotos.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {sharedPhotos.slice(0, 3).map((photo) => (
+                <div 
+                  key={photo.id} 
+                  onClick={() => setSelectedPhotoModal(photo)}
+                  className="relative group bg-white border border-[#D6CFC2] rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-all"
+                >
+                  <div className="h-32 bg-cream-dark/20 overflow-hidden relative">
+                    <img src={photo.img} alt={photo.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors" />
+                    <span className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-xs px-2 py-0.5 rounded text-[9px] font-bold text-primary font-mono">
+                      {photo.phase || 'Workshop Photo'}
+                    </span>
+                  </div>
+                  <div className="p-2.5 space-y-1">
+                    <h5 className="font-bold text-primary text-xs truncate">{photo.title}</h5>
+                    <p className="text-[10px] text-dark/60 line-clamp-1">{photo.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-dark/50 italic py-2">
+              {language === 'EN' ? 'No workshop build photos shared yet.' : 'Nog geen werkplaatsfoto\'s gedeeld.'}
+            </p>
+          )}
+
+          <div className="pt-2 border-t border-[#D6CFC2]/60 flex justify-end">
+            <button 
+              type="button" 
+              onClick={() => navigate('/customer/photos')}
+              className="text-xs font-bold text-primary hover:text-accent flex items-center gap-1 cursor-pointer"
+            >
+              <span>{language === 'EN' ? 'View All Photo Updates →' : 'Bekijk Alle Foto-Updates →'}</span>
+            </button>
+          </div>
+        </div>
+      </Card>
 
       {/* Interactive Read-Only Project Timeline */}
       <Card title={language === 'EN' ? 'Project Progress Timeline' : 'Projectvoortgang Tijdlijn'} icon={Compass}>
@@ -120,10 +221,10 @@ export default function CustomerProject() {
                       <span className="font-bold text-primary flex items-center gap-1.5 text-xs">
                         <Sparkles className="w-3.5 h-3.5 text-accent flex-shrink-0" /> {language === 'EN' ? 'Current Phase: In Workshop Construction' : 'Huidige Fase: In Werkplaats Constructie'}
                       </span>
-                      <span className="font-mono font-bold text-primary text-xs">{currentProject.progress}% {language === 'EN' ? 'Completed' : 'Compleet'}</span>
+                      <span className="font-mono font-bold text-primary text-xs">{progressVal}% {language === 'EN' ? 'Completed' : 'Compleet'}</span>
                     </div>
                     <div className="w-full bg-white rounded-full h-2">
-                      <div className="bg-primary h-2 rounded-full transition-all duration-500" style={{ width: `${currentProject.progress}%` }}></div>
+                      <div className="bg-primary h-2 rounded-full transition-all duration-500" style={{ width: `${progressVal}%` }}></div>
                     </div>
                   </div>
                 )}
@@ -132,6 +233,39 @@ export default function CustomerProject() {
           ))}
         </div>
       </Card>
+
+      {/* Lightbox Preview Modal */}
+      <AnimatePresence>
+        {selectedPhotoModal && (
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 overflow-y-auto">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-dark/85 backdrop-blur-md z-[99999]" onClick={() => setSelectedPhotoModal(null)} />
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative w-full max-w-2xl bg-[#EDE8DF] border border-[#C4BEB3] rounded-2xl p-5 shadow-2xl z-[100000] space-y-3 text-xs my-auto">
+              <div className="flex justify-between items-start border-b border-[#D6CFC2] pb-2">
+                <div>
+                  <span className="text-[10px] font-mono text-accent font-bold">{selectedPhotoModal.phase}</span>
+                  <h3 className="text-lg font-heading font-bold text-primary">{selectedPhotoModal.title}</h3>
+                </div>
+                <button onClick={() => setSelectedPhotoModal(null)} className="p-1 text-dark/40 hover:text-dark"><X className="w-5 h-5" /></button>
+              </div>
+
+              <div className="rounded-xl overflow-hidden max-h-[50vh] bg-black/90 border border-[#D6CFC2] flex items-center justify-center p-2">
+                <img src={selectedPhotoModal.img} alt={selectedPhotoModal.title} className="max-h-[48vh] w-auto max-w-full object-contain mx-auto rounded-lg" />
+              </div>
+
+              <p className="text-dark/80 bg-white p-3 rounded-xl border border-[#D6CFC2]/60 text-xs">
+                {selectedPhotoModal.description}
+              </p>
+
+              <div className="flex justify-end pt-1">
+                <button onClick={() => setSelectedPhotoModal(null)} className="px-4 py-2 bg-primary text-cream font-bold rounded-xl text-xs hover:bg-primary/90">
+                  {language === 'EN' ? 'Close' : 'Sluiten'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
+

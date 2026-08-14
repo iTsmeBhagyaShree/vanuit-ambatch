@@ -1,5 +1,6 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import Card from '../../components/Card';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
@@ -33,7 +34,9 @@ const StatCard = ({ label, value, icon: Icon, trend, color, bgColor, borderClass
 
 export default function AdminDashboard() {
   const { t, language, tStatus } = useLanguage();
+  const navigate = useNavigate();
   const [toastMsg, setToastMsg] = useState('');
+  const [partnerNotifs, setPartnerNotifs] = useState([]);
   
   // Module 1.2: Date Range Filter & Dynamic KPI Analytics State
   const [dateRange, setDateRange] = useState('30days'); // '7days' | '30days' | 'currentMonth' | '3months' | '6months' | '12months' | 'custom'
@@ -93,6 +96,12 @@ export default function AdminDashboard() {
       setDashboardTasks(mockTasks);
       localStorage.setItem('app_tasks', JSON.stringify(mockTasks));
     }
+
+    // Partner Photo Upload Notifications
+    try {
+      const savedNotifs = JSON.parse(localStorage.getItem('app_admin_notifications') || '[]');
+      setPartnerNotifs(savedNotifs.filter(n => n.unread !== false));
+    } catch(e) {}
   };
 
   useEffect(() => {
@@ -266,6 +275,39 @@ export default function AdminDashboard() {
           </Button>
         </div>
       </div>
+
+      {/* PARTNER PHOTO UPLOAD REALTIME NOTIFICATION BANNER */}
+      {partnerNotifs.length > 0 && (
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-amber-500/10 border-2 border-amber-500/40 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-lg flex-shrink-0 animate-bounce">
+              📸
+            </div>
+            <div>
+              <p className="text-xs font-bold text-amber-950 font-heading">
+                {language === 'EN' ? `New Partner Build Photos Received (${partnerNotifs.length})` : `Nieuwe Voortgangsfoto's Ontvangen van Vakman (${partnerNotifs.length})`}
+              </p>
+              <p className="text-[11px] text-amber-900/80 font-body">
+                {partnerNotifs[0].message}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <button
+              onClick={() => {
+                navigate('/admin/photos', { state: { projectId: partnerNotifs[0].projectId } });
+              }}
+              className="px-3.5 py-1.5 bg-primary text-cream rounded-xl text-xs font-bold shadow-xs hover:bg-primary/90 transition-all flex items-center gap-1.5 whitespace-nowrap"
+            >
+              <span>{language === 'EN' ? 'View Photos →' : 'Bekijk Foto\'s →'}</span>
+            </button>
+          </div>
+        </motion.div>
+      )}
 
       {/* MODULE 1.2: DATE RANGE FILTER BAR & 7 KPI ANALYTICS CARDS GRID */}
       <div className="space-y-4">

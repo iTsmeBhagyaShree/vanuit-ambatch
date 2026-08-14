@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Card from '../../components/Card';
 import Table from '../../components/Table';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
 import ProjectTracker from '../../components/ProjectTracker';
-import { Plus, Search, Filter, Trash2, Edit2, X, CheckCircle, RotateCcw, Compass, MapPin, Calendar, UserCheck, Layers, FileText, CheckSquare, Sparkles, Truck, ShoppingBag, Download, Camera } from 'lucide-react';
+import { Plus, Search, Filter, Trash2, Edit2, X, CheckCircle, RotateCcw, Compass, MapPin, Calendar, UserCheck, Layers, FileText, CheckSquare, Sparkles, Truck, ShoppingBag, Download, Camera, Image as ImageIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { mockProjects, mockLeads, mockPartners } from '../../utils/mockData';
+import { safeSetItem, compressImage } from '../../utils/storageHelper';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../../context/LanguageContext';
 import { tValue } from '../../utils/translator';
@@ -14,10 +15,23 @@ import { tValue } from '../../utils/translator';
 export default function Projects() {
   const { t, language } = useLanguage();
   const navigate = useNavigate();
+  const directFileInputRef = useRef(null);
   const [projects, setProjects] = useState([]);
   const [leadsList, setLeadsList] = useState([]);
   const [partnersList, setPartnersList] = useState([]);
   const [activeProjectDetail, setActiveProjectDetail] = useState(null);
+
+  // Direct Upload Popup Modal State (for Actions column click)
+  const [directUploadProject, setDirectUploadProject] = useState(null);
+  const [selectedUploadFiles, setSelectedUploadFiles] = useState([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadForm, setUploadForm] = useState({
+    captionCategory: 'Initial Construction',
+    title: '',
+    desc: '',
+    isShared: true
+  });
 
   useEffect(() => {
     const handleResetProjectsView = () => {
@@ -249,6 +263,89 @@ export default function Projects() {
     setModalOpen(false);
   };
 
+  // Handlers for Direct Upload Popup Modal (from Table Actions Click)
+  const handleQuickSelectFiles = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    for (const file of files) {
+      try {
+        const compressedSrc = await compressImage(file, 1200, 0.82);
+        setSelectedUploadFiles(prev => [...prev, {
+          name: file.name,
+          src: compressedSrc
+        }]);
+      } catch (err) {
+        console.warn('Compress image error:', err);
+      }
+    }
+  };
+
+  const handleQuickDropFiles = async (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = Array.from(e.dataTransfer?.files || []);
+    if (files.length === 0) return;
+
+    for (const file of files) {
+      try {
+        const compressedSrc = await compressImage(file, 1200, 0.82);
+        setSelectedUploadFiles(prev => [...prev, {
+          name: file.name,
+          src: compressedSrc
+        }]);
+      } catch (err) {
+        console.warn('Compress image error:', err);
+      }
+    }
+  };
+
+  const handleQuickRemoveFile = (idx) => {
+    setSelectedUploadFiles(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleQuickUploadSubmit = async (e) => {
+    e.preventDefault();
+    if (!directUploadProject || selectedUploadFiles.length === 0) {
+      return showToast(language === 'EN' ? 'Please select at least one photo file.' : 'Selecteer alstublieft minimaal één fotobestand.');
+    }
+
+    setIsUploading(true);
+
+    const newPhotoEntries = selectedUploadFiles.map((fileObj, index) => ({
+      id: `P-PRJ-${Date.now().toString().slice(-4)}-${index + 1}`,
+      projectId: directUploadProject.id,
+      projectName: directUploadProject.name,
+      customer: directUploadProject.customer || 'Customer',
+      title: uploadForm.title.trim() || `${uploadForm.captionCategory}: ${fileObj.name.replace(/\.[^/.]+$/, "")}`,
+      phase: `${uploadForm.captionCategory} — ${new Date().toLocaleDateString('default', { day: 'numeric', month: 'short', year: 'numeric' })}`,
+      description: uploadForm.desc.trim() || `Project progress photo uploaded by Admin for ${directUploadProject.name}.`,
+      img: fileObj.src,
+      craftsman: 'Tim & Bram (Admin)',
+      uploaderRole: 'admin',
+      isShared: uploadForm.isShared,
+      date: new Date().toISOString().split('T')[0]
+    }));
+
+    try {
+      const savedPhotos = JSON.parse(localStorage.getItem('app_project_photos') || '[]');
+      const updatedPhotos = [...newPhotoEntries, ...savedPhotos];
+      safeSetItem('app_project_photos', updatedPhotos);
+      window.dispatchEvent(new Event('app_data_changed'));
+    } catch (err) {}
+
+    setIsUploading(false);
+    showToast(
+      language === 'EN'
+        ? `🚀 ${newPhotoEntries.length} photo(s) uploaded & delivered live to ${directUploadProject.customer}'s Customer Portal!`
+        : `🚀 ${newPhotoEntries.length} foto('s) geüpload en verzonden naar het Klantenportaal van ${directUploadProject.customer}!`
+    );
+
+    setDirectUploadProject(null);
+    setSelectedUploadFiles([]);
+    setUploadForm({ captionCategory: 'Initial Construction', title: '', desc: '', isShared: true });
+  };
+
   const handleResetFilters = () => {
     setSearchQuery('');
     setStatusFilter('All');
@@ -337,7 +434,7 @@ export default function Projects() {
       header: 'Project Name', 
       render: (row) => (
         <span className="font-bold text-primary text-xs flex items-center gap-1">
-          <span>{translateProjectName(row.name)}</span>
+          {translateProjectName(row.name)}
         </span>
       )
     },
@@ -393,16 +490,27 @@ export default function Projects() {
           <Button 
             variant="ghost" 
             size="sm" 
+            onClick={() => setDirectUploadProject(row)}
+            className="text-primary hover:bg-[#D6CFC2]/40 font-bold cursor-pointer"
+            title="Upload Project Photos & Share with Customer"
+          >
+            <Camera className="w-3.5 h-3.5 mr-1 text-accent" /> {language === 'EN' ? 'Upload Photos' : 'Foto\'s Uploaden'}
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm" 
             onClick={() => handleOpenEditModal(row)}
             className="text-dark/70 hover:bg-[#D6CFC2]/40"
+            title="Edit Project Details"
           >
-            <Edit2 className="w-3.5 h-3.5 mr-1" /> Edit
+            <Edit2 className="w-3.5 h-3.5" />
           </Button>
           <Button 
             variant="custom" 
             size="sm" 
             onClick={() => handleDeleteProject(row.id, row.name)}
             className="text-red-600 bg-red-50 hover:bg-red-100 border border-red-200"
+            title="Delete Project"
           >
             <Trash2 className="w-3.5 h-3.5" />
           </Button>
@@ -473,11 +581,11 @@ export default function Projects() {
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => navigate('/admin/photos')}
-            className="text-primary hover:bg-[#D6CFC2]/40"
-            title="Manage Project Photos"
+            onClick={() => setActiveProjectDetail(row)}
+            className="text-primary hover:bg-[#D6CFC2]/40 font-bold"
+            title="Upload Project Photos"
           >
-            <Camera className="w-3.5 h-3.5 mr-1 text-accent" /> {language === 'EN' ? 'Photos' : 'Foto\'s'}
+            <Camera className="w-3.5 h-3.5 mr-1 text-accent" /> {language === 'EN' ? 'Upload Photos' : 'Foto\'s Uploaden'}
           </Button>
           <Button 
             variant="ghost" 
@@ -955,6 +1063,178 @@ export default function Projects() {
                 <div className="flex justify-end gap-2 pt-3 border-t border-cream-dark/60">
                   <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>{language === 'EN' ? 'Cancel' : 'Annuleren'}</Button>
                   <Button type="submit">{selectedProject ? (language === 'EN' ? 'Save Changes' : 'Wijzigingen Opslaan') : (language === 'EN' ? 'Save Project' : 'Project Opslaan')}</Button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* DIRECT UPLOAD PROJECT PROGRESS PHOTOS POPUP MODAL (MATCHES SCREENSHOT PRECISELY) */}
+      <AnimatePresence>
+        {directUploadProject && (
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 overflow-y-auto">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-dark/75 backdrop-blur-xs z-[99999]" onClick={() => setDirectUploadProject(null)} />
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative w-full max-w-xl bg-[#EDE8DF] border border-[#C4BEB3] rounded-2xl p-6 shadow-2xl z-[100000] space-y-4 text-xs font-body max-h-[90vh] overflow-y-auto my-auto text-[#4A4A43]">
+              
+              {/* Header */}
+              <div className="flex justify-between items-start border-b border-[#D6CFC2] pb-3">
+                <div>
+                  <span className="text-[10px] font-bold text-dark/50 uppercase font-mono tracking-wider">PROJECT PHOTO MANAGEMENT</span>
+                  <h3 className="font-heading font-bold text-primary text-base flex items-center gap-2 mt-0.5">
+                    <Camera className="w-5 h-5 text-accent" />
+                    <span>{language === 'EN' ? 'Upload Project Progress Photos' : 'Upload Project Progress Photos'}</span>
+                  </h3>
+                </div>
+                <button onClick={() => setDirectUploadProject(null)} className="p-1 text-dark/40 hover:text-dark cursor-pointer">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Selected Project Card Banner */}
+              <div className="p-3.5 bg-white rounded-xl border border-[#D6CFC2] space-y-1.5 shadow-2xs">
+                <div className="flex justify-between items-center text-[10px] text-dark/50">
+                  <span className="font-bold uppercase tracking-wider">SELECTED PROJECT</span>
+                  <Badge variant="info" className="font-mono font-bold text-xs">{directUploadProject.id}</Badge>
+                </div>
+                <p className="font-heading font-bold text-primary text-sm truncate">
+                  {directUploadProject.name} — {directUploadProject.customer}
+                </p>
+                <div className="flex justify-between items-center text-[11px] text-dark/60 font-mono pt-0.5">
+                  <span>Customer: <strong className="text-primary font-bold">{directUploadProject.customer}</strong></span>
+                  <span>Delivery: <strong className="text-dark/80 font-bold">{directUploadProject.deadline || '2026-12-12'}</strong></span>
+                </div>
+              </div>
+
+              <form onSubmit={handleQuickUploadSubmit} className="space-y-4">
+                {/* Select Photo Files (Drag & Drop Zone) */}
+                <div>
+                  <label className="block font-bold text-dark/70 mb-1 uppercase tracking-wider text-[10px]">
+                    SELECT PHOTO FILES (DRAG & DROP OR BROWSE) *
+                  </label>
+                  <div
+                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={handleQuickDropFiles}
+                    onClick={() => directFileInputRef.current?.click()}
+                    className={`border-2 border-dashed p-6 rounded-2xl text-center cursor-pointer transition-all ${
+                      isDragging ? 'border-primary bg-primary/10' : 'border-[#D6CFC2] bg-white hover:bg-[#F8F7F4]'
+                    }`}
+                  >
+                    <Camera className="w-8 h-8 text-primary mx-auto mb-2 opacity-80" />
+                    <p className="text-xs font-bold text-primary">
+                      Click or drag & drop multiple photo files here
+                    </p>
+                    <p className="text-[10px] text-dark/50 mt-0.5">PNG, JPG, WEBP • Multiple files supported</p>
+                    <input
+                      type="file"
+                      ref={directFileInputRef}
+                      multiple
+                      accept="image/*"
+                      onChange={handleQuickSelectFiles}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+
+                {/* Selected Photo Previews Grid with Remove (X) button */}
+                {selectedUploadFiles.length > 0 && (
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-bold text-dark/60 uppercase">Selected Previews ({selectedUploadFiles.length}):</span>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-36 overflow-y-auto p-1.5 bg-white rounded-xl border border-[#D6CFC2]">
+                      {selectedUploadFiles.map((fileObj, idx) => (
+                        <div key={idx} className="relative group rounded-lg overflow-hidden border border-[#D6CFC2] h-20 bg-black/10">
+                          <img src={fileObj.src} alt={fileObj.name} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); handleQuickRemoveFile(idx); }}
+                            className="absolute top-1 right-1 p-1 bg-rose-600 text-white rounded-full hover:bg-rose-700 transition-colors shadow-xs cursor-pointer z-10"
+                            title="Remove Photo"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                          <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[8px] truncate px-1 py-0.5">
+                            {fileObj.name}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Grid: Category / Phase & Caption */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-dark/60 mb-1 uppercase text-[10px]">
+                      PROGRESS CATEGORY / PHASE
+                    </label>
+                    <select
+                      value={uploadForm.captionCategory}
+                      onChange={e => setUploadForm(prev => ({ ...prev, captionCategory: e.target.value }))}
+                      className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-xl text-xs font-bold text-primary"
+                    >
+                      <option value="Initial Construction">🔨 1. Initial Construction (Houtbewerking)</option>
+                      <option value="Frame Completed">📐 2. Frame Completed (Frame Gemonteerd)</option>
+                      <option value="Countertop Installation">✨ 3. Countertop Installation (Betonblad)</option>
+                      <option value="Final Installation">🏆 4. Final Installation & Inspection (Eindkeuring)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-dark/60 mb-1 uppercase text-[10px]">
+                      PHOTO TITLE / CAPTION
+                    </label>
+                    <input
+                      type="text"
+                      value={uploadForm.title}
+                      onChange={e => setUploadForm(prev => ({ ...prev, title: e.target.value }))}
+                      className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-xl text-xs font-bold text-dark"
+                      placeholder="e.g. Massief Teakhout Frame Gezaagd"
+                    />
+                  </div>
+                </div>
+
+                {/* Description & Notes */}
+                <div>
+                  <label className="block font-bold text-dark/60 mb-1 uppercase text-[10px]">
+                    DESCRIPTION & NOTES FOR CUSTOMER
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={uploadForm.desc}
+                    onChange={e => setUploadForm(prev => ({ ...prev, desc: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-xl text-xs text-dark"
+                    placeholder="e.g. Solid teak frame assembled and ready for countertop polishing..."
+                  />
+                </div>
+
+                {/* Share Banner Checkbox */}
+                <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center justify-between">
+                  <span className="text-xs font-bold text-emerald-950">
+                    Share in Customer Portal Immediately
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={uploadForm.isShared}
+                    onChange={e => setUploadForm(prev => ({ ...prev, isShared: e.target.checked }))}
+                    className="w-4 h-4 accent-emerald-600 cursor-pointer"
+                  />
+                </div>
+
+                {/* Footer Buttons */}
+                <div className="flex justify-end gap-2 pt-3 border-t border-[#D6CFC2]">
+                  <Button type="button" variant="outline" onClick={() => setDirectUploadProject(null)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={selectedUploadFiles.length === 0 || isUploading}
+                    className={`font-bold transition-all ${
+                      selectedUploadFiles.length > 0 ? 'bg-primary text-cream hover:bg-primary/90' : 'bg-dark/20 text-dark/40 cursor-not-allowed'
+                    }`}
+                  >
+                    {isUploading ? 'Uploading...' : `🚀 Save & Share ${selectedUploadFiles.length} Photos`}
+                  </Button>
                 </div>
               </form>
             </motion.div>

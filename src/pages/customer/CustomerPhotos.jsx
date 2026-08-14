@@ -1,20 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAuth } from '../../hooks/useAuth';
 import Card from '../../components/Card';
 import Badge from '../../components/Badge';
-import { Image as ImageIcon, Eye, X, Camera, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Image as ImageIcon, Eye, X, Camera, Sparkles, CheckCircle2, Briefcase } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import projectImg from '../../assets/outdoor_project_card.png';
 import heroImg from '/dasbordes images.png';
 
 export default function CustomerPhotos() {
   const { t, language } = useLanguage();
+  const { user } = useAuth();
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [photosList, setPhotosList] = useState([]);
 
   const defaultPhotoUpdates = [
     {
-      id: 1,
+      id: 'DF-1',
+      projectId: 'PRJ-101',
+      projectName: 'Luxury Teak Outdoor Kitchen',
       title: language === 'EN' ? 'Teak Wood Frame Construction' : 'Teakhouten Frame Constructie',
       phase: language === 'EN' ? 'Workshop Phase Date: 12 Oct 2026' : 'Werkplaats Fasedatum: 12 Okt 2026',
       description: language === 'EN' ? 'The solid teak wood frame has been cut to size and assembled by craftsman Sven Hoek.' : 'Het massieve teak houten frame is op maat gezaagd en gemonteerd door vakman Sven Hoek.',
@@ -22,7 +26,9 @@ export default function CustomerPhotos() {
       craftsman: 'Sven Hoek'
     },
     {
-      id: 2,
+      id: 'DF-2',
+      projectId: 'PRJ-101',
+      projectName: 'Luxury Teak Outdoor Kitchen',
       title: language === 'EN' ? 'Polishing Concrete Top & Grill Cutout' : 'Polijsten Betonblad & Grill Uitsparing',
       phase: language === 'EN' ? 'Workshop Phase Date: 18 Oct 2026' : 'Werkplaats Fasedatum: 18 Okt 2026',
       description: language === 'EN' ? 'The dark grey concrete top has been polished and provided with a water-repellent protective layer.' : 'Het donkergrijze betonblad is gepolijst en voorzien van waterafstotende beschermlaag.',
@@ -30,7 +36,9 @@ export default function CustomerPhotos() {
       craftsman: 'Sven Hoek'
     },
     {
-      id: 3,
+      id: 'DF-3',
+      projectId: 'PRJ-102',
+      projectName: 'Oak Wooden Canopy 6x4m',
       title: language === 'EN' ? 'Final Inspection & Quality Control' : 'Eindkeuring & Kwaliteitscontrole',
       phase: language === 'EN' ? 'Workshop Phase Date: 24 Oct 2026' : 'Werkplaats Fasedatum: 24 Okt 2026',
       description: language === 'EN' ? 'Tim & Bram have checked the drawers, hinges and cable ducts.' : 'Tim & Bram hebben de lades, scharnieren en kabeldoorvoeren gecontroleerd.',
@@ -40,7 +48,7 @@ export default function CustomerPhotos() {
   ];
 
   // Load photos dynamically from localStorage (Uploaded by Admin or Craftsmen)
-  React.useEffect(() => {
+  useEffect(() => {
     const loadPhotos = () => {
       try {
         const saved = localStorage.getItem('app_project_photos');
@@ -49,7 +57,15 @@ export default function CustomerPhotos() {
           if (Array.isArray(parsed) && parsed.length > 0) {
             // Only show photos that are shared with customer (isShared !== false)
             const sharedOnly = parsed.filter(p => p.isShared !== false);
-            setPhotosList([...sharedOnly, ...defaultPhotoUpdates]);
+            
+            // Deduplicate by ID
+            const photoMap = new Map();
+            sharedOnly.forEach(p => photoMap.set(p.id, p));
+            defaultPhotoUpdates.forEach(p => {
+              if (!photoMap.has(p.id)) photoMap.set(p.id, p);
+            });
+
+            setPhotosList(Array.from(photoMap.values()));
             return;
           }
         }
@@ -64,7 +80,7 @@ export default function CustomerPhotos() {
       window.removeEventListener('storage', loadPhotos);
       window.removeEventListener('app_data_changed', loadPhotos);
     };
-  }, [language]);
+  }, [language, user]);
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto font-body text-[#4A4A43]">
@@ -84,6 +100,11 @@ export default function CustomerPhotos() {
             <div className="relative h-48 bg-cream-dark/20 overflow-hidden">
               <img src={photo.img} alt={photo.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
               <div className="absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/20 to-transparent"></div>
+              
+              <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-lg border border-[#D6CFC2] text-[10px] font-bold text-primary flex items-center gap-1 max-w-[75%] truncate">
+                <Briefcase className="w-3 h-3 text-accent flex-shrink-0" />
+                <span className="truncate">[{photo.projectId || 'PRJ-101'}] {photo.projectName || 'Buitenkeuken'}</span>
+              </div>
               
               <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-lg border border-[#D6CFC2] text-[10px] font-bold text-primary flex items-center gap-1">
                 <Sparkles className="w-3 h-3 text-accent" /> {language === 'EN' ? 'Photo' : 'Foto'} #{photo.id}

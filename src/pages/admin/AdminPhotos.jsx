@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Card from '../../components/Card';
 import Badge from '../../components/Badge';
@@ -10,20 +11,21 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { mockProjects, mockLeads } from '../../utils/mockData';
+import { safeSetItem, compressImage } from '../../utils/storageHelper';
 import projectImg from '../../assets/outdoor_project_card.png';
 import heroImg from '/dasbordes images.png';
 
 export default function AdminPhotos() {
   const { t, language } = useLanguage();
+  const location = useLocation();
   const fileInputRef = useRef(null);
   const replaceFileInputRef = useRef(null);
 
   const [photosList, setPhotosList] = useState([]);
   const [projectsList, setProjectsList] = useState([]);
-  const [customersList, setCustomersList] = useState([]);
   
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCustomer, setSelectedCustomer] = useState('All');
+  const [selectedProjectId, setSelectedProjectId] = useState(location?.state?.projectId || 'All');
   const [toastMsg, setToastMsg] = useState('');
 
   // Fullscreen Preview Modal
@@ -33,8 +35,9 @@ export default function AdminPhotos() {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [uploadForm, setUploadForm] = useState({
-    customer: 'John Miller',
     projectId: 'PRJ-101',
+    projectName: 'Luxury Teak Outdoor Kitchen',
+    customer: 'John Miller',
     title: '',
     phase: `${new Date().toLocaleDateString('default', { day: 'numeric', month: 'short', year: 'numeric' })}`,
     description: '',
@@ -50,6 +53,8 @@ export default function AdminPhotos() {
     phase: '',
     description: '',
     customer: '',
+    projectId: '',
+    projectName: '',
     craftsman: '',
     isShared: true
   });
@@ -63,6 +68,7 @@ export default function AdminPhotos() {
     {
       id: 'P-101',
       projectId: 'PRJ-101',
+      projectName: 'Luxury Teak Outdoor Kitchen',
       customer: 'John Miller',
       title: language === 'EN' ? 'Teak Wood Frame Construction' : 'Teakhouten Frame Constructie',
       phase: language === 'EN' ? 'Workshop Phase Date: 12 Oct 2026' : 'Werkplaats Fasedatum: 12 Okt 2026',
@@ -75,6 +81,7 @@ export default function AdminPhotos() {
     {
       id: 'P-102',
       projectId: 'PRJ-101',
+      projectName: 'Luxury Teak Outdoor Kitchen',
       customer: 'John Miller',
       title: language === 'EN' ? 'Polishing Concrete Top & Grill Cutout' : 'Polijsten Betonblad & Grill Uitsparing',
       phase: language === 'EN' ? 'Workshop Phase Date: 18 Oct 2026' : 'Werkplaats Fasedatum: 18 Okt 2026',
@@ -87,6 +94,7 @@ export default function AdminPhotos() {
     {
       id: 'P-103',
       projectId: 'PRJ-102',
+      projectName: 'Oak Wooden Canopy 6x4m',
       customer: 'Sophia Taylor',
       title: language === 'EN' ? 'Final Inspection & Quality Control' : 'Eindkeuring & Kwaliteitscontrole',
       phase: language === 'EN' ? 'Workshop Phase Date: 24 Oct 2026' : 'Werkplaats Fasedatum: 24 Okt 2026',
@@ -109,14 +117,6 @@ export default function AdminPhotos() {
         if (Array.isArray(parsedP) && parsedP.length > 0) activeP = parsedP;
       }
       setProjectsList(activeP);
-
-      // Extract Unique Customers List
-      const uniqueCustomers = Array.from(new Set([
-        ...activeP.map(p => p.customer),
-        ...mockLeads.map(l => l.name),
-        'John Miller', 'Sophia Taylor', 'Mark Davis', 'Emma Wilson'
-      ])).filter(Boolean);
-      setCustomersList(uniqueCustomers);
 
       // Load Photos
       const savedPhotos = localStorage.getItem('app_project_photos');
@@ -143,48 +143,49 @@ export default function AdminPhotos() {
     };
   }, []);
 
-  // Filtered Photos by Customer & Search
+  // Filtered Photos by Selected Project & Search Query
   const filteredPhotos = photosList.filter(photo => {
     const matchesSearch = 
       (photo.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (photo.projectName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (photo.customer || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (photo.projectId || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (photo.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (photo.craftsman || '').toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCustomer = selectedCustomer === 'All' || photo.customer === selectedCustomer;
-    return matchesSearch && matchesCustomer;
+    
+    const matchesProject = selectedProjectId === 'All' || photo.projectId === selectedProjectId;
+    return matchesSearch && matchesProject;
   });
 
-  // Multiple Image Selection Handler
-  const handleMultipleFilesSelected = (e) => {
+  // Multiple Image Selection Handler with Canvas Compression
+  const handleMultipleFilesSelected = async (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    const filePreviews = [];
-    files.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        filePreviews.push({
+    for (const file of files) {
+      try {
+        const compressedSrc = await compressImage(file, 1200, 0.82);
+        setSelectedFiles(prev => [...prev, {
           name: file.name,
-          src: event.target.result
-        });
-        if (filePreviews.length === files.length) {
-          setSelectedFiles(prev => [...prev, ...filePreviews]);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+          src: compressedSrc
+        }]);
+      } catch (err) {
+        console.warn('Image processing failed:', err);
+      }
+    }
   };
 
   const handleRemoveSelectedFile = (idx) => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== idx));
   };
 
-  // Open Upload Modal for Specific Customer
-  const handleOpenUploadForCustomer = (custName) => {
-    const custProj = projectsList.find(p => p.customer === custName) || projectsList[0];
+  // Open Upload Modal for Specific Selected Project
+  const handleOpenUploadForProject = (targetProjId) => {
+    const targetProj = projectsList.find(p => p.id === targetProjId) || projectsList[0];
     setUploadForm({
-      customer: custName || selectedCustomer !== 'All' ? selectedCustomer : 'John Miller',
-      projectId: custProj ? custProj.id : 'PRJ-101',
+      projectId: targetProj ? targetProj.id : 'PRJ-101',
+      projectName: targetProj ? targetProj.name : 'Luxury Teak Outdoor Kitchen',
+      customer: targetProj ? targetProj.customer : 'John Miller',
       title: '',
       phase: `${new Date().toLocaleDateString('default', { day: 'numeric', month: 'short', year: 'numeric' })}`,
       description: '',
@@ -201,7 +202,7 @@ export default function AdminPhotos() {
         const nextShareState = !p.isShared;
         showToast(
           nextShareState
-            ? `Photo shared with ${p.customer}! Now visible in customer portal.`
+            ? `Photo shared for project ${p.projectId}! Now visible in ${p.customer}'s portal.`
             : `Photo unshared. Hidden from customer portal.`
         );
         return { ...p, isShared: nextShareState };
@@ -210,24 +211,27 @@ export default function AdminPhotos() {
     });
 
     setPhotosList(updatedList);
-    localStorage.setItem('app_project_photos', JSON.stringify(updatedList));
+    safeSetItem('app_project_photos', updatedList);
     window.dispatchEvent(new Event('app_data_changed'));
   };
 
-  // Submit Multiple Photos Upload & Share with Customer
+  // Submit Multiple Photos Upload & Share Linked by Project
   const handleUploadPhotosSubmit = (e) => {
     e.preventDefault();
     if (selectedFiles.length === 0) {
       return showToast(language === 'EN' ? 'Please select at least one photo file.' : 'Selecteer alstublieft minimaal één fotobestand.');
     }
 
-    const targetCustomer = uploadForm.customer || 'John Miller';
-    const targetProjObj = projectsList.find(p => p.customer === targetCustomer) || projectsList[0];
+    const targetProjObj = projectsList.find(p => p.id === uploadForm.projectId) || projectsList[0];
+    const finalProjId = targetProjObj ? targetProjObj.id : uploadForm.projectId;
+    const finalProjName = targetProjObj ? targetProjObj.name : uploadForm.projectName;
+    const finalCustomer = targetProjObj ? targetProjObj.customer : uploadForm.customer;
 
     const newPhotoEntries = selectedFiles.map((fileObj, index) => ({
       id: `P-${Date.now().toString().slice(-4)}-${index + 1}`,
-      projectId: targetProjObj ? targetProjObj.id : uploadForm.projectId || 'PRJ-101',
-      customer: targetCustomer,
+      projectId: finalProjId,
+      projectName: finalProjName,
+      customer: finalCustomer,
       title: uploadForm.title.trim() || fileObj.name.replace(/\.[^/.]+$/, ""),
       phase: uploadForm.phase ? `Werkplaats Fasedatum: ${uploadForm.phase}` : `Datum: ${new Date().toLocaleDateString('default', { day: 'numeric', month: 'short' })}`,
       description: uploadForm.description.trim() || (language === 'EN' ? 'Project update photo shared by Admin.' : 'Projectfoto update gedeeld door beheerder.'),
@@ -240,13 +244,13 @@ export default function AdminPhotos() {
 
     const updatedPhotosList = [...newPhotoEntries, ...photosList];
     setPhotosList(updatedPhotosList);
-    localStorage.setItem('app_project_photos', JSON.stringify(updatedPhotosList));
+    safeSetItem('app_project_photos', updatedPhotosList);
     window.dispatchEvent(new Event('app_data_changed'));
 
     showToast(
       language === 'EN'
-        ? `Successfully shared ${newPhotoEntries.length} photos with ${targetCustomer}! Live in Customer Portal.`
-        : `Succesvol ${newPhotoEntries.length} foto's gedeeld met ${targetCustomer}! Nu zichtbaar in het Klantenportaal.`
+        ? `Successfully linked ${newPhotoEntries.length} photos to Project ${finalProjId}! Live in ${finalCustomer}'s Customer Portal.`
+        : `Succesvol ${newPhotoEntries.length} foto's gekoppeld aan Project ${finalProjId}! Nu zichtbaar in het Klantenportaal.`
     );
 
     setSelectedFiles([]);
@@ -257,7 +261,7 @@ export default function AdminPhotos() {
   const handleDeletePhoto = (photoId) => {
     const updated = photosList.filter(p => p.id !== photoId);
     setPhotosList(updated);
-    localStorage.setItem('app_project_photos', JSON.stringify(updated));
+    safeSetItem('app_project_photos', updated);
     window.dispatchEvent(new Event('app_data_changed'));
     showToast(language === 'EN' ? 'Photo deleted from gallery and customer portal.' : 'Foto verwijderd uit de galerij en het klantenportaal.');
   };
@@ -297,7 +301,7 @@ export default function AdminPhotos() {
     });
 
     setPhotosList(updatedList);
-    localStorage.setItem('app_project_photos', JSON.stringify(updatedList));
+    safeSetItem('app_project_photos', updatedList);
     window.dispatchEvent(new Event('app_data_changed'));
     showToast(language === 'EN' ? 'Photo details updated successfully!' : 'Fotogegevens succesvol bijgewerkt!');
     setEditModalOpen(false);
@@ -305,21 +309,21 @@ export default function AdminPhotos() {
   };
 
   // Replace Photo File
-  const handleReplacePhotoFile = (e) => {
+  const handleReplacePhotoFile = async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file || !editingPhoto) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const newImgSrc = event.target.result;
+    try {
+      const newImgSrc = await compressImage(file, 1200, 0.82);
       const updatedList = photosList.map(p => p.id === editingPhoto.id ? { ...p, img: newImgSrc } : p);
       setPhotosList(updatedList);
       setEditingPhoto(prev => ({ ...prev, img: newImgSrc }));
-      localStorage.setItem('app_project_photos', JSON.stringify(updatedList));
+      safeSetItem('app_project_photos', updatedList);
       window.dispatchEvent(new Event('app_data_changed'));
       showToast(language === 'EN' ? 'Photo image file replaced successfully!' : 'Fotobestand succesvol vervangen!');
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.warn('Replace file error:', err);
+    }
   };
 
   return (
@@ -352,33 +356,33 @@ export default function AdminPhotos() {
         <div className="flex items-center gap-2">
           <Button
             icon={Send}
-            onClick={() => handleOpenUploadForCustomer(selectedCustomer !== 'All' ? selectedCustomer : 'John Miller')}
+            onClick={() => handleOpenUploadForProject(selectedProjectId !== 'All' ? selectedProjectId : (projectsList[0]?.id || 'PRJ-101'))}
             className="py-2 px-4 text-xs font-bold shadow-sm"
           >
-            {language === 'EN' ? '+ Upload & Share Photo' : '+ Foto Uploaden & Delen'}
+            {language === 'EN' ? '+ Upload & Share Photo for Project' : '+ Foto Uploaden voor Project'}
           </Button>
         </div>
       </div>
 
-      {/* CUSTOMER DROPDOWN & PHOTO MANAGEMENT TOOLBAR */}
+      {/* PROJECT DROPDOWN & PHOTO MANAGEMENT TOOLBAR */}
       <Card p="p-4" className="border-l-4 border-l-primary">
         <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
           
-          {/* CUSTOMER DROPDOWN SELECTOR */}
+          {/* PROJECT DROPDOWN SELECTOR */}
           <div className="flex items-center gap-3 bg-[#EDE8DF] border border-[#C4BEB3] p-2 rounded-xl flex-1 max-w-md">
-            <User className="w-5 h-5 text-primary ml-1 flex-shrink-0" />
+            <Briefcase className="w-5 h-5 text-primary ml-1 flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <label className="block text-[9px] font-bold text-dark/50 uppercase tracking-wider">
-                {language === 'EN' ? 'Select Target Customer *' : 'Selecteer Klant om Foto\'s te Beheren *'}
+                {language === 'EN' ? 'Select Target Project *' : 'Selecteer Project om Foto\'s te Beheren *'}
               </label>
               <select
-                value={selectedCustomer}
-                onChange={e => setSelectedCustomer(e.target.value)}
-                className="w-full bg-transparent text-xs font-bold text-primary cursor-pointer outline-none border-none p-0 focus:ring-0"
+                value={selectedProjectId}
+                onChange={e => setSelectedProjectId(e.target.value)}
+                className="w-full bg-transparent text-xs font-bold text-primary cursor-pointer outline-none border-none p-0 focus:ring-0 truncate"
               >
-                <option value="All">{language === 'EN' ? `All Customers (${customersList.length})` : `Alle Klanten (${customersList.length})`}</option>
-                {customersList.map((c, idx) => (
-                  <option key={idx} value={c}>{c}</option>
+                <option value="All">{language === 'EN' ? `All Projects (${projectsList.length})` : `Alle Projecten (${projectsList.length})`}</option>
+                {projectsList.map((p) => (
+                  <option key={p.id} value={p.id}>[{p.id}] {p.name} ({p.customer})</option>
                 ))}
               </select>
             </div>
@@ -389,7 +393,7 @@ export default function AdminPhotos() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark/40" />
             <input
               type="text"
-              placeholder={language === 'EN' ? 'Search photo title or description...' : 'Zoek op foto titel of omschrijving...'}
+              placeholder={language === 'EN' ? 'Search project ID, title, or description...' : 'Zoek op project ID, titel of omschrijving...'}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2 bg-white border border-[#D6CFC2] rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 text-[#4A4A43]"
@@ -397,27 +401,29 @@ export default function AdminPhotos() {
           </div>
         </div>
 
-        {/* Selected Customer Active Banner */}
-        {selectedCustomer !== 'All' && (
+        {/* Selected Project Active Banner */}
+        {selectedProjectId !== 'All' && (
           <div className="mt-3 pt-3 border-t border-[#D6CFC2]/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 bg-primary/5 p-3 rounded-xl">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="text-xs font-bold text-primary">
-                {language === 'EN' ? `Managing Photos for Client: ` : `Foto's beheren voor Klant: `}
-                <u className="text-accent">{selectedCustomer}</u>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
+              <span className="text-xs font-bold text-primary truncate">
+                {language === 'EN' ? `Managing Photos for Project: ` : `Foto's beheren voor Project: `}
+                <u className="text-accent">
+                  [{selectedProjectId}] {projectsList.find(p => p.id === selectedProjectId)?.name || selectedProjectId}
+                </u>
               </span>
-              <span className="text-[10px] font-mono text-dark/60 bg-white px-2 py-0.5 rounded border border-[#D6CFC2]">
-                {filteredPhotos.length} {language === 'EN' ? 'Photos Shared' : 'Foto\'s Gedeeld'}
+              <span className="text-[10px] font-mono text-dark/60 bg-white px-2 py-0.5 rounded border border-[#D6CFC2] flex-shrink-0">
+                {filteredPhotos.length} {language === 'EN' ? 'Photos Linked' : 'Foto\'s Gekoppeld'}
               </span>
             </div>
 
             <Button
               size="sm"
               icon={Upload}
-              onClick={() => handleOpenUploadForCustomer(selectedCustomer)}
-              className="py-1 px-3 text-[11px] font-bold"
+              onClick={() => handleOpenUploadForProject(selectedProjectId)}
+              className="py-1 px-3 text-[11px] font-bold flex-shrink-0"
             >
-              {language === 'EN' ? `+ Share Photo with ${selectedCustomer}` : `+ Foto Delen met ${selectedCustomer}`}
+              {language === 'EN' ? `+ Share Photo for Project ${selectedProjectId}` : `+ Foto Delen voor Project ${selectedProjectId}`}
             </Button>
           </div>
         )}
@@ -436,9 +442,10 @@ export default function AdminPhotos() {
                   <img src={photo.img} alt={photo.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   <div className="absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/20 to-transparent"></div>
 
-                  {/* Customer Badge */}
-                  <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-lg border border-[#D6CFC2] text-[10px] font-bold text-primary flex items-center gap-1 shadow-xs">
-                    <User className="w-3 h-3 text-accent" /> {photo.customer || 'John Miller'}
+                  {/* Project ID & Customer Badge */}
+                  <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-lg border border-[#D6CFC2] text-[10px] font-bold text-primary flex items-center gap-1 shadow-xs max-w-[70%] truncate">
+                    <Briefcase className="w-3 h-3 text-accent flex-shrink-0" />
+                    <span className="truncate">[{photo.projectId || 'PRJ-101'}] {photo.customer || 'John Miller'}</span>
                   </div>
 
                   {/* Customer Sharing Status Indicator Badge */}
@@ -519,13 +526,13 @@ export default function AdminPhotos() {
         {filteredPhotos.length === 0 && (
           <div className="col-span-full border-2 border-dashed border-[#D6CFC2] rounded-2xl p-12 text-center bg-[#F8F7F4]/60 space-y-2">
             <Camera className="w-10 h-10 text-dark/30 mx-auto" />
-            <h4 className="font-heading font-bold text-dark text-base">{language === 'EN' ? 'No Photos Shared for This Customer' : 'Geen Foto\'s Gedeeld voor Deze Klant'}</h4>
+            <h4 className="font-heading font-bold text-dark text-base">{language === 'EN' ? 'No Photos Linked to This Project' : 'Geen Foto\'s Gekoppeld aan Dit Project'}</h4>
             <p className="text-xs text-dark/50 max-w-sm mx-auto">
-              {selectedCustomer !== 'All' 
-                ? (language === 'EN' ? `Upload and share build photos with ${selectedCustomer}.` : `Upload en deel projectfoto's met ${selectedCustomer}.`)
-                : (language === 'EN' ? 'Select a customer to view and share project photos.' : 'Selecteer een klant om foto\'s te bekijken en te delen.')}
+              {selectedProjectId !== 'All' 
+                ? (language === 'EN' ? `Upload and share build photos for Project ${selectedProjectId}.` : `Upload en deel projectfoto's voor Project ${selectedProjectId}.`)
+                : (language === 'EN' ? 'Select a project to view and upload build photos.' : 'Selecteer een project om foto\'s te bekijken en te uploaden.')}
             </p>
-            <Button size="sm" icon={Send} onClick={() => handleOpenUploadForCustomer(selectedCustomer !== 'All' ? selectedCustomer : 'John Miller')} className="mt-2">
+            <Button size="sm" icon={Send} onClick={() => handleOpenUploadForProject(selectedProjectId !== 'All' ? selectedProjectId : (projectsList[0]?.id || 'PRJ-101'))} className="mt-2">
               {language === 'EN' ? '+ Upload & Share Photo' : '+ Foto Uploaden & Delen'}
             </Button>
           </div>
@@ -541,37 +548,38 @@ export default function AdminPhotos() {
               <div className="flex justify-between items-center border-b border-[#D6CFC2] pb-3">
                 <h3 className="font-heading font-bold text-primary text-base flex items-center gap-2">
                   <Send className="w-5 h-5 text-accent" />
-                  {language === 'EN' ? 'Upload & Share Photo with Customer' : 'Foto Uploaden & Delen met Klant'}
+                  {language === 'EN' ? 'Upload & Share Photo for Project' : 'Foto Uploaden & Koppelen aan Project'}
                 </h3>
                 <button onClick={() => setUploadModalOpen(false)} className="p-1 text-dark/40 hover:text-dark"><X className="w-5 h-5" /></button>
               </div>
 
               <form onSubmit={handleUploadPhotosSubmit} className="space-y-3">
-                {/* SELECT TARGET CUSTOMER DROPDOWN */}
+                {/* SELECT TARGET PROJECT DROPDOWN */}
                 <div className="p-3 bg-white rounded-xl border border-[#D6CFC2] space-y-2">
                   <label className="block font-bold text-primary uppercase tracking-wider text-[10px] flex items-center gap-1.5">
-                    <User className="w-4 h-4 text-accent" /> {language === 'EN' ? 'Target Customer to Receive Photos *' : 'Ontvangende Klant *'}
+                    <Briefcase className="w-4 h-4 text-accent" /> {language === 'EN' ? 'Select Target Project *' : 'Selecteer Target Project *'}
                   </label>
                   <select
-                    value={uploadForm.customer}
+                    value={uploadForm.projectId}
                     onChange={e => {
-                      const cust = e.target.value;
-                      const proj = projectsList.find(p => p.customer === cust);
+                      const selectedId = e.target.value;
+                      const proj = projectsList.find(p => p.id === selectedId) || projectsList[0];
                       setUploadForm(prev => ({ 
                         ...prev, 
-                        customer: cust,
-                        projectId: proj ? proj.id : 'PRJ-101'
+                        projectId: proj ? proj.id : selectedId,
+                        projectName: proj ? proj.name : 'Luxury Teak Outdoor Kitchen',
+                        customer: proj ? proj.customer : 'John Miller'
                       }));
                     }}
-                    className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs font-bold text-primary"
+                    className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs font-bold text-primary truncate"
                   >
-                    {customersList.map((c, idx) => (
-                      <option key={idx} value={c}>{c}</option>
+                    {projectsList.map((p) => (
+                      <option key={p.id} value={p.id}>[{p.id}] {p.name} — Client: {p.customer}</option>
                     ))}
                   </select>
                   <div className="flex items-center gap-1 text-[10px] text-emerald-800 font-medium">
-                    <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Photos will appear live in <strong>{uploadForm.customer}</strong>'s Customer Portal!</span>
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                    <span>Photos will be linked to project <strong>[{uploadForm.projectId}] {uploadForm.projectName}</strong> and visible in <strong>{uploadForm.customer}</strong>'s Customer Portal!</span>
                   </div>
                 </div>
 
@@ -671,7 +679,7 @@ export default function AdminPhotos() {
                 <div className="flex justify-end gap-2 pt-3 border-t border-[#D6CFC2]">
                   <Button type="button" variant="outline" onClick={() => setUploadModalOpen(false)}>{t('common.cancel')}</Button>
                   <Button type="submit" disabled={selectedFiles.length === 0}>
-                    🚀 {language === 'EN' ? `Share ${selectedFiles.length} Photos with ${uploadForm.customer}` : `${selectedFiles.length} Foto's Delen met ${uploadForm.customer}`}
+                    🚀 {language === 'EN' ? `Share ${selectedFiles.length} Photos for Project ${uploadForm.projectId}` : `${selectedFiles.length} Foto's Delen voor Project ${uploadForm.projectId}`}
                   </Button>
                 </div>
               </form>

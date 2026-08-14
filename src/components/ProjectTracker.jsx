@@ -5,6 +5,7 @@ import Button from './Button';
 import Badge from './Badge';
 import { useLanguage } from '../context/LanguageContext';
 import { tValue } from '../utils/translator';
+import { safeSetItem, compressImage } from '../utils/storageHelper';
 import { 
   Briefcase, UserCheck, Calendar, Camera, Award, ArrowRight, Check, Clock, Phone, 
   Mail, MapPin, DollarSign, Wrench, Download, ChevronRight, X, Sparkles, Send, 
@@ -101,6 +102,19 @@ export default function ProjectTracker({ project, onClose, onUpdateProject, part
   // Photos State linked to Project
   const [projectPhotos, setProjectPhotos] = useState([]);
   const photoFileInputRef = useRef(null);
+
+  // Rich Upload Modal & Photo Management State linked to Project
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [selectedUploadFiles, setSelectedUploadFiles] = useState([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [previewPhoto, setPreviewPhoto] = useState(null);
+  const [uploadForm, setUploadForm] = useState({
+    captionCategory: 'Initial Construction',
+    title: '',
+    desc: '',
+    isShared: true
+  });
 
   const customerName = project?.customer || 'Jan de Vries';
   const customerEmail = project?.customerEmail || `${customerName.toLowerCase().replace(/\s+/g, '')}@gmail.com`;
@@ -313,40 +327,107 @@ export default function ProjectTracker({ project, onClose, onUpdateProject, part
     showToast(language === 'EN' ? `Task assigned to ${newTaskForm.assignee}!` : `Taak toegewezen aan ${newTaskForm.assignee}!`);
   };
 
-  const handlePhotoUpload = (e) => {
+  const handleSelectMultipleFiles = async (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    files.forEach((file, index) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const newPhoto = {
-          id: `P-PRJ-${Date.now().toString().slice(-4)}-${index + 1}`,
-          projectId: project?.id || 'PRJ-101',
-          customer: customerName,
-          title: `Build Photo: ${file.name.replace(/\.[^/.]+$/, "")}`,
-          phase: `Phase Date: ${new Date().toLocaleDateString('default', { day: 'numeric', month: 'short' })}`,
-          description: 'Project update photo uploaded via Project Detail manager.',
-          img: event.target.result,
-          craftsman: 'Tim & Bram (Admin)',
-          uploaderRole: 'admin',
-          isShared: true,
-          date: new Date().toISOString().split('T')[0]
-        };
+    for (const file of files) {
+      try {
+        const compressedSrc = await compressImage(file, 1200, 0.82);
+        setSelectedUploadFiles(prev => [...prev, {
+          name: file.name,
+          src: compressedSrc
+        }]);
+      } catch (err) {
+        console.warn('Compress image error:', err);
+      }
+    }
+  };
 
-        try {
-          const savedPhotos = JSON.parse(localStorage.getItem('app_project_photos') || '[]');
-          const updatedPhotos = [newPhoto, ...savedPhotos];
-          localStorage.setItem('app_project_photos', JSON.stringify(updatedPhotos));
-          window.dispatchEvent(new Event('app_data_changed'));
-        } catch (err) {}
+  const handleDropFiles = async (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = Array.from(e.dataTransfer?.files || []);
+    if (files.length === 0) return;
 
-        setProjectPhotos(prev => [newPhoto, ...prev]);
-      };
-      reader.readAsDataURL(file);
-    });
+    for (const file of files) {
+      try {
+        const compressedSrc = await compressImage(file, 1200, 0.82);
+        setSelectedUploadFiles(prev => [...prev, {
+          name: file.name,
+          src: compressedSrc
+        }]);
+      } catch (err) {
+        console.warn('Compress image error:', err);
+      }
+    }
+  };
 
-    showToast(language === 'EN' ? `${files.length} photo(s) uploaded & synced to Customer Portal!` : `${files.length} foto('s) geüpload & gesynchroniseerd!`);
+  const handleRemoveSelectedUploadFile = (idx) => {
+    setSelectedUploadFiles(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleUploadSubmit = async (e) => {
+    e.preventDefault();
+    if (selectedUploadFiles.length === 0) {
+      return showToast(language === 'EN' ? 'Please select at least one photo.' : 'Selecteer alstublieft minimaal één foto.');
+    }
+
+    setIsUploading(true);
+
+    const newPhotoEntries = selectedUploadFiles.map((fileObj, index) => ({
+      id: `P-PRJ-${Date.now().toString().slice(-4)}-${index + 1}`,
+      projectId: project?.id || 'PRJ-101',
+      projectName: project?.name || 'Bespoke Project',
+      customer: customerName,
+      title: uploadForm.title.trim() || `${uploadForm.captionCategory}: ${fileObj.name.replace(/\.[^/.]+$/, "")}`,
+      phase: `${uploadForm.captionCategory} — ${new Date().toLocaleDateString('default', { day: 'numeric', month: 'short' })}`,
+      description: uploadForm.desc.trim() || `Project progress photo uploaded by Admin for ${project?.name || 'Project'}.`,
+      img: fileObj.src,
+      craftsman: 'Tim & Bram (Admin)',
+      uploaderRole: 'admin',
+      isShared: uploadForm.isShared,
+      date: new Date().toISOString().split('T')[0]
+    }));
+
+    try {
+      const savedPhotos = JSON.parse(localStorage.getItem('app_project_photos') || '[]');
+      const updatedPhotos = [...newPhotoEntries, ...savedPhotos];
+      safeSetItem('app_project_photos', updatedPhotos);
+      window.dispatchEvent(new Event('app_data_changed'));
+    } catch (err) {}
+
+    setIsUploading(false);
+    setSelectedUploadFiles([]);
+    setUploadModalOpen(false);
+    setUploadForm({ captionCategory: 'Initial Construction', title: '', desc: '', isShared: true });
+    setProjectPhotos(prev => [...newPhotoEntries, ...prev]);
+    showToast(language === 'EN' ? `${newPhotoEntries.length} photo(s) uploaded & synced to Customer Portal!` : `${newPhotoEntries.length} foto('s) geüpload & gesynchroniseerd!`);
+  };
+
+  const handleToggleSharePhoto = (photoId) => {
+    try {
+      const savedPhotos = JSON.parse(localStorage.getItem('app_project_photos') || '[]');
+      const updatedList = savedPhotos.map(p => {
+        if (p.id === photoId) return { ...p, isShared: !p.isShared };
+        return p;
+      });
+      safeSetItem('app_project_photos', updatedList);
+      setProjectPhotos(prev => prev.map(p => p.id === photoId ? { ...p, isShared: !p.isShared } : p));
+      window.dispatchEvent(new Event('app_data_changed'));
+      showToast(language === 'EN' ? 'Photo sharing status updated!' : 'Foto status bijgewerkt!');
+    } catch (e) {}
+  };
+
+  const handleDeleteProjectPhoto = (photoId) => {
+    try {
+      const savedPhotos = JSON.parse(localStorage.getItem('app_project_photos') || '[]');
+      const updatedList = savedPhotos.filter(p => p.id !== photoId);
+      safeSetItem('app_project_photos', updatedList);
+      setProjectPhotos(prev => prev.filter(p => p.id !== photoId));
+      window.dispatchEvent(new Event('app_data_changed'));
+      showToast(language === 'EN' ? 'Photo deleted successfully!' : 'Foto succesvol verwijderd!');
+    } catch (e) {}
   };
 
   const handleDownloadBlueprintPdf = () => {
@@ -516,15 +597,15 @@ export default function ProjectTracker({ project, onClose, onUpdateProject, part
                   size="sm" 
                   variant="primary" 
                   icon={Camera} 
-                  onClick={() => photoFileInputRef.current?.click()}
-                  className="text-xs py-1 px-2.5 shadow-xs bg-primary text-cream font-bold"
+                  onClick={() => setUploadModalOpen(true)}
+                  className="text-xs py-1 px-2.5 shadow-xs bg-primary text-cream font-bold cursor-pointer"
                 >
                   📷 {language === 'EN' ? 'Upload Photos' : 'Foto\'s Uploaden'}
                 </Button>
                 <input 
                   type="file" 
                   ref={photoFileInputRef} 
-                  onChange={handlePhotoUpload} 
+                  onChange={handleSelectMultipleFiles} 
                   multiple 
                   accept="image/*" 
                   className="hidden" 
@@ -915,6 +996,112 @@ export default function ProjectTracker({ project, onClose, onUpdateProject, part
 
           </Card>
 
+          {/* PROJECT PHOTOS & PROGRESS GALLERY CARD */}
+          <Card className="border-l-4 border-l-amber-500">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-4 border-b border-[#D6CFC2]/60 pb-3">
+              <div>
+                <h3 className="font-heading font-bold text-base text-primary flex items-center gap-2">
+                  <Camera className="w-5 h-5 text-amber-600" />
+                  <span>{language === 'EN' ? 'Project Photos & Progress' : 'Projectfoto\'s & Voortgang'}</span>
+                  <Badge variant="amber">{projectPhotos.length}</Badge>
+                </h3>
+                <p className="text-xs text-dark/60 mt-0.5">
+                  {language === 'EN' 
+                    ? `Development progress photos linked specifically to ${project?.id || 'PRJ'} (${customerName}).`
+                    : `Voortgangsfoto's gekoppeld aan project ${project?.id || 'PRJ'} (${customerName}).`}
+                </p>
+              </div>
+
+              <Button
+                size="sm"
+                variant="primary"
+                icon={Camera}
+                onClick={() => setUploadModalOpen(true)}
+                className="py-1.5 px-3 text-xs font-bold shadow-xs bg-primary text-cream cursor-pointer"
+              >
+                📷 {language === 'EN' ? 'Upload Photos' : 'Foto\'s Uploaden'}
+              </Button>
+            </div>
+
+            {projectPhotos.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {projectPhotos.map((photo) => {
+                  const isShared = photo.isShared !== false;
+
+                  return (
+                    <div key={photo.id} className="group bg-white border border-[#D6CFC2] rounded-xl overflow-hidden shadow-2xs hover:shadow-card transition-all flex flex-col justify-between">
+                      <div>
+                        <div className="relative h-36 bg-black/10 overflow-hidden cursor-pointer" onClick={() => setPreviewPhoto(photo)}>
+                          <img src={photo.img} alt={photo.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-primary/80 via-transparent to-transparent"></div>
+                          
+                          <span className="absolute top-2 left-2 bg-white/90 backdrop-blur-md px-2 py-0.5 rounded text-[9px] font-bold text-primary border border-[#D6CFC2] max-w-[70%] truncate">
+                            {photo.phase || 'Workshop Phase'}
+                          </span>
+
+                          <div className="absolute top-2 right-2">
+                            {isShared ? (
+                              <span className="bg-emerald-600 text-white px-2 py-0.5 rounded text-[9px] font-bold">✓ Portal Shared</span>
+                            ) : (
+                              <span className="bg-amber-600 text-white px-2 py-0.5 rounded text-[9px] font-bold">Internal</span>
+                            )}
+                          </div>
+
+                          <div className="absolute bottom-2 left-2 right-2">
+                            <p className="text-white font-bold text-xs truncate">{photo.title}</p>
+                          </div>
+                        </div>
+
+                        <div className="p-2.5 space-y-1 text-xs">
+                          <p className="text-dark/70 text-[11px] line-clamp-2">{photo.description}</p>
+                          <div className="pt-1.5 border-t border-[#D6CFC2]/40 flex justify-between items-center text-[10px] text-dark/50 font-mono">
+                            <span>{photo.craftsman || 'Tim & Bram'}</span>
+                            <span>{photo.date || 'Today'}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-2 bg-[#F8F7F4] border-t border-[#D6CFC2] flex items-center justify-between">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSharePhoto(photo.id)}
+                          className={`text-[10px] font-bold px-2 py-1 rounded border cursor-pointer ${
+                            isShared ? 'bg-emerald-100 text-emerald-900 border-emerald-300' : 'bg-primary text-cream border-primary'
+                          }`}
+                        >
+                          {isShared ? '✓ Shared' : '📤 Share'}
+                        </button>
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => setPreviewPhoto(photo)} className="p-1 bg-white border rounded text-primary hover:bg-primary/10 cursor-pointer">
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => handleDeleteProjectPhoto(photo.id)} className="p-1 bg-white border rounded text-rose-600 hover:bg-rose-50 cursor-pointer">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="border-2 border-dashed border-[#D6CFC2] rounded-xl p-8 text-center bg-[#F8F7F4]/60 space-y-2">
+                <Camera className="w-8 h-8 text-dark/30 mx-auto" />
+                <h4 className="font-heading font-bold text-dark text-sm">
+                  {language === 'EN' ? 'No progress photos uploaded yet for this project' : 'Nog geen voortgangsfoto\'s geüpload voor dit project'}
+                </h4>
+                <p className="text-xs text-dark/50 max-w-md mx-auto">
+                  {language === 'EN'
+                    ? `Click "Upload Photos" to add initial construction, frame completion, or polishing photos specifically for ${project?.id || 'PRJ'}.`
+                    : `Klik op "Foto's Uploaden" om voortgangsfoto's toe te voegen voor ${project?.id || 'PRJ'}.`}
+                </p>
+                <Button size="sm" icon={Camera} onClick={() => setUploadModalOpen(true)} className="mt-2 text-xs font-bold cursor-pointer">
+                  📷 {language === 'EN' ? 'Upload Photos' : 'Foto\'s Uploaden'}
+                </Button>
+              </div>
+            )}
+          </Card>
+
           {/* COMMERCIAL ACTIONS & FOLLOW-UPS MODULE */}
           <Card>
             <div className="flex items-center justify-between mb-3 border-b border-[#D6CFC2]/60 pb-2">
@@ -1272,6 +1459,205 @@ export default function ProjectTracker({ project, onClose, onUpdateProject, part
                   </Button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* RICH UPLOAD PHOTOS POPUP / MODAL (FOR THIS SPECIFIC PROJECT) */}
+      <AnimatePresence>
+        {uploadModalOpen && (
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 overflow-y-auto">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-dark/75 backdrop-blur-xs z-[99999]" onClick={() => setUploadModalOpen(false)} />
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative w-full max-w-xl bg-[#EDE8DF] border border-[#C4BEB3] rounded-2xl p-6 shadow-2xl z-[100000] space-y-4 text-xs font-body max-h-[90vh] overflow-y-auto my-auto">
+              <div className="flex justify-between items-center border-b border-[#D6CFC2] pb-3">
+                <div>
+                  <span className="text-[10px] font-bold text-accent uppercase font-mono tracking-wider">Project Photo Management</span>
+                  <h3 className="font-heading font-bold text-primary text-base flex items-center gap-2 mt-0.5">
+                    <Camera className="w-5 h-5 text-accent" />
+                    {language === 'EN' ? 'Upload Project Progress Photos' : 'Project Voortgangsfoto\'s Uploaden'}
+                  </h3>
+                </div>
+                <button onClick={() => setUploadModalOpen(false)} className="p-1 text-dark/40 hover:text-dark cursor-pointer"><X className="w-5 h-5" /></button>
+              </div>
+
+              {/* Project & Customer Metadata Locked Banner */}
+              <div className="p-3 bg-white rounded-xl border border-[#D6CFC2] space-y-1.5 shadow-2xs">
+                <div className="flex justify-between items-center text-[10px] text-dark/50">
+                  <span className="font-bold uppercase tracking-wider">Selected Project</span>
+                  <Badge variant="info">{project?.id || 'PRJ-101'}</Badge>
+                </div>
+                <p className="font-heading font-bold text-primary text-sm truncate">{project?.name || 'Bespoke Outdoor Kitchen'}</p>
+                <div className="flex justify-between items-center text-[11px] text-dark/70 font-mono">
+                  <span>Customer: <strong className="text-primary">{customerName}</strong></span>
+                  <span>Delivery: <strong className="text-accent">{deliveryDate}</strong></span>
+                </div>
+              </div>
+
+              <form onSubmit={handleUploadSubmit} className="space-y-4">
+                {/* Drag & Drop Photo Upload Area */}
+                <div>
+                  <label className="block font-bold text-dark/70 mb-1 uppercase tracking-wider text-[10px]">
+                    {language === 'EN' ? 'Select Photo Files (Drag & Drop or Browse) *' : 'Selecteer Fotobestanden (Drag & Drop of Bladeren) *'}
+                  </label>
+                  <div
+                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={handleDropFiles}
+                    onClick={() => photoFileInputRef.current?.click()}
+                    className={`border-2 border-dashed p-6 rounded-2xl text-center cursor-pointer transition-all ${
+                      isDragging ? 'border-primary bg-primary/10' : 'border-[#D6CFC2] bg-white hover:bg-[#F8F7F4]'
+                    }`}
+                  >
+                    <Camera className="w-8 h-8 text-primary mx-auto mb-2 animate-pulse" />
+                    <p className="text-xs font-bold text-primary">
+                      {language === 'EN' ? 'Click or drag & drop multiple photo files here' : 'Klik of sleep meerdere fotobestanden hiernaartoe'}
+                    </p>
+                    <p className="text-[10px] text-dark/50 mt-0.5">PNG, JPG, WEBP • Multiple files supported</p>
+                    <input
+                      type="file"
+                      ref={photoFileInputRef}
+                      multiple
+                      accept="image/*"
+                      onChange={handleSelectMultipleFiles}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+
+                {/* Selected Photo Previews Grid with Remove Option */}
+                {selectedUploadFiles.length > 0 && (
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-bold text-dark/60 uppercase">Selected Previews ({selectedUploadFiles.length}):</span>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-36 overflow-y-auto p-1.5 bg-white rounded-xl border border-[#D6CFC2]">
+                      {selectedUploadFiles.map((fileObj, idx) => (
+                        <div key={idx} className="relative group rounded-lg overflow-hidden border border-[#D6CFC2] h-20 bg-black/10">
+                          <img src={fileObj.src} alt={fileObj.name} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); handleRemoveSelectedUploadFile(idx); }}
+                            className="absolute top-1 right-1 p-1 bg-rose-600 text-white rounded-full hover:bg-rose-700 transition-colors shadow-xs cursor-pointer z-10"
+                            title="Remove Photo"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                          <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[8px] truncate px-1 py-0.5">
+                            {fileObj.name}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Photo Caption / Development Phase Preset Input */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-dark/70 mb-1 uppercase tracking-wider text-[10px]">
+                      {language === 'EN' ? 'Progress Category / Phase' : 'Voortgang Categorie / Fase'}
+                    </label>
+                    <select
+                      value={uploadForm.captionCategory}
+                      onChange={e => setUploadForm(prev => ({ ...prev, captionCategory: e.target.value }))}
+                      className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-lg text-xs font-bold text-primary"
+                    >
+                      <option value="Initial Construction">🔨 1. Initial Construction (Houtbewerking)</option>
+                      <option value="Frame Completed">📐 2. Frame Completed (Frame Gemonteerd)</option>
+                      <option value="Countertop Installation">✨ 3. Countertop Installation (Betonblad Polijsten)</option>
+                      <option value="Final Installation">🏆 4. Final Installation & Inspection (Eindkeuring)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-dark/70 mb-1 uppercase tracking-wider text-[10px]">
+                      {language === 'EN' ? 'Photo Title / Caption' : 'Foto Titel / Bijschrift'}
+                    </label>
+                    <input
+                      type="text"
+                      value={uploadForm.title}
+                      onChange={e => setUploadForm(prev => ({ ...prev, title: e.target.value }))}
+                      className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-lg text-xs font-bold text-dark"
+                      placeholder="e.g. Massief Teakhout Frame Gezaagd"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-dark/70 mb-1 uppercase tracking-wider text-[10px]">
+                    {language === 'EN' ? 'Description & Notes for Customer' : 'Werkplaats Toelichting voor Klant'}
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={uploadForm.desc}
+                    onChange={e => setUploadForm(prev => ({ ...prev, desc: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-lg text-xs text-dark"
+                    placeholder="e.g. Solid teak frame assembled and ready for countertop polishing..."
+                  />
+                </div>
+
+                <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center justify-between">
+                  <span className="text-xs font-bold text-emerald-900">
+                    {language === 'EN' ? 'Share in Customer Portal Immediately' : 'Direct delen in Klantenportaal'}
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={uploadForm.isShared}
+                    onChange={e => setUploadForm(prev => ({ ...prev, isShared: e.target.checked }))}
+                    className="w-4 h-4 accent-emerald-600 cursor-pointer"
+                  />
+                </div>
+
+                {/* Action Buttons with Loading State */}
+                <div className="flex justify-end gap-2 pt-3 border-t border-[#D6CFC2]">
+                  <Button type="button" variant="outline" onClick={() => setUploadModalOpen(false)}>
+                    {language === 'EN' ? 'Cancel' : 'Annuleren'}
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={selectedUploadFiles.length === 0 || isUploading}
+                    className="bg-primary text-cream font-bold cursor-pointer"
+                  >
+                    {isUploading ? (
+                      <span className="flex items-center gap-2">
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Uploading...
+                      </span>
+                    ) : (
+                      `🚀 Save & Share ${selectedUploadFiles.length} Photos`
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* FULLSCREEN LIGHTBOX PREVIEW MODAL */}
+      <AnimatePresence>
+        {previewPhoto && (
+          <div className="fixed inset-0 z-[100001] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-dark/85 backdrop-blur-md" onClick={() => setPreviewPhoto(null)} />
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative w-full max-w-2xl bg-[#EDE8DF] border border-[#C4BEB3] rounded-2xl p-5 shadow-2xl z-[100002] space-y-3 text-xs my-auto font-body">
+              <div className="flex justify-between items-start border-b border-[#D6CFC2] pb-2">
+                <div>
+                  <span className="text-[10px] font-mono text-accent font-bold uppercase block">{previewPhoto.phase}</span>
+                  <h3 className="text-lg font-heading font-bold text-primary">{previewPhoto.title}</h3>
+                </div>
+                <button onClick={() => setPreviewPhoto(null)} className="p-1 text-dark/40 hover:text-dark cursor-pointer"><X className="w-5 h-5" /></button>
+              </div>
+
+              <div className="rounded-xl overflow-hidden border border-[#D6CFC2] bg-black max-h-[50vh]">
+                <img src={previewPhoto.img} alt={previewPhoto.title} className="w-full h-full object-contain mx-auto" />
+              </div>
+
+              <div className="p-3 bg-white rounded-xl border border-[#D6CFC2] space-y-2 text-xs">
+                <p className="text-dark/80">{previewPhoto.description}</p>
+                <div className="pt-2 border-t border-[#D6CFC2]/40 flex justify-between items-center text-[10px] text-dark/50 font-mono">
+                  <span>Project: <strong className="text-primary">[{project?.id || 'PRJ'}] {project?.name}</strong></span>
+                  <span>Uploader: <strong className="text-accent">{previewPhoto.craftsman}</strong></span>
+                </div>
+              </div>
             </motion.div>
           </div>
         )}

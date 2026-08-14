@@ -163,8 +163,8 @@ export default function Invoices() {
       type: form.type,
       amount: `€ ${numVal.toLocaleString()}`,
       numericAmount: numVal,
-      status: 'Concept',
-      isSent: false,
+      status: form.status || 'Concept',
+      isSent: form.status === 'Openstaand' || form.status === 'Betaald',
       dueDate: form.dueDate,
       createdDate: new Date().toISOString().split('T')[0]
     };
@@ -172,9 +172,18 @@ export default function Invoices() {
     const updatedInvoices = [newInv, ...invoices];
     setInvoices(updatedInvoices);
     localStorage.setItem('app_invoices', JSON.stringify(updatedInvoices));
+
+    if (newInv.status === 'Openstaand' || newInv.status === 'Betaald' || newInv.isSent) {
+      convertLeadToCustomerOnInvoiceSent(newInv);
+    }
+
     window.dispatchEvent(new Event('app_data_changed'));
 
-    showToast(`Factuur ${newInv.id} opgeslagen als Concept!`);
+    showToast(
+      newInv.isSent || newInv.status !== 'Concept'
+        ? `Factuur ${newInv.id} aangemaakt! Lead "${newInv.customer}" automatisch geconverteerd naar Klant.`
+        : `Factuur ${newInv.id} opgeslagen als Concept!`
+    );
     setModalOpen(false);
   };
 

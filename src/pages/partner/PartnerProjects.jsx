@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Card from '../../components/Card';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
 import { Calendar, Briefcase, Clock, Upload, FileText, CheckCircle, Eye, Edit3, X, Filter, MapPin, DollarSign, Download, Compass, ShieldCheck, FileCheck, Layers, Camera, Image as ImageIcon, Sparkles, Bell } from 'lucide-react';
 import { mockProjects } from '../../utils/mockData';
+import { safeSetItem, compressImage } from '../../utils/storageHelper';
 import { useNavigate } from 'react-router-dom';
 import projectImg from '../../assets/outdoor_project_card.png';
 import heroImg from '/dasbordes images.png';
@@ -13,6 +14,7 @@ import { useLanguage } from '../../context/LanguageContext';
 export default function PartnerProjects() {
   const { t, language } = useLanguage();
   const label = (english, dutch) => language === 'EN' ? english : dutch;
+  const fileInputRef = useRef(null);
   const [projects, setProjects] = useState([]);
   const [statusFilter, setStatusFilter] = useState('All');
   const [selectedProject, setSelectedProject] = useState(null);
@@ -83,35 +85,51 @@ export default function PartnerProjects() {
     setEditProject(null);
   };
 
+  // Device File Upload Handler for Partner
+  const handleDeviceFileSelect = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    try {
+      const compressedSrc = await compressImage(file, 1200, 0.82);
+      setPhotoForm(prev => ({ ...prev, img: compressedSrc }));
+      showToast(language === 'EN' ? '✓ Image file selected & compressed successfully!' : '✓ Foto geselecteerd en gecomprimeerd!');
+    } catch (err) {
+      console.warn('Compress image error:', err);
+    }
+  };
+
   // REVERSE FLOW: Partner uploads photo -> Notifies Admin & Updates Customer Portal Photos
   const handleUploadPartnerPhoto = (e) => {
     e.preventDefault();
     if (!uploadPhotoProject) return;
 
     const newPhoto = {
-      id: Date.now(),
+      id: `P-${Date.now().toString().slice(-4)}`,
       projectId: uploadPhotoProject.id,
-      projectTitle: uploadPhotoProject.name,
+      projectName: uploadPhotoProject.name,
+      customer: uploadPhotoProject.customer || 'Customer',
       title: photoForm.title.trim() || 'Voortgangsfoto Uit Werkplaats',
       phase: `Fasedatum: ${new Date().toLocaleDateString(language === 'NL' ? 'nl-NL' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' })}`,
       description: photoForm.desc.trim() || 'Foto geüpload door vakman.',
       img: photoForm.img || projectImg,
       craftsman: currentPartnerName,
       uploaderRole: 'partner',
+      isShared: true,
       createdAt: new Date().toISOString()
     };
 
-    // 1. Save to app_project_photos
+    // 1. Save to app_project_photos safely
     const existingPhotosStr = localStorage.getItem('app_project_photos');
     const existingPhotos = existingPhotosStr ? JSON.parse(existingPhotosStr) : [];
     const updatedPhotos = [newPhoto, ...existingPhotos];
-    localStorage.setItem('app_project_photos', JSON.stringify(updatedPhotos));
+    safeSetItem('app_project_photos', updatedPhotos);
 
     // 2. Save Notification for Admin in app_admin_notifications
     const newAdminNotif = {
       id: `NOTIF-${Date.now()}`,
       type: 'partner_photo_upload',
-      title: `📸 Nieuwe Foto Geüpload!`,
+      title: `📸 Nieuwe Foto Geüpload voor Project ${uploadPhotoProject.id}!`,
       message: `Vakman ${currentPartnerName} heeft een nieuwe voortgangsfoto geüpload voor project "${uploadPhotoProject.name}" (${uploadPhotoProject.id}).`,
       projectName: uploadPhotoProject.name,
       projectId: uploadPhotoProject.id,
@@ -122,12 +140,12 @@ export default function PartnerProjects() {
       unread: true
     };
     const savedNotifs = JSON.parse(localStorage.getItem('app_admin_notifications') || '[]');
-    localStorage.setItem('app_admin_notifications', JSON.stringify([newAdminNotif, ...savedNotifs]));
+    safeSetItem('app_admin_notifications', [newAdminNotif, ...savedNotifs]);
 
     window.dispatchEvent(new Event('app_data_changed'));
     showToast(language === 'EN' 
-      ? `📸 Photo uploaded! Admin notified of progress update for ${uploadPhotoProject.name}!` 
-      : `📸 Foto geüpload! Beheerder is per melding op de hoogte gebracht van uw update!`);
+      ? `📸 Photo uploaded for Project ${uploadPhotoProject.id}! Admin notified of progress update!` 
+      : `📸 Foto geüpload voor Project ${uploadPhotoProject.id}! Beheerder is per melding op de hoogte gebracht!`);
 
     setUploadPhotoProject(null);
     setPhotoForm({ title: '', desc: '', img: projectImg });
@@ -475,25 +493,34 @@ Generated for Partner Craftsman Workspace
                 </div>
 
                 <div>
-                  <label className="block text-dark/70 font-semibold mb-1 uppercase tracking-wider">Kies Afbeelding / Foto Sample</label>
-                  <div className="grid grid-cols-2 gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setPhotoForm(prev => ({ ...prev, img: projectImg }))}
-                      className={`p-2 rounded-xl border text-center transition-all ${photoForm.img === projectImg ? 'border-primary ring-2 ring-primary/20 bg-primary/10' : 'border-[#D6CFC2] bg-white'}`}
-                    >
-                      <img src={projectImg} alt="Sample 1" className="h-16 w-full object-cover rounded-lg mb-1" />
-                      <span className="text-[10px] font-bold text-dark block">📸 Hout Keuken Frame</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPhotoForm(prev => ({ ...prev, img: heroImg }))}
-                      className={`p-2 rounded-xl border text-center transition-all ${photoForm.img === heroImg ? 'border-primary ring-2 ring-primary/20 bg-primary/10' : 'border-[#D6CFC2] bg-white'}`}
-                    >
-                      <img src={heroImg} alt="Sample 2" className="h-16 w-full object-cover rounded-lg mb-1" />
-                      <span className="text-[10px] font-bold text-dark block">📸 Betonblad Polijsten</span>
-                    </button>
+                  <label className="block text-dark/70 font-semibold mb-1 uppercase tracking-wider">{language === 'EN' ? 'Select Photo File (Device / Camera)' : 'Selecteer Foto (Bestand / Camera)'}</label>
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border-2 border-dashed border-[#D6CFC2] p-4 rounded-xl text-center bg-white hover:bg-[#F8F7F4] transition-colors cursor-pointer space-y-1.5"
+                  >
+                    <ImageIcon className="w-6 h-6 text-primary mx-auto" />
+                    <p className="text-xs font-bold text-primary">
+                      {language === 'EN' ? 'Click to browse photo from phone / computer' : 'Klik om foto te kiezen vanaf computer / telefoon'}
+                    </p>
+                    <p className="text-[10px] text-dark/50">PNG, JPG, WEBP</p>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      accept="image/*"
+                      onChange={handleDeviceFileSelect}
+                      className="hidden"
+                    />
                   </div>
+
+                  {/* Selected image preview */}
+                  {photoForm.img && (
+                    <div className="mt-2 relative rounded-xl overflow-hidden border border-[#D6CFC2] h-24 bg-black/10">
+                      <img src={photoForm.img} alt="Selected Preview" className="w-full h-full object-cover" />
+                      <span className="absolute bottom-1 right-1 bg-white/90 px-2 py-0.5 rounded text-[9px] font-bold text-primary">
+                        ✓ Photo Ready
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-[11px] flex items-center gap-2">
