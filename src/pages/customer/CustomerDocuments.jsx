@@ -114,12 +114,12 @@ export default function CustomerDocuments() {
           onClick={() => setShowAutoCADModal(true)}
           className="py-6 px-4 text-center border border-dashed border-cyan-600/80 rounded-xl bg-slate-950/90 space-y-3 cursor-pointer hover:bg-slate-950 transition-all hover:border-cyan-400 group relative"
         >
-          <div className="inline-flex items-center gap-2 sm:gap-3 px-4 py-2.5 border border-cyan-500/50 rounded-lg bg-cyan-950/60 text-xs font-bold whitespace-nowrap shadow-inner">
-            <span className="bg-cyan-900/80 text-cyan-200 px-2.5 py-1 rounded border border-cyan-700">3.5m TEAK FRAME</span>
-            <span className="text-cyan-400 font-extrabold">═══</span>
-            <span className="bg-cyan-900/80 text-cyan-200 px-2.5 py-1 rounded border border-cyan-700">CONCRETE SLAB</span>
-            <span className="text-cyan-400 font-extrabold">═══</span>
-            <span className="bg-cyan-900/80 text-cyan-200 px-2.5 py-1 rounded border border-cyan-700">SINK & KAMADO CUTOUT</span>
+          <div className="inline-flex flex-wrap justify-center items-center gap-1.5 sm:gap-3 px-3 py-2 border border-cyan-500/50 rounded-lg bg-cyan-950/60 text-[10px] sm:text-xs font-bold shadow-inner max-w-full">
+            <span className="bg-cyan-900/80 text-cyan-200 px-2 py-0.5 rounded border border-cyan-700">3.5m TEAK FRAME</span>
+            <span className="text-cyan-400 font-extrabold hidden sm:inline">═══</span>
+            <span className="bg-cyan-900/80 text-cyan-200 px-2 py-0.5 rounded border border-cyan-700">CONCRETE SLAB</span>
+            <span className="text-cyan-400 font-extrabold hidden sm:inline">═══</span>
+            <span className="bg-cyan-900/80 text-cyan-200 px-2 py-0.5 rounded border border-cyan-700">SINK & KAMADO</span>
           </div>
           <p className="text-[11px] text-cyan-400/90 leading-tight">
             {language === 'EN' 
@@ -164,7 +164,7 @@ export default function CustomerDocuments() {
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <h4 className="font-bold text-sm text-dark font-body">{doc.title}</h4>
                     <Badge variant="primary" className="text-[9px]">{doc.category}</Badge>
                   </div>

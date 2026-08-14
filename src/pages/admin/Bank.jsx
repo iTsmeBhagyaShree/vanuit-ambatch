@@ -619,7 +619,7 @@ Kenmerk: EREF-2026-9006`;
       header: 'Recognition / Match Reason', 
       style: { minWidth: '210px' },
       render: (row) => (
-        <span className={`text-[10px] font-bold px-2 py-1 rounded-md border whitespace-nowrap ${
+        <span className={`text-[10px] font-bold px-2 py-1 rounded-md border inline-block max-w-full text-left leading-tight break-words sm:whitespace-nowrap ${
           row.status === 'Review Needed' || row.category === 'Review Item / Vraagpost'
             ? 'bg-amber-100 text-amber-900 border-amber-300 font-sans'
             : 'bg-[#EDE8DF] text-dark/80 border-[#D6CFC2]'
