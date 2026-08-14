@@ -9,20 +9,21 @@ import {
   UserCheck, Calendar, Award, ArrowRight, Check, Clock, Phone, 
   Mail, MapPin, DollarSign, Wrench, ShieldCheck, Download, ChevronRight,
   AlertCircle, X, Sparkles, Send, FileSpreadsheet, CheckSquare, MessageCircle, Paperclip,
-  Mic, Play, Pause, FileAudio, Volume2, Sliders
+  Mic, Play, Pause, FileAudio, Volume2, Sliders, Globe, PhoneCall
 } from 'lucide-react';
 import { convertLeadToCustomerOnInvoiceSent } from '../utils/customerConversion';
 import { safeSetItem } from '../utils/storageHelper';
+import { downloadDirectPdfFile } from '../utils/pdfGenerator';
 
 export const WORKFLOW_STEPS = [
-  { id: 1, name: 'New Lead', desc: 'Contact & first intake', icon: UserPlus, statusKey: 'new', color: 'blue' },
-  { id: 2, name: 'Partner Price Request', desc: 'Specs + choose partner', icon: MessageSquare, statusKey: 'inConversation', color: 'amber' },
-  { id: 3, name: 'Partner Quote', desc: 'Record cost price', icon: FileText, statusKey: 'quoteSent', color: 'amber' },
-  { id: 4, name: 'Create Quote for Lead/Customer', desc: 'Margin + draft', icon: CheckCircle2, statusKey: 'quoteSent', color: 'green' },
-  { id: 5, name: 'Project Created', desc: 'Preview, PDF, approve', icon: Briefcase, statusKey: 'won', color: 'emerald' },
-  { id: 6, name: 'Partner Assigned', desc: 'Online or manual', icon: UserCheck, statusKey: 'won', color: 'purple' },
-  { id: 7, name: 'Planning & Installation', desc: 'Confirm partner', icon: Calendar, statusKey: 'cyan' },
-  { id: 8, name: 'Completed', desc: 'Through to completed', icon: Award, statusKey: 'won', color: 'emerald' }
+  { id: 1, name: 'New lead', desc: 'Contact & first intake', icon: UserPlus, statusKey: 'new', color: 'blue' },
+  { id: 2, name: 'Partner price request', desc: 'Specs + choose partner', icon: MessageSquare, statusKey: 'inConversation', color: 'amber' },
+  { id: 3, name: 'Partner price received', desc: 'Record cost price', icon: FileText, statusKey: 'priceReceived', color: 'emerald' },
+  { id: 4, name: 'Build the quote', desc: 'Margin + line items', icon: CheckCircle2, statusKey: 'quoteSent', color: 'green' },
+  { id: 5, name: 'Review & send', desc: 'Preview & send PDF', icon: Send, statusKey: 'quoteSent', color: 'blue' },
+  { id: 6, name: 'Customer approval', desc: 'Deposit & confirmed', icon: UserCheck, statusKey: 'won', color: 'purple' },
+  { id: 7, name: 'Create project', desc: 'Work order setup', icon: Briefcase, statusKey: 'won', color: 'cyan' },
+  { id: 8, name: 'Planning & delivery', desc: 'Site schedule & completion', icon: Calendar, statusKey: 'won', color: 'emerald' }
 ];
 
 export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenPartnerWizard }) {
@@ -235,6 +236,15 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
   const [step2Material, setStep2Material] = useState('Douglas');
   const [isPriceRequestSent, setIsPriceRequestSent] = useState(false);
 
+  // Step 3 — Partner Price Received (Internal Cost — NEVER shown to customer or partner)
+  const [partnerCostPrice, setPartnerCostPrice] = useState('');
+  const [partnerValidUntil, setPartnerValidUntil] = useState(() => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+  const [partnerLeadTime, setPartnerLeadTime] = useState('4–5 weken');
+  const [partnerPriceNotes, setPartnerPriceNotes] = useState('');
+  const [marginPercent, setMarginPercent] = useState(35);
+  const [partnerPriceLocked, setPartnerPriceLocked] = useState(false);
+
+
   // Helper to construct STRICT Privacy-Sanitized Partner Payload (NO customerName, phone, email, address, budget)
   const buildSanitizedPartnerPayload = () => {
     return {
@@ -326,9 +336,9 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
     if (mainEl) mainEl.scrollTop = 0;
   }, [lead?.id]);
 
-  // Prefilled State Inherited from Lead (Zero Dead Data Entry)
-  const customerName = lead?.name || 'Jan de Vries';
-  const customerEmail = lead?.email || 'jan@devries.nl';
+  // Prefilled State Inherited from Lead (Zero Dead Data Entry & Exact Match)
+  const customerName = lead?.name || lead?.customerName || 'Sonu Jain';
+  const customerEmail = lead?.email || `${(lead?.name || 'sonu.jain').toLowerCase().replace(/[^a-z0-9]/g, '')}@gmail.com`;
   const customerPhone = lead?.phone || '+31 6 12345678';
   const customerCategory = lead?.category || (lead?.company?.toLowerCase().includes('kliko') ? 'Kliko-ombouw' : lead?.company?.toLowerCase().includes('snijplanken') ? 'Snijplanken' : 'Buitenkeukens');
   
@@ -345,6 +355,276 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
   };
 
   const translatedCat = translateCategory(lead?.productType || customerCategory);
+
+  // Derived margin calculations (internal use only)
+  const partnerCostNum = parseFloat((partnerCostPrice || '0').replace(/[^0-9.]/g, '')) || 0;
+  const grossMarginAmount = Math.round(partnerCostNum * (marginPercent / 100));
+  const customerSellPrice = partnerCostNum + grossMarginAmount;
+
+  // Step 4 — Build the Quote State (Two-Way Margin Synchronization & Calculated Totals)
+  const effectivePartnerCost = partnerCostNum > 0 ? partnerCostNum : 28500; // Auto carry-forward from Step 3 (or default €28,500)
+  const [step4MarginPercent, setStep4MarginPercent] = useState(20);
+  const [step4MarginAmount, setStep4MarginAmount] = useState(() => Math.round(28500 * 0.20)); // €5,700
+  const [step4VatRate, setStep4VatRate] = useState(21);
+  const [quoteSavedAsDraft, setQuoteSavedAsDraft] = useState(false);
+
+  // Two-way synchronization handlers
+  const handleMarginPercentChange = (val) => {
+    const p = Math.max(0, Math.min(100, parseFloat(val) || 0));
+    setStep4MarginPercent(p);
+    setStep4MarginAmount(Math.round(effectivePartnerCost * (p / 100)));
+  };
+
+  const handleMarginAmountChange = (val) => {
+    const amt = Math.max(0, parseFloat(val) || 0);
+    setStep4MarginAmount(amt);
+    if (effectivePartnerCost > 0) {
+      setStep4MarginPercent(Math.round((amt / effectivePartnerCost) * 100 * 100) / 100);
+    }
+  };
+
+  // Derived calculations (Step 4 — READ-ONLY / CALCULATED TOTALS)
+  const step4CustomerPriceExclVat = Math.round(effectivePartnerCost + step4MarginAmount);
+  const step4VatAmount = Math.round(step4CustomerPriceExclVat * (step4VatRate / 100));
+  const step4TotalInclVat = step4CustomerPriceExclVat + step4VatAmount;
+
+  // Step 5 — Review & Send State (Approval Gate & Confirmed Send Flow)
+  const [step5ApprovalStatus, setStep5ApprovalStatus] = useState('DRAFT'); // 'DRAFT' | 'APPROVED'
+  const [step5ApprovedBy, setStep5ApprovedBy] = useState('');
+  const [step5ApprovedAt, setStep5ApprovedAt] = useState('');
+  const [step5ConfirmModalOpen, setStep5ConfirmModalOpen] = useState(false);
+  const [step5SelectedChannel, setStep5SelectedChannel] = useState(null); // 'WHATSAPP' | 'EMAIL'
+  const [step5SendConfirmed, setStep5SendConfirmed] = useState(false);
+  const [step5SendChannelLabel, setStep5SendChannelLabel] = useState(''); // 'E-mail Sent' | 'WhatsApp Sent'
+  const [step5PreviewPage, setStep5PreviewPage] = useState(1);
+  const [step5EditableMsg, setStep5EditableMsg] = useState(
+    `Beste ${customerName},\n\nHierbij ontvangt u onze maatofferte voor uw ${customerCategory}. Bekijk de specificaties en accordeer eenvoudig via onderstaande link:\nhttps://vanuitambacht.nl/offerte/OF-2026331/bekijken\n\nMet vriendelijke groet,\nTeam Vanuit Ambacht`
+  );
+
+  // Dynamic PDF Filename matching exact customer slug
+  const formattedCustomerSlug = (customerName || 'Sonu-Jain').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('-');
+  const quoteFileName = `Quote-OF-2026331-${formattedCustomerSlug}.pdf`;
+
+  // UNIFIED QUOTE DATA MODEL (Single Source of Truth for Preview & Real PDF Download)
+  const quoteDataModel = {
+    quoteId: 'OF-2026331',
+    customerName,
+    customerEmail,
+    customerPhone,
+    category: customerCategory,
+    priceExclVat: step4CustomerPriceExclVat,
+    vatAmount: step4VatAmount,
+    totalInclVat: step4TotalInclVat,
+    approvalStatus: step5ApprovalStatus,
+    approvedBy: step5ApprovedBy,
+    approvedAt: step5ApprovedAt,
+    size: step2Size || '8,00 × 4,00 m',
+    material: step2Material,
+    fileName: quoteFileName
+  };
+
+  const handleRealPdfDownload = (isDraft = false) => {
+    const downloadedFileName = downloadDirectPdfFile({
+      quoteId: 'OF-2026331',
+      customerName,
+      customerEmail,
+      category: customerCategory,
+      size: step2Size || '8,00 × 4,00 m',
+      material: step2Material || 'Douglas wood with concrete countertop',
+      priceExclVat: step4CustomerPriceExclVat,
+      vatRate: step4VatRate,
+      vatAmount: step4VatAmount,
+      totalInclVat: step4TotalInclVat,
+      isDraft
+    });
+
+    showToast(isDraft 
+      ? `✓ PDF file downloaded directly to Downloads folder: ${downloadedFileName}`
+      : `✓ Official PDF file downloaded directly to Downloads folder: ${downloadedFileName}`
+    );
+  };
+
+  const handleSaveDraftStep4 = () => {
+    const draftData = {
+      leadId: lead?.id || 'LEAD-1001',
+      customerName,
+      partnerCost: effectivePartnerCost,
+      marginPercent: step4MarginPercent,
+      marginAmount: step4MarginAmount,
+      customerPriceExclVat: step4CustomerPriceExclVat,
+      vatRate: step4VatRate,
+      vatAmount: step4VatAmount,
+      totalInclVat: step4TotalInclVat,
+      status: 'DRAFT — NOT SENT',
+      savedAt: new Date().toISOString()
+    };
+    safeSetItem(`quote_draft_${lead?.id || 'LEAD-1001'}`, JSON.stringify(draftData));
+    setQuoteSavedAsDraft(true);
+    showToast(language === 'EN'
+      ? `✓ Draft saved locally! Status: DRAFT — NOT SENT.`
+      : `✓ Concept lokaal opgeslagen! Status: CONCEPT — NIET VERZONDEN.`
+    );
+  };
+
+  const handleApproveQuoteStep5 = () => {
+    const now = new Date();
+    const formattedDate = `${now.toLocaleDateString('nl-NL')} ${now.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}`;
+    setStep5ApprovalStatus('APPROVED');
+    setStep5ApprovedBy('Bram (Admin)');
+    setStep5ApprovedAt(formattedDate);
+    showToast(language === 'EN' ? '✓ Quote Approved internally! Send channels unlocked.' : '✓ Offerte intern goedgekeurd! Verzendaopties ontgrendeld.');
+  };
+
+  const handleExecuteSendStep5 = () => {
+    setStep5SendConfirmed(true);
+    setStep5ConfirmModalOpen(false);
+    const channelLabel = step5SelectedChannel === 'EMAIL' ? 'E-mail Sent' : 'WhatsApp Sent';
+    setStep5SendChannelLabel(channelLabel);
+    showToast(step5SelectedChannel === 'EMAIL'
+      ? (language === 'EN' ? `✓ Quote sent via E-mail to ${customerEmail}! (${quoteFileName} attached)` : `✓ Offerte verzonden via E-mail naar ${customerEmail}! (${quoteFileName} bijgevoegd)`)
+      : (language === 'EN' ? `✓ Quote sent via WhatsApp to ${customerPhone}! (Approval link attached)` : `✓ Offerte verzonden via WhatsApp naar ${customerPhone}! (Accoord-link bijgevoegd)`)
+    );
+  };
+
+  // Step 6 — Customer Approval State (Two Approval Routes & Automatic Project Creation)
+  const [step6Approved, setStep6Approved] = useState(false);
+  const [step6ApprovalRoute, setStep6ApprovalRoute] = useState(null); // 'ROUTE_A_ONLINE' | 'ROUTE_B_MANUAL'
+  const [step6ApprovalMetaData, setStep6ApprovalMetaData] = useState(null);
+  const [step6ManualModalOpen, setStep6ManualModalOpen] = useState(false);
+  const [step6ManualForm, setStep6ManualForm] = useState({
+    date: new Date().toISOString().split('T')[0],
+    channel: 'Phone', // 'Phone' | 'WhatsApp' | 'E-mail' | 'In person'
+    recordedBy: 'Bram (Admin)',
+    notes: 'Approved via telephone conversation by customer',
+    evidenceFile: null
+  });
+
+  // Automatic consequence helper function: Project created immediately upon approval & appears in Projects tab
+  const autoCreateProjectOnApproval = (meta) => {
+    const projId = `P-${lead?.id?.replace('LEAD', 'L') || '2001'}`;
+    const projTitle = `Luxe ${customerCategory || 'Buitenkeuken'} — ${customerName}`;
+    
+    const newProject = {
+      id: projId,
+      name: projTitle,
+      projectName: projTitle,
+      customer: customerName,
+      customerEmail,
+      customerPhone,
+      category: customerCategory || 'Buitenkeukens',
+      partner: 'Ruben Verbeij — RV Meubels',
+      progress: 10,
+      deadline: '2026-09-27',
+      totalAmount: `€ ${step4TotalInclVat.toLocaleString('nl-NL')}`,
+      status: 'In uitvoering',
+      approvalRoute: meta.route,
+      approvedAt: meta.dateTime,
+      createdAt: new Date().toISOString()
+    };
+
+    const savedProjects = JSON.parse(localStorage.getItem('app_projects') || '[]');
+    const filteredProjects = savedProjects.filter(p => p.id !== newProject.id);
+    const updatedProjects = [newProject, ...filteredProjects];
+    
+    localStorage.setItem('app_projects', JSON.stringify(updatedProjects));
+    window.dispatchEvent(new Event('app_data_changed'));
+  };
+
+  const handleRouteAOnlineApproval = () => {
+    const now = new Date();
+    const formattedDate = `${now.toLocaleDateString('nl-NL')} ${now.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}`;
+    const meta = {
+      route: 'ROUTE_A_ONLINE',
+      customerName,
+      dateTime: formattedDate,
+      ipAddress: '84.112.45.198 (Amsterdam, NL)',
+      quoteVersion: 'Quote #OF-2026331 v1.0',
+      statusLabel: '✓ Customer Approved (Online Link)'
+    };
+    setStep6Approved(true);
+    setStep6ApprovalRoute('ROUTE_A_ONLINE');
+    setStep6ApprovalMetaData(meta);
+
+    // AUTOMATIC CONSEQUENCE: Project Created Immediately
+    autoCreateProjectOnApproval(meta);
+
+    showToast(language === 'EN' ? `✓ Quote approved online by ${customerName}! Project auto-created.` : `✓ Offerte online goedgekeurd door ${customerName}! Project automatisch aangemaakt.`);
+  };
+
+  const handleRouteBManualApproval = (e) => {
+    if (e) e.preventDefault();
+    const now = new Date();
+    const formattedDate = `${now.toLocaleDateString('nl-NL')} ${now.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}`;
+    const meta = {
+      route: 'ROUTE_B_MANUAL',
+      customerName,
+      dateTime: `${step6ManualForm.date} (${formattedDate.split(' ')[1] || '17:26'})`,
+      channel: step6ManualForm.channel,
+      recordedBy: step6ManualForm.recordedBy || 'Bram (Admin)',
+      notes: step6ManualForm.notes,
+      evidenceFile: step6ManualForm.evidenceFile ? step6ManualForm.evidenceFile.name : null,
+      statusLabel: `✓ Approved — recorded manually by ${step6ManualForm.recordedBy || 'Bram'} (via ${step6ManualForm.channel})`
+    };
+    setStep6Approved(true);
+    setStep6ApprovalRoute('ROUTE_B_MANUAL');
+    setStep6ApprovalMetaData(meta);
+    setStep6ManualModalOpen(false);
+
+    // AUTOMATIC CONSEQUENCE: Project Created Immediately
+    autoCreateProjectOnApproval(meta);
+
+    showToast(language === 'EN' ? `✓ Manual approval recorded (${step6ManualForm.channel})! Project auto-created.` : `✓ Handmatige akkoord geregistreerd (${step6ManualForm.channel})! Project automatisch aangemaakt.`);
+  };
+
+  // Step 7 — Create Project State (Final Check & Partner Privacy Unlock)
+  const [step7SelectedPartner, setStep7SelectedPartner] = useState('Ruben Verbeij — RV Meubels');
+  const [step7PartnerChangeReason, setStep7PartnerChangeReason] = useState('');
+  const [step7StartDate, setStep7StartDate] = useState('2026-09-02');
+  const [step7CompletionDate, setStep7CompletionDate] = useState('2026-09-27');
+  const [step7InternalNote, setStep7InternalNote] = useState('Workshop pre-assembly scheduled. Site installation date agreed.');
+  const [step7Confirmed, setStep7Confirmed] = useState(false);
+
+  const handleConfirmProjectStep7 = () => {
+    if (step7SelectedPartner !== 'Ruben Verbeij — RV Meubels' && !step7PartnerChangeReason.trim()) {
+      showToast(language === 'EN' ? 'Please specify a reason for choosing another partner.' : 'Geef een reden op voor het kiezen van een andere partner.');
+      return;
+    }
+
+    // Sync confirmed project to localStorage for Projects Tab
+    const projId = `P-${lead?.id?.replace('LEAD', 'L') || '2525'}`;
+    const projTitle = `Luxe ${customerCategory || 'Buitenkeuken'} — ${customerName}`;
+    const confirmedProject = {
+      id: projId,
+      name: projTitle,
+      projectName: projTitle,
+      customer: customerName,
+      customerEmail,
+      customerPhone,
+      category: customerCategory || 'Buitenkeukens',
+      partner: step7SelectedPartner,
+      partnerReason: step7PartnerChangeReason,
+      startDate: step7StartDate,
+      deadline: step7CompletionDate,
+      progress: 25,
+      totalAmount: `€ ${step4TotalInclVat.toLocaleString('nl-NL')}`,
+      status: 'In execution',
+      internalNote: step7InternalNote,
+      confirmedAt: new Date().toISOString()
+    };
+
+    const savedProjects = JSON.parse(localStorage.getItem('app_projects') || '[]');
+    const filteredProjects = savedProjects.filter(p => p.id !== confirmedProject.id && p.customer !== customerName);
+    const updatedProjects = [confirmedProject, ...filteredProjects];
+    
+    localStorage.setItem('app_projects', JSON.stringify(updatedProjects));
+    window.dispatchEvent(new Event('app_data_changed'));
+
+    setStep7Confirmed(true);
+    showToast(language === 'EN'
+      ? `✓ Project confirmed! Released to ${step7SelectedPartner}. Partner now sees customer address & phone.`
+      : `✓ Project bevestigd! Vrijgegeven aan ${step7SelectedPartner}. Partner ziet nu adres & telefoonnummer.`
+    );
+  };
 
   // Section 2.3: Auto-Loaded Message Templates & Multiple WhatsApp Photo Attachments
   const [selectedTemplate, setSelectedTemplate] = useState('template1');
@@ -433,21 +713,40 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
     amount: '12500',
   });
 
-  // Dynamic Activity Timeline based on current workflow lifecycle
-  const fullTimelineEvents = [
-    { id: 1, title: 'Lead Ingestion', desc: `Inquiry received for ${customerCategory}`, time: '10:15 AM (Day 1)', user: 'System' },
-    { id: 2, title: 'Assigned to Admin', desc: 'Auto-assigned to Tim & Bram', time: '10:20 AM (Day 1)', user: 'Tim (Admin)' },
-    { id: 3, title: 'Requirement Meeting', desc: `Requirements & specs discussed with ${customerName}`, time: '11:45 AM (Day 2)', user: 'Bram (Admin)' },
-    { id: 4, title: 'Quote Generated (#Q-4001)', desc: `Formal proposal sent to ${customerEmail}`, time: '02:30 PM (Day 3)', user: 'Tim (Admin)' },
-    { id: 5, title: 'Quote Approved & Deposit Paid', desc: `Client accepted proposal & paid 50% deposit (€6,250)`, time: '09:10 AM (Day 4)', user: customerName },
-    { id: 6, title: 'Project P-2001 Work Order Created', desc: `Active project setup for ${customerCategory}`, time: '10:00 AM (Day 5)', user: 'Tim (Admin)' },
-    { id: 7, title: 'Partner Assigned', desc: 'Assigned to Sven Hoek (Hoek Bouw)', time: '11:00 AM (Day 6)', user: 'Sven Hoek' },
-    { id: 8, title: 'Delivery & Site Installation Scheduled', desc: 'Scheduled for Keizersgracht 402, Amsterdam', time: '01:15 PM (Day 7)', user: 'Sven Hoek' },
-    { id: 9, title: 'Project Completed & Invoiced', desc: 'Final inspection passed & 100% invoice paid', time: '04:00 PM (Day 8)', user: 'Bram (Admin)' }
-  ];
+  // Event-driven dynamic activity timeline strictly reflecting past/current events
+  const getDynamicTimeline = () => {
+    let events = [
+      { id: 1, title: 'Lead Ingestion', desc: `Inquiry received for ${customerCategory}`, time: '10:15 AM (Day 1)', user: 'System' },
+      { id: 2, title: 'Partner Price Request Sent', desc: 'Sanitized request sent to partner (no contact data)', time: '10:20 AM (Day 1)', user: 'Tim (Admin)' },
+      { id: 3, title: 'Partner Price Received', desc: 'Partner cost recorded for internal pricing', time: '11:45 AM (Day 2)', user: 'Ruben Verbeij' },
+      { id: 4, title: 'Quote Draft Created', desc: 'Draft quotation created for internal review. Nothing sent to customer.', time: '02:30 PM (Day 3)', user: 'Tim (Admin)' }
+    ];
 
-  // Show timeline up to current step
-  const visibleTimeline = fullTimelineEvents.slice(0, Math.min(currentStep + 1, fullTimelineEvents.length));
+    if (currentStep >= 5) {
+      if (step5ApprovalStatus === 'APPROVED') {
+        events.push({ id: 5, title: 'Quote Approved Internally', desc: `Approved by ${step5ApprovedBy || 'Bram (Admin)'} on ${step5ApprovedAt || 'Today'}`, time: '04:10 PM', user: step5ApprovedBy || 'Bram (Admin)' });
+      }
+      if (step5SendConfirmed) {
+        events.push({ id: 6, title: `Customer Quote Sent (${step5SelectedChannel === 'EMAIL' ? 'E-mail' : 'WhatsApp'})`, desc: `Formal proposal sent to ${step5SelectedChannel === 'EMAIL' ? customerEmail : customerPhone}`, time: '04:15 PM', user: 'Tim (Admin)' });
+      }
+    }
+
+    if (currentStep >= 6) {
+      events.push({ id: 7, title: 'Quote Approved & Deposit Paid', desc: `Client accepted proposal & paid 50% deposit`, time: '09:00 AM (Day 5)', user: customerName });
+    }
+
+    if (currentStep >= 7) {
+      events.push({ id: 8, title: 'Project Created', desc: `Work order setup for ${customerCategory}`, time: '10:00 AM (Day 6)', user: 'Tim (Admin)' });
+    }
+
+    if (currentStep >= 8) {
+      events.push({ id: 9, title: 'Planning & Delivery Completed', desc: 'Final inspection passed & 100% invoice paid', time: '04:00 PM (Day 8)', user: 'Bram (Admin)' });
+    }
+
+    return events;
+  };
+
+  const visibleTimeline = getDynamicTimeline();
 
   const showToast = (msg) => {
     setToastMsg(msg);
@@ -597,16 +896,15 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
     return 'upcoming';
   };
 
-  // Status Badge styling helper per step
   const getBadgeVariant = (stepId) => {
     switch (stepId) {
       case 1: return { variant: 'info', label: tStatus('New') };
       case 2: return { variant: 'warning', label: tStatus('In Conversation') };
-      case 3: return { variant: 'warning', label: tStatus('Quote Sent') };
-      case 4: return { variant: 'primary', label: language === 'EN' ? 'Quote Created' : 'Offerte Aangemaakt' };
-      case 5: return { variant: 'success', label: language === 'EN' ? 'Project Created' : 'Project Aangemaakt' };
-      case 6: return { variant: 'purple', label: language === 'EN' ? 'Partner Assigned' : 'Partner Toegewezen' };
-      case 7: return { variant: 'info', label: language === 'EN' ? 'Planning Scheduled' : 'Planning Ingepland' };
+      case 3: return { variant: 'success', label: language === 'EN' ? '✓ Partner Price Received' : '✓ Partnerprijs Ontvangen' };
+      case 4: return { variant: 'warning', label: language === 'EN' ? 'Draft — Not Sent' : 'Concept — Niet Verzonden' };
+      case 5: return { variant: 'info', label: language === 'EN' ? 'Review & Send' : 'Controleren & Verzenden' };
+      case 6: return { variant: 'success', label: language === 'EN' ? 'Customer Approved' : 'Klant Akkoord' };
+      case 7: return { variant: 'purple', label: language === 'EN' ? 'Project Created' : 'Project Aangemaakt' };
       case 8: return { variant: 'success', label: language === 'EN' ? 'Completed' : 'Afgerond' };
       default: return { variant: 'default', label: 'Active' };
     }
@@ -751,7 +1049,7 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
                     )}
                   </div>
                   
-                  <span className={`text-[10px] font-semibold mt-1.5 max-w-[85px] text-center line-clamp-1 leading-tight ${
+                  <span className={`text-[10px] font-semibold mt-1.5 max-w-[95px] sm:max-w-[105px] text-center line-clamp-2 leading-tight ${
                     status === 'current'
                       ? 'text-[#3E4E36] font-bold'
                       : status === 'completed'
@@ -793,12 +1091,12 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
                   In Progress
                 </span>
               ) : currentStep === 4 ? (
-                <span className="bg-[#DCFCE7] text-[#15803D] font-bold text-xs px-3 py-1 rounded-full border border-emerald-200/60 shadow-2xs">
-                  Accepted
+                <span className="bg-[#FEF3C7] text-[#92400E] font-semibold text-xs px-3 py-1 rounded-full border border-amber-200/60 shadow-2xs">
+                  Draft — Not Sent
                 </span>
               ) : currentStep === 3 ? (
-                <span className="bg-[#FEF3C7] text-[#92400E] font-semibold text-xs px-3 py-1 rounded-full border border-amber-200/60 shadow-2xs">
-                  Quote Sent
+                <span className="bg-[#DCFCE7] text-[#15803D] font-bold text-xs px-3 py-1 rounded-full border border-emerald-200/60 shadow-2xs">
+                  ✓ Partner Price Received
                 </span>
               ) : currentStep === 2 ? (
                 <span className="bg-[#FEF3C7] text-[#92400E] font-semibold text-xs px-3 py-1 rounded-full border border-amber-200/60 shadow-2xs">
@@ -1441,591 +1739,1361 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
                 </div>
               )}
 
-              {/* STEP 3: PARTNER OFFERTE ONTVANGEN (Partner Quote Received) */}
+              {/* STEP 3: PARTNER PRICE RECEIVED (Internal Cost — CONFIDENTIAL) */}
               {currentStep === 3 && (
                 <div className="space-y-4 font-body">
-                  <div className="p-4 bg-[#EDE8DF]/60 rounded-xl border border-[#D6CFC2]/60 space-y-4">
-                    <h4 className="font-bold text-dark text-sm flex items-center gap-2">
-                      <UserCheck className="w-4 h-4 text-primary" /> Partner Offerte Ontvangen (Partner Quote Received)
-                    </h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <span className="text-[10px] text-dark/50 font-bold uppercase block mb-1">Bouwprijs (Build Price)</span>
-                        <span className="font-bold text-primary text-base">€ 8,500</span>
+
+                  {/* 🔴 STRICT INTERNAL CONFIDENTIALITY BANNER */}
+                  <div className="flex items-center gap-3 p-3.5 bg-red-50 border border-red-200 rounded-2xl">
+                    <div className="w-8 h-8 rounded-lg bg-red-700 flex items-center justify-center flex-shrink-0">
+                      <span className="text-white text-xs font-black">🔒</span>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-black text-red-900 uppercase tracking-wider">INTERNAL COST RECORD — STRICTLY CONFIDENTIAL</p>
+                      <p className="text-[10px] text-red-700/90 mt-0.5">Partner cost price is <strong>never shown</strong> to the customer or included in any customer-facing document. Margin is internal only.</p>
+                    </div>
+                  </div>
+
+                  {/* Card 1: Partner & Price Info */}
+                  <div className="p-5 bg-[#F8F7F4] rounded-2xl border border-[#D6CFC2]/70 space-y-4 shadow-2xs">
+                    <div className="flex items-center justify-between border-b border-[#D6CFC2]/60 pb-3">
+                      <h4 className="font-bold text-dark text-sm flex items-center gap-2 font-heading">
+                        <UserCheck className="w-4 h-4 text-primary" />
+                        {language === 'EN' ? 'Partner Price Received' : 'Partner Prijs Ontvangen'}
+                      </h4>
+                      {partnerPriceLocked && (
+                        <span className="text-[10px] font-mono font-black bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
+                          🔒 Locked & Confirmed
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Partner Name */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="p-3 bg-white rounded-xl border border-[#D6CFC2]/80">
+                        <span className="text-[10px] font-bold text-dark/50 uppercase block mb-1">Partner</span>
+                        <span className="font-bold text-primary text-sm">{partnerForm?.partnerName || 'Ruben Verbeij — RV Meubels'}</span>
                       </div>
-                      <div>
-                        <span className="text-[10px] text-dark/50 font-bold uppercase block mb-1">Geldig Tot (Valid Until)</span>
-                        <span className="font-bold text-dark">15 Nov 2023</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-dark/50 font-bold uppercase block mb-1">Levertijd (Lead Time)</span>
-                        <span className="font-bold text-dark">4–5 weken</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-dark/50 font-bold uppercase block mb-1">Partner</span>
-                        <span className="font-bold text-dark">Sven Hoek (Hoek Bouw)</span>
+                      <div className="p-3 bg-white rounded-xl border border-[#D6CFC2]/80">
+                        <span className="text-[10px] font-bold text-dark/50 uppercase block mb-1">{language === 'EN' ? 'Price Request Sent' : 'Prijsaanvraag Verstuurd'}</span>
+                        <span className="font-bold text-dark text-sm">{step2RequestedDate}</span>
                       </div>
                     </div>
-                    <div className="pt-2 border-t border-[#D6CFC2]/50">
-                      <span className="text-[10px] text-dark/50 font-bold uppercase block mb-1">Opmerkingen Partner (Partner Remarks)</span>
-                      <p className="text-xs text-dark/70 italic bg-white/60 p-2.5 rounded-lg border border-[#D6CFC2]/40">
-                        "Teak hout beschikbaar. Extra levertijd nodig voor beton aanrechtblad (2 extra weken). Prijs exclusief BTW."
+
+                    {/* Internal Cost Price Entry */}
+                    <div className="p-4 bg-amber-50 border border-amber-200/80 rounded-xl space-y-3">
+                      <div className="flex items-center justify-between border-b border-amber-200/60 pb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="bg-amber-600 text-white font-black text-[10px] px-2 py-0.5 rounded uppercase tracking-wider">INTERN</span>
+                          <span className="text-xs font-bold text-amber-950">{language === 'EN' ? 'Partner Cost Price (Internal)' : 'Partner Kostprijs (Intern)'}</span>
+                        </div>
+                        {partnerPriceLocked && <span className="text-xs text-amber-800 font-bold">🔒 Locked</span>}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {/* Cost Price Input */}
+                        <div>
+                          <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1 flex items-center gap-1">
+                            <span>{language === 'EN' ? 'Partner Cost Price (excl. BTW)' : 'Partner Kostprijs (excl. BTW)'}</span>
+                            {partnerPriceLocked && <span>🔒</span>}
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-dark/50">€</span>
+                            <input
+                              type="number"
+                              value={partnerCostPrice}
+                              onChange={(e) => setPartnerCostPrice(e.target.value)}
+                              disabled={partnerPriceLocked}
+                              placeholder="0.00"
+                              className="w-full pl-7 pr-3 py-2 bg-white border border-amber-300 rounded-xl text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-amber-400/30 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            />
+                          </div>
+                          <span className="text-[9px] text-dark/50 italic block mt-1">
+                            {language === 'EN'
+                              ? 'Internal cost received from selected partner. Never shown to customer.'
+                              : 'Interne kostprijs van partner. Wordt nooit aan klant getoond.'}
+                          </span>
+                        </div>
+
+                        {/* Valid Until */}
+                        <div>
+                          <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1 flex items-center gap-1">
+                            <span>{language === 'EN' ? 'Offer Valid Until' : 'Offerte Geldig Tot'}</span>
+                            {partnerPriceLocked && <span>🔒</span>}
+                          </label>
+                          <input
+                            type="date"
+                            value={partnerValidUntil}
+                            onChange={(e) => setPartnerValidUntil(e.target.value)}
+                            disabled={partnerPriceLocked}
+                            className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-xl text-xs text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          />
+                        </div>
+
+                        {/* Lead Time */}
+                        <div>
+                          <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1 flex items-center gap-1">
+                            <span>{language === 'EN' ? 'Build Lead Time' : 'Bouwtijd'}</span>
+                            {partnerPriceLocked && <span>🔒</span>}
+                          </label>
+                          <select
+                            value={partnerLeadTime}
+                            onChange={(e) => setPartnerLeadTime(e.target.value)}
+                            disabled={partnerPriceLocked}
+                            className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-xl text-xs font-bold text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          >
+                            <option>2–3 weken</option>
+                            <option>4–5 weken</option>
+                            <option>6–8 weken</option>
+                            <option>8–10 weken</option>
+                            <option>10–12 weken</option>
+                            <option>12+ weken</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Partner Notes */}
+                      <div>
+                        <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1 flex items-center gap-1">
+                          <span>{language === 'EN' ? 'Partner Remarks (Internal)' : 'Partner Opmerkingen (Intern)'}</span>
+                          {partnerPriceLocked && <span>🔒</span>}
+                        </label>
+                        <textarea
+                          value={partnerPriceNotes}
+                          onChange={(e) => setPartnerPriceNotes(e.target.value)}
+                          disabled={partnerPriceLocked}
+                          placeholder={language === 'EN' ? 'e.g. Teak available. Extra 2 weeks for concrete worktop. Price excl. BTW...' : 'b.v. Teak beschikbaar. Extra 2 weken voor betonnen aanrechtblad. Prijs excl. BTW...'}
+                          className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-xl text-xs text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[56px] resize-none disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Internal Margin Calculator */}
+                    {partnerCostNum > 0 && (
+                      <div className="p-4 bg-[#EDE8DF]/50 border border-[#D6CFC2]/80 rounded-xl space-y-3">
+                        <div className="flex items-center justify-between border-b border-[#D6CFC2]/60 pb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="bg-[#3E4E36] text-white font-black text-[10px] px-2 py-0.5 rounded uppercase tracking-wider">INTERN</span>
+                            <span className="text-xs font-bold text-dark">{language === 'EN' ? 'Margin Calculator (Internal Only)' : 'Marge Calculator (Intern)'}</span>
+                          </div>
+                          {partnerPriceLocked && <span className="text-xs font-bold text-[#3E4E36]">🔒 Locked</span>}
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <label className="text-[10px] font-bold text-dark/60 uppercase whitespace-nowrap flex items-center gap-1">
+                            <span>{language === 'EN' ? 'Target Gross Margin %' : 'Doel Bruto Marge %'}</span>
+                            {partnerPriceLocked && <span>🔒</span>}
+                          </label>
+                          <input
+                            type="range"
+                            min="10" max="60" step="1"
+                            value={marginPercent}
+                            onChange={(e) => setMarginPercent(Number(e.target.value))}
+                            disabled={partnerPriceLocked}
+                            className="flex-1 accent-[#3E4E36] h-2 rounded-full disabled:opacity-60 disabled:cursor-not-allowed"
+                          />
+                          <span className="text-sm font-black text-primary w-10 text-right">{marginPercent}%</span>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-3 text-center">
+                          <div className="p-2.5 bg-white rounded-xl border border-[#D6CFC2]/80">
+                            <span className="text-[10px] text-dark/50 font-bold uppercase block mb-0.5">
+                              {language === 'EN' ? 'Partner Cost' : 'Kostprijs'} {partnerPriceLocked && '🔒'}
+                            </span>
+                            <span className="font-black text-sm text-red-700">€ {partnerCostNum.toLocaleString('nl-NL')}</span>
+                          </div>
+                          <div className="p-2.5 bg-white rounded-xl border border-[#D6CFC2]/80">
+                            <span className="text-[10px] text-dark/50 font-bold uppercase block mb-0.5">
+                              {language === 'EN' ? 'Gross Margin' : 'Bruto Marge'} {partnerPriceLocked && '🔒'}
+                            </span>
+                            <span className="font-black text-sm text-amber-700">€ {grossMarginAmount.toLocaleString('nl-NL')}</span>
+                          </div>
+                          <div className="p-2.5 bg-[#3E4E36] rounded-xl border border-[#3E4E36]">
+                            <span className="text-[10px] text-white/80 font-bold uppercase block mb-0.5">
+                              {language === 'EN' ? 'Customer Selling Price' : 'Klant Verkoopprijs'} {partnerPriceLocked && '🔒'}
+                            </span>
+                            <span className="font-black text-sm text-white">€ {customerSellPrice.toLocaleString('nl-NL')}</span>
+                            <span className="text-[8px] text-white/70 block mt-0.5">Final price for customer quotation</span>
+                          </div>
+                        </div>
+
+                        <p className="text-[10px] text-dark/50 italic">
+                          {language === 'EN'
+                            ? '⚠ This customer selling price suggestion is for internal reference only. The customer never sees the partner cost price.'
+                            : '⚠ Deze klant verkoopprijs is uitsluitend voor intern gebruik. De klant ziet de kostprijs van de partner nooit.'}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Lock / Unlock Button */}
+                    <div className="flex items-center justify-between pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!partnerCostPrice || partnerCostNum <= 0) {
+                            showToast(language === 'EN' ? 'Please enter partner cost price first.' : 'Voer eerst de partner kostprijs in.');
+                            return;
+                          }
+                          setPartnerPriceLocked(!partnerPriceLocked);
+                          showToast(partnerPriceLocked
+                            ? (language === 'EN' ? 'Price record unlocked for editing.' : 'Prijsregistratie ontgrendeld voor bewerking.')
+                            : (language === 'EN' ? '✓ Partner price locked & confirmed.' : '✓ Partner prijs vergrendeld & bevestigd.')
+                          );
+                        }}
+                        className={`px-4 py-2 text-xs font-bold rounded-xl cursor-pointer transition-all flex items-center gap-2 ${
+                          partnerPriceLocked
+                            ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300'
+                            : 'bg-[#3E4E36] hover:bg-[#2F3C29] text-white shadow-md'
+                        }`}
+                      >
+                        {partnerPriceLocked ? '🔓 Unlock & Edit' : '🔒 Lock & Confirm Partner Price'}
+                      </button>
+                      {partnerPriceLocked && partnerCostNum > 0 && (
+                        <span className="text-[11px] text-emerald-800 font-bold bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl">
+                          ✓ Cost: €{partnerCostNum.toLocaleString('nl-NL')} · Gross Margin: {marginPercent}% · Customer Selling Price: €{customerSellPrice.toLocaleString('nl-NL')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Card 2: Auto-Message Templates & Contact Actions (Middle) */}
+                  <div id="auto-message-section" className="p-5 bg-[#F8F7F4] rounded-2xl border border-[#D6CFC2]/70 space-y-3 shadow-2xs">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4 text-primary" />
+                        <span className="text-xs font-bold text-primary font-heading uppercase tracking-wider">
+                          {language === 'EN' ? 'Manual Customer Contact Actions' : 'Handmatige Klant Contact Acties'}
+                        </span>
+                        <span className="text-[9px] bg-slate-200 text-slate-700 font-semibold px-2 py-0.5 rounded-full">
+                          Nothing sent automatically
+                        </span>
+                      </div>
+                      <select
+                        value={selectedTemplate}
+                        onChange={(e) => setSelectedTemplate(e.target.value)}
+                        className="px-3 py-1.5 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium shadow-2xs"
+                      >
+                        <option value="template1">Template 1: Initial Inquiry Response</option>
+                        <option value="template2">Template 2: 1st Follow-up Message</option>
+                        <option value="template3">Template 3: Quote Ready Notification</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <textarea
+                        value={customMessageText}
+                        onChange={(e) => setCustomMessageText(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-white border border-[#D6CFC2] rounded-xl text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[72px] resize-none leading-relaxed"
+                        placeholder={language === 'EN' ? 'Message to customer (manual send only)...' : 'Bericht aan klant (alleen handmatig verzenden)...'}
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                      <label className="flex items-center gap-2 text-[11px] text-dark/70 cursor-pointer select-none font-semibold">
+                        <input
+                          type="checkbox"
+                          checked={attachPhotos}
+                          onChange={(e) => setAttachPhotos(e.target.checked)}
+                          className="rounded border-[#D6CFC2] text-primary focus:ring-primary/20"
+                        />
+                        <Paperclip className="w-3.5 h-3.5 text-primary" />
+                        <span>{language === 'EN' ? 'Attach project photo / 3D render (WhatsApp)' : 'Projectfoto / 3D-render bijvoegen (WhatsApp)'}</span>
+                      </label>
+
+                      <div className="flex gap-2 flex-wrap">
+                        <a
+                          href={`https://wa.me/${customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(customMessageText)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                        </a>
+                        <a
+                          href={`tel:${customerPhone}`}
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#2196F3] hover:bg-[#1e87db] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
+                        >
+                          <Phone className="w-3.5 h-3.5" /> Call
+                        </a>
+                        <a
+                          href={`mailto:${customerEmail}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#3E4E36] hover:bg-[#2e3a28] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
+                        >
+                          <Mail className="w-3.5 h-3.5" /> E-mail
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 3: Recommended Next Action Banner (Bottom) */}
+                  <div className="p-4 bg-[#EDE8DF] border border-[#D6CFC2] rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div>
+                      <span className="text-[10px] font-mono font-bold text-accent uppercase tracking-wider block">RECOMMENDED NEXT ACTION</span>
+                      <span className="text-xs font-bold text-primary">
+                        {partnerPriceLocked
+                          ? (language === 'EN' ? 'Partner price confirmed — proceed to create customer quote' : 'Partnerprijs bevestigd — ga verder met klantofferte maken')
+                          : (language === 'EN' ? 'Lock the partner price first to continue' : 'Vergrendel eerst de partnerprijs om verder te gaan')}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!partnerPriceLocked) {
+                            showToast(language === 'EN' ? 'Please lock the partner price before proceeding.' : 'Vergrendel eerst de partnerprijs voordat u verder gaat.');
+                            return;
+                          }
+                          advanceStep();
+                        }}
+                        className={`px-5 py-2.5 font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-2 whitespace-nowrap transition-all ${
+                          partnerPriceLocked
+                            ? 'bg-[#3E4E36] hover:bg-[#2F3C29] text-white'
+                            : 'bg-[#D6CFC2] text-dark/40 cursor-not-allowed'
+                        }`}
+                      >
+                        <ArrowRight className="w-4 h-4" />
+                        <span>{language === 'EN' ? 'Proceed to Quote →' : 'Ga Naar Offerte →'}</span>
+                      </button>
+                      {!partnerPriceLocked && (
+                        <span className="text-[10px] font-semibold text-amber-800 italic">
+                          🔒 Lock the partner price first to continue
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 4: BUILD THE QUOTE (Internal Calculation & Draft Only — NOTHING SENT) */}
+              {currentStep === 4 && (
+                <div className="space-y-4 font-body">
+
+                  {/* 🟢 STEP HEADER BANNER */}
+                  <div className="p-4 bg-emerald-50/80 border border-emerald-200/80 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-emerald-700 text-white flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-xs">
+                        4
+                      </div>
+                      <div>
+                        <h4 className="font-heading font-bold text-emerald-950 text-sm flex items-center gap-2">
+                          <span>Build the Quote</span>
+                          <span className="text-[10px] font-mono bg-emerald-200 text-emerald-900 font-bold px-2 py-0.5 rounded-full uppercase">
+                            DRAFT MODE ONLY
+                          </span>
+                        </h4>
+                        <p className="text-[11px] text-emerald-900/80 mt-0.5">
+                          Build customer quotation from approved internal pricing. Nothing is sent to customer or partner from this step.
+                        </p>
+                      </div>
+                    </div>
+                    {quoteSavedAsDraft && (
+                      <span className="text-xs font-bold text-emerald-800 bg-white border border-emerald-300 px-3 py-1.5 rounded-xl shadow-2xs flex items-center gap-1.5 whitespace-nowrap">
+                        ✓ Saved as Draft
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Card 1: Internal Pricing Input & Two-Way Synchronized Margin */}
+                  <div className="p-5 bg-[#F8F7F4] rounded-2xl border border-[#D6CFC2]/70 space-y-4 shadow-2xs">
+                    <div className="flex items-center justify-between border-b border-[#D6CFC2]/60 pb-3">
+                      <h4 className="font-bold text-dark text-sm flex items-center gap-2 font-heading">
+                        <FileText className="w-4 h-4 text-primary" />
+                        {language === 'EN' ? 'Internal Pricing Input' : 'Interne Prijs Invoer'}
+                      </h4>
+                      <span className="text-[10px] font-mono font-bold text-red-700 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full uppercase">
+                        🔒 INTERNAL ONLY
+                      </span>
+                    </div>
+
+                    {/* Partner Cost Carry-Forward */}
+                    <div className="p-3.5 bg-amber-50/80 border border-amber-200/80 rounded-xl flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] font-bold text-amber-900/70 uppercase block mb-0.5">
+                          🔒 Internal Partner Cost (Auto Carried from Step 3)
+                        </span>
+                        <span className="text-xs text-amber-950 font-medium">
+                          Partner: {partnerForm?.partnerName || 'Ruben Verbeij — RV Meubels'}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-base font-black text-amber-900">€ {effectivePartnerCost.toLocaleString('nl-NL')}</span>
+                        <span className="text-[9px] text-red-700 font-bold block">Never shown to customer</span>
+                      </div>
+                    </div>
+
+                    {/* Two-Way Synchronized Margin Inputs */}
+                    <div className="p-4 bg-white rounded-xl border border-[#D6CFC2]/80 space-y-3">
+                      <div className="flex items-center justify-between border-b border-[#D6CFC2]/50 pb-2">
+                        <span className="text-xs font-bold text-dark flex items-center gap-1.5">
+                          <span>🔄 Two-Way Synchronized Margin Calculation</span>
+                        </span>
+                        <span className="text-[10px] text-dark/50 italic">
+                          Change % or € — both stay synchronized
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* Method A: Margin Percentage */}
+                        <div>
+                          <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">
+                            Margin % (Percentage)
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.5"
+                              value={step4MarginPercent}
+                              onChange={(e) => handleMarginPercentChange(e.target.value)}
+                              className="w-full px-3 py-2 pr-8 bg-[#F8F7F4] border border-[#D6CFC2] rounded-xl text-sm font-bold text-primary focus:ring-2 focus:ring-primary/20"
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-dark/50">%</span>
+                          </div>
+                          <span className="text-[9px] text-dark/50 block mt-1">Updates Margin Amount automatically</span>
+                        </div>
+
+                        {/* Method B: Margin Amount € */}
+                        <div>
+                          <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">
+                            Margin Amount € (Fixed Amount)
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-dark/50">€</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="50"
+                              value={step4MarginAmount}
+                              onChange={(e) => handleMarginAmountChange(e.target.value)}
+                              className="w-full pl-7 pr-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-xl text-sm font-bold text-primary focus:ring-2 focus:ring-primary/20"
+                            />
+                          </div>
+                          <span className="text-[9px] text-dark/50 block mt-1">Updates Margin Percentage automatically</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 2: Quote Calculation Summary */}
+                  <div className="p-5 bg-white rounded-2xl border border-[#D6CFC2]/80 space-y-4 shadow-2xs">
+                    <div className="flex items-center justify-between border-b border-[#D6CFC2]/60 pb-3">
+                      <h4 className="font-bold text-dark text-sm font-heading flex items-center gap-2">
+                        <span>📊 Internal Quote Calculation Summary</span>
+                      </h4>
+                      <span className="text-[10px] font-bold text-dark/50 uppercase">Calculated Breakdown</span>
+                    </div>
+
+                    <div className="space-y-2 text-xs font-body">
+                      {/* Partner Cost */}
+                      <div className="flex justify-between items-center p-2.5 bg-red-50/50 rounded-xl border border-red-100">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-red-900">Partner Cost</span>
+                          <span className="text-[9px] bg-red-700 text-white px-1.5 py-0.2 rounded font-bold uppercase">🔒 Internal</span>
+                        </div>
+                        <span className="font-black text-red-900 text-sm">€ {effectivePartnerCost.toLocaleString('nl-NL')}</span>
+                      </div>
+
+                      {/* Margin */}
+                      <div className="flex justify-between items-center p-2.5 bg-amber-50/50 rounded-xl border border-amber-100">
+                        <span className="font-bold text-amber-900">Gross Margin ({step4MarginPercent}%)</span>
+                        <span className="font-black text-amber-900 text-sm">+ € {step4MarginAmount.toLocaleString('nl-NL')}</span>
+                      </div>
+
+                      <div className="border-t border-[#D6CFC2]/60 my-1" />
+
+                      {/* Customer Price Excl VAT (Read-Only) */}
+                      <div className="flex justify-between items-center p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                        <span className="font-bold text-dark">Customer Price excl. VAT</span>
+                        <span className="font-black text-primary text-base">€ {step4CustomerPriceExclVat.toLocaleString('nl-NL')}</span>
+                      </div>
+
+                      {/* VAT 21% */}
+                      <div className="flex justify-between items-center p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-dark">VAT ({step4VatRate}%)</span>
+                          <select
+                            value={step4VatRate}
+                            onChange={(e) => setStep4VatRate(Number(e.target.value))}
+                            className="text-[10px] bg-white border border-[#D6CFC2] rounded px-1.5 py-0.5 font-bold cursor-pointer"
+                          >
+                            <option value={21}>21% (Standard)</option>
+                            <option value={9}>9% (Reduced)</option>
+                            <option value={0}>0% (Exempt)</option>
+                          </select>
+                        </div>
+                        <span className="font-bold text-dark">+ € {step4VatAmount.toLocaleString('nl-NL')}</span>
+                      </div>
+
+                      {/* TOTAL INCL VAT (Prominent & Read-Only) */}
+                      <div className="flex justify-between items-center p-4 bg-[#3E4E36] text-white rounded-xl shadow-md">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-emerald-200 block tracking-wider">TOTAL INCL. VAT (CALCULATED)</span>
+                          <span className="text-xs text-white/80">Read-only total for customer quotation</span>
+                        </div>
+                        <span className="text-2xl font-black text-white">€ {step4TotalInclVat.toLocaleString('nl-NL')}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 3: Customer Quote Preview (Strictly Hides Partner Cost & Internal Margin) */}
+                  <div className="p-5 bg-[#F6F4EE] rounded-2xl border border-[#D6CFC2] space-y-3 shadow-2xs">
+                    <div className="flex items-center justify-between border-b border-[#D6CFC2]/70 pb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="bg-[#3E4E36] text-white font-bold text-[10px] px-2 py-0.5 rounded uppercase">PREVIEW</span>
+                        <h4 className="font-bold text-dark text-xs font-heading">Customer Quote Preview</h4>
+                      </div>
+                      <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                        🔒 Partner cost & margin hidden
+                      </span>
+                    </div>
+
+                    <div className="p-4 bg-white rounded-xl border border-[#D6CFC2]/80 space-y-2 text-xs font-body shadow-2xs">
+                      <div className="flex justify-between items-center">
+                        <span className="text-dark/70">Bespoke {lead?.productType || customerCategory} Quotation</span>
+                        <span className="font-semibold text-dark">€ {step4CustomerPriceExclVat.toLocaleString('nl-NL')}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-dark/70">
+                        <span>VAT ({step4VatRate}%)</span>
+                        <span>€ {step4VatAmount.toLocaleString('nl-NL')}</span>
+                      </div>
+                      <div className="flex justify-between items-center pt-2 border-t border-[#D6CFC2] font-bold text-primary text-sm">
+                        <span>Total (incl. VAT)</span>
+                        <span className="text-base text-primary">€ {step4TotalInclVat.toLocaleString('nl-NL')}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Step 4 Main Action Bar (STRICTLY NOTHING SENT — Save as Draft) */}
+                  <div className="p-4 bg-[#EDE8DF] border border-[#D6CFC2] rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div>
+                      <span className="text-[10px] font-mono font-bold text-accent uppercase tracking-wider block">RECOMMENDED NEXT ACTION</span>
+                      <span className="text-xs font-bold text-primary">Save quote draft — no messages or emails will be sent</span>
+                      <span className="text-[10px] text-dark/60 block font-medium">Continue to Step 5 for review. Nothing is sent from Step 4.</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex flex-col items-center gap-0.5">
+                        <button
+                          type="button"
+                          onClick={handleSaveDraftStep4}
+                          className="px-4 py-2.5 bg-white hover:bg-slate-50 text-dark border border-[#D6CFC2] font-bold text-xs rounded-xl shadow-2xs cursor-pointer flex items-center gap-1.5 active:scale-95 transition-all"
+                        >
+                          <span>💾 Save as Draft</span>
+                        </button>
+                      </div>
+
+                      <div className="flex flex-col items-center gap-0.5">
+                        <button
+                          type="button"
+                          onClick={() => handleRealPdfDownload(true)}
+                          className="px-4 py-2.5 bg-[#EDE8DF] hover:bg-[#D6CFC2]/50 text-dark font-bold text-xs rounded-xl border border-[#D6CFC2] cursor-pointer flex items-center gap-1.5 active:scale-95 transition-all"
+                        >
+                          <FileText className="w-3.5 h-3.5 text-primary" />
+                          <span>Download Draft PDF</span>
+                        </button>
+                        <span className="text-[9px] text-dark/50 italic">Internal draft only — not sent</span>
+                      </div>
+
+                      <div className="flex flex-col items-end gap-0.5">
+                        <button
+                          type="button"
+                          onClick={() => advanceStep()}
+                          className="px-5 py-2.5 bg-[#3E4E36] hover:bg-[#2F3C29] text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-2 whitespace-nowrap"
+                        >
+                          <ArrowRight className="w-4 h-4" />
+                          <span>Proceed to Review & Send (Step 5) →</span>
+                        </button>
+                        <span className="text-[9px] text-dark/50 italic">Navigate to Step 5 (nothing sent yet)</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 5: REVIEW & SEND (Preview, Real PDF, Approval Gate & Confirmed Sending) */}
+              {currentStep === 5 && (
+                <div className="space-y-5 font-body">
+
+                  {/* 🟢 STEP HEADER BANNER */}
+                  <div className="p-4 bg-[#F8F7F4] border border-[#D6CFC2] rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-2xs">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-xs">
+                        5
+                      </div>
+                      <div>
+                        <h4 className="font-heading font-bold text-primary text-sm flex items-center gap-2">
+                          <span>Review & Send</span>
+                          <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full uppercase ${
+                            step5SendConfirmed
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                              : (step5ApprovalStatus === 'APPROVED' ? 'bg-blue-100 text-blue-800 border border-blue-300' : 'bg-amber-100 text-amber-900 border border-amber-300')
+                          }`}>
+                            {step5SendConfirmed
+                              ? `✓ ${step5SendChannelLabel}`
+                              : (step5ApprovalStatus === 'APPROVED' ? '✓ APPROVED & READY' : 'APPROVAL GATED')}
+                          </span>
+                        </h4>
+                        <p className="text-[11px] text-dark/70 mt-0.5">
+                          Preview quotation page-by-page, download official PDF, approve internally, and send via confirmed channel.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action 1: Page-by-Page Quotation Preview */}
+                  <div className="p-5 bg-white rounded-2xl border border-[#D6CFC2] space-y-4 shadow-2xs">
+                    <div className="flex items-center justify-between border-b border-[#D6CFC2]/60 pb-3">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-primary" />
+                        <h4 className="font-bold text-dark text-sm font-heading">
+                          1. Page-by-Page Quotation Preview
+                        </h4>
+                      </div>
+                      <div className="flex items-center gap-1 bg-[#F8F7F4] p-1 rounded-xl border border-[#D6CFC2]/60">
+                        <button
+                          type="button"
+                          onClick={() => setStep5PreviewPage(1)}
+                          className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all ${
+                            step5PreviewPage === 1 ? 'bg-primary text-white shadow-xs' : 'text-dark/60 hover:text-dark'
+                          }`}
+                        >
+                          Page 1: Summary
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setStep5PreviewPage(2)}
+                          className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all ${
+                            step5PreviewPage === 2 ? 'bg-primary text-white shadow-xs' : 'text-dark/60 hover:text-dark'
+                          }`}
+                        >
+                          Page 2: Specs
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setStep5PreviewPage(3)}
+                          className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all ${
+                            step5PreviewPage === 3 ? 'bg-primary text-white shadow-xs' : 'text-dark/60 hover:text-dark'
+                          }`}
+                        >
+                          Page 3: Terms
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Preview Page Document Container */}
+                    <div className="p-6 bg-[#FBF9F5] border border-[#D6CFC2]/80 rounded-xl space-y-4 shadow-inner">
+                      <div className="flex justify-between items-start border-b border-[#D6CFC2] pb-4">
+                        <div>
+                          <span className="font-heading font-black text-lg text-primary block">VANUIT AMBACHT</span>
+                          <span className="text-[10px] text-dark/50 uppercase font-mono tracking-wider">OFFICIËLE MAATOFFERTE #OF-2026331</span>
+                        </div>
+                        <div className="text-right text-xs">
+                          <span className="font-bold text-dark block">{customerName}</span>
+                          <span className="text-dark/60 text-[11px] block">{customerEmail}</span>
+                          <span className="text-dark/60 text-[11px] block">{step2RequestedDate}</span>
+                        </div>
+                      </div>
+
+                      {step5PreviewPage === 1 && (
+                        <div className="space-y-3 text-xs">
+                          <p className="text-dark/80 italic bg-white p-3 rounded-lg border border-[#D6CFC2]/50">
+                            "Beste {customerName}, bedankt voor uw aanvraag bij Vanuit Ambacht. Op basis van uw wensen hebben wij onderstaande maatofferte voor uw {customerCategory} opgesteld."
+                          </p>
+                          <div className="space-y-2 bg-white p-4 rounded-xl border border-[#D6CFC2]/60">
+                            <div className="flex justify-between font-medium"><span>Maatwerk {customerCategory} Frame (3.5m)</span><span>€ {step4CustomerPriceExclVat.toLocaleString('nl-NL')}</span></div>
+                            <div className="flex justify-between font-medium"><span>BTW (21%)</span><span>€ {step4VatAmount.toLocaleString('nl-NL')}</span></div>
+                            <div className="flex justify-between font-black text-primary text-sm pt-2 border-t border-[#D6CFC2]">
+                              <span>Totaal incl. BTW</span>
+                              <span className="text-base text-primary">€ {step4TotalInclVat.toLocaleString('nl-NL')}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {step5PreviewPage === 2 && (
+                        <div className="space-y-2 text-xs bg-white p-4 rounded-xl border border-[#D6CFC2]/60">
+                          <span className="font-bold text-primary block uppercase text-[10px]">Project Specificaties</span>
+                          <div className="grid grid-cols-2 gap-2 text-dark/80">
+                            <div><strong>Categorie:</strong> {customerCategory}</div>
+                            <div><strong>Afmetingen:</strong> {step2Size || '8,00 × 4,00 m'}</div>
+                            <div><strong>Hout / Materiaal:</strong> {step2Material}</div>
+                            <div><strong>Montage & Transport:</strong> Inbegrepen</div>
+                          </div>
+                        </div>
+                      )}
+
+                      {step5PreviewPage === 3 && (
+                        <div className="space-y-2 text-xs bg-white p-4 rounded-xl border border-[#D6CFC2]/60">
+                          <span className="font-bold text-primary block uppercase text-[10px]">Garantie & Betalingsvoorwaarden</span>
+                          <ul className="list-disc pl-4 space-y-1 text-dark/70">
+                            <li>50% aanbetaling bij opdracht, 50% bij oplevering</li>
+                            <li>10 jaar garantie op de houten constructie</li>
+                            <li>Offerte is 30 dagen geldig na dagtekening</li>
+                          </ul>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between items-center text-[10px] text-dark/40 pt-2 border-t border-[#D6CFC2]/50 font-mono">
+                        <span>🔒 Partner cost & internal margin hidden from preview</span>
+                        <span>Page {step5PreviewPage} of 3</span>
+                      </div>
+                    </div>
+
+                    {/* Action 2: Real PDF Download */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 bg-[#EDE8DF]/60 border border-[#D6CFC2] rounded-xl">
+                      <div>
+                        <span className="text-xs font-bold text-primary block">2. Real PDF File Download</span>
+                        <span className="text-[10px] text-dark/60">Downloads file matching exact preview: <strong>{quoteFileName}</strong></span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRealPdfDownload}
+                        className="px-4 py-2 bg-white hover:bg-slate-50 text-primary border border-[#D6CFC2] font-bold text-xs rounded-xl shadow-2xs cursor-pointer flex items-center gap-2 whitespace-nowrap"
+                      >
+                        <Download className="w-4 h-4 text-primary" />
+                        <span>Download PDF ({quoteFileName})</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Action 3: Internal Approval Gate */}
+                  <div className="p-5 bg-[#F8F7F4] rounded-2xl border border-[#D6CFC2] space-y-3 shadow-2xs">
+                    <div className="flex items-center justify-between border-b border-[#D6CFC2]/60 pb-2">
+                      <h4 className="font-bold text-dark text-sm font-heading flex items-center gap-2">
+                        <span>3. Internal Approval Gate</span>
+                      </h4>
+                      <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full uppercase ${
+                        step5ApprovalStatus === 'APPROVED'
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          : 'bg-amber-100 text-amber-900 border border-amber-300'
+                      }`}>
+                        {step5ApprovalStatus === 'APPROVED' ? '✓ APPROVED' : 'UNAPPROVED (DRAFT)'}
+                      </span>
+                    </div>
+
+                    {step5ApprovalStatus !== 'APPROVED' ? (
+                      <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div>
+                          <p className="text-xs font-bold text-amber-950">Quote is currently in DRAFT state.</p>
+                          <p className="text-[11px] text-amber-800 mt-0.5">Approval is required before WhatsApp or E-mail sending buttons can be unlocked.</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleApproveQuoteStep5}
+                          className="px-5 py-2.5 bg-[#3E4E36] hover:bg-[#2F3C29] text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-2 whitespace-nowrap"
+                        >
+                          <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                          <span>Approve Quote (Internal)</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-emerald-700 text-white flex items-center justify-center font-bold text-xs">
+                            ✓
+                          </div>
+                          <div>
+                            <p className="text-xs font-black text-emerald-950 uppercase tracking-wider">APPROVED BY: {step5ApprovedBy}</p>
+                            <p className="text-[11px] text-emerald-800 mt-0.5">Approved on {step5ApprovedAt} · Send channels unlocked</p>
+                          </div>
+                        </div>
+                        <span className="text-xs font-bold text-emerald-800 bg-white border border-emerald-300 px-3 py-1 rounded-lg">
+                          Unlocked
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action 4 & 5: Send via WhatsApp or E-mail (Disabled until Approved) */}
+                  <div className="p-5 bg-white rounded-2xl border border-[#D6CFC2] space-y-4 shadow-2xs">
+                    <div className="flex items-center justify-between border-b border-[#D6CFC2]/60 pb-3">
+                      <h4 className="font-bold text-dark text-sm font-heading flex items-center gap-2">
+                        <span>4. Send Quotation — Choose Channel</span>
+                      </h4>
+                      {step5ApprovalStatus !== 'APPROVED' && (
+                        <span className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
+                          🔒 Locked until Approved
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Recipient Details & Editable Message */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-body">
+                      <div className="p-3 bg-[#F8F7F4] rounded-xl border border-[#D6CFC2]/70">
+                        <span className="text-[10px] font-bold text-dark/50 uppercase block mb-1">Recipient E-mail (with PDF)</span>
+                        <span className="font-bold text-primary">{customerEmail}</span>
+                      </div>
+                      <div className="p-3 bg-[#F8F7F4] rounded-xl border border-[#D6CFC2]/70">
+                        <span className="text-[10px] font-bold text-dark/50 uppercase block mb-1">Recipient Phone (WhatsApp Approval Link)</span>
+                        <span className="font-bold text-primary">{customerPhone}</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">Editable Message Body</label>
+                      <textarea
+                        value={step5EditableMsg}
+                        onChange={(e) => setStep5EditableMsg(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-[#F8F7F4] border border-[#D6CFC2] rounded-xl text-xs font-body text-dark focus:ring-2 focus:ring-primary/20 min-h-[80px] resize-none"
+                      />
+                    </div>
+
+                    {/* Send Buttons (Disabled when Draft) */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                      {/* WhatsApp Button */}
+                      <button
+                        type="button"
+                        disabled={step5ApprovalStatus !== 'APPROVED'}
+                        onClick={() => {
+                          setStep5SelectedChannel('WHATSAPP');
+                          setStep5ConfirmModalOpen(true);
+                        }}
+                        className={`p-3.5 rounded-xl font-bold text-xs flex items-center justify-between transition-all ${
+                          step5ApprovalStatus === 'APPROVED'
+                            ? 'bg-[#25D366] hover:bg-[#20bd5a] text-white shadow-md cursor-pointer'
+                            : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-60'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <MessageCircle className="w-4 h-4" />
+                          <span>Send via WhatsApp</span>
+                        </div>
+                        <span className="text-[9px] bg-white/20 px-2 py-0.5 rounded uppercase">Approval Link Only</span>
+                      </button>
+
+                      {/* E-mail Button */}
+                      <button
+                        type="button"
+                        disabled={step5ApprovalStatus !== 'APPROVED'}
+                        onClick={() => {
+                          setStep5SelectedChannel('EMAIL');
+                          setStep5ConfirmModalOpen(true);
+                        }}
+                        className={`p-3.5 rounded-xl font-bold text-xs flex items-center justify-between transition-all ${
+                          step5ApprovalStatus === 'APPROVED'
+                            ? 'bg-[#3E4E36] hover:bg-[#2F3C29] text-white shadow-md cursor-pointer'
+                            : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-60'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Mail className="w-4 h-4" />
+                          <span>Send via E-mail</span>
+                        </div>
+                        <span className="text-[9px] bg-white/20 px-2 py-0.5 rounded uppercase">+ PDF Attachment</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Step 5 Navigation Bar */}
+                  <div className="p-4 bg-[#EDE8DF] border border-[#D6CFC2] rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div>
+                      <span className="text-[10px] font-mono font-bold text-accent uppercase tracking-wider block">RECOMMENDED NEXT ACTION</span>
+                      <span className="text-xs font-bold text-primary">
+                        {step5SendConfirmed
+                          ? 'Quote sent! Proceed to Step 6 (Customer Approval)'
+                          : (step5ApprovalStatus === 'APPROVED' ? 'Quote approved — select channel to send' : 'Approve quote to unlock send channels')}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <button
+                        type="button"
+                        disabled={!step5SendConfirmed}
+                        onClick={() => {
+                          if (!step5SendConfirmed) {
+                            showToast(language === 'EN' ? 'Please send the quotation via WhatsApp or E-mail before proceeding.' : 'Verzend eerst de offerte via WhatsApp of E-mail voordat u verder gaat.');
+                            return;
+                          }
+                          advanceStep();
+                        }}
+                        className={`px-5 py-2.5 font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-2 whitespace-nowrap transition-all ${
+                          step5SendConfirmed
+                            ? 'bg-[#3E4E36] hover:bg-[#2F3C29] text-white'
+                            : 'bg-[#D6CFC2] text-dark/40 cursor-not-allowed'
+                        }`}
+                      >
+                        <ArrowRight className="w-4 h-4" />
+                        <span>Proceed to Customer Approval (Step 6) →</span>
+                      </button>
+                      {!step5SendConfirmed && (
+                        <span className="text-[10px] font-semibold text-amber-800 italic">
+                          🔒 Send quotation via WhatsApp or E-mail first to unlock Step 6
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 6: CUSTOMER APPROVAL (Two Approval Routes & Automatic Project Creation) */}
+              {currentStep === 6 && (
+                <div className="space-y-5 font-body">
+
+                  {/* 🟢 STEP HEADER BANNER */}
+                  <div className="p-4 bg-[#F8F7F4] border border-[#D6CFC2] rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-2xs">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-xs">
+                        6
+                      </div>
+                      <div>
+                        <h4 className="font-heading font-bold text-primary text-sm flex items-center gap-2">
+                          <span>Customer Approval</span>
+                          <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full uppercase ${
+                            step6Approved
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                              : 'bg-amber-100 text-amber-900 border border-amber-300'
+                          }`}>
+                            {step6Approved
+                              ? (step6ApprovalRoute === 'ROUTE_A_ONLINE' ? '✓ Accepted (Online Link)' : `✓ Accepted (Manual by ${step6ApprovalMetaData?.recordedBy || 'Bram'})`)
+                              : 'Pending Customer Approval'}
+                          </span>
+                        </h4>
+                        <p className="text-[11px] text-dark/70 mt-0.5">
+                          Two approval routes lead to the same status. Both work, and the screen shows which route was used.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* UNAPPROVED STATE: CHOICE OF ROUTE A OR ROUTE B */}
+                  {!step6Approved ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* ROUTE A: ONLINE APPROVAL */}
+                      <div className="p-5 bg-white rounded-2xl border border-[#D6CFC2] space-y-4 shadow-2xs flex flex-col justify-between">
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between border-b border-[#D6CFC2]/60 pb-2">
+                            <span className="font-bold text-primary text-xs uppercase font-heading tracking-wider flex items-center gap-1.5">
+                              <Globe className="w-3.5 h-3.5 text-primary" /> ROUTE A — ONLINE APPROVAL
+                            </span>
+                            <span className="text-[9px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                              Customer Link
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold text-dark/50 uppercase block mb-0.5">Customer Approval Portal URL</span>
+                            <span className="text-xs font-mono font-bold text-primary bg-[#F8F7F4] px-2.5 py-1 rounded border border-[#D6CFC2] block truncate">
+                              https://vanuitambacht.nl/offerte/OF-2026331/bekijken
+                            </span>
+                          </div>
+                          <div className="p-3 bg-[#F8F7F4] rounded-xl border border-[#D6CFC2]/60 text-xs space-y-1 text-dark/80">
+                            <p className="font-bold text-dark text-[11px]">What the customer sees:</p>
+                            <p className="text-[11px] text-dark/70">Quote in browser + "Approve Quote & Pay Deposit" button</p>
+                            <div className="pt-2 border-t border-[#D6CFC2]/50 text-[10px] text-dark/60 space-y-0.5">
+                              <div>• <strong>Recorded:</strong> Customer name ({customerName})</div>
+                              <div>• <strong>Recorded:</strong> Date / time & IP (84.112.45.198)</div>
+                              <div>• <strong>Recorded:</strong> Quote version (#OF-2026331 v1.0)</div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={handleRouteAOnlineApproval}
+                          className="w-full py-2.5 bg-[#3E4E36] hover:bg-[#2F3C29] text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center justify-center gap-2 mt-2"
+                        >
+                          <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                          <span>Simulate Customer Online Approval (Route A)</span>
+                        </button>
+                      </div>
+
+                      {/* ROUTE B: MANUAL APPROVAL */}
+                      <div className="p-5 bg-white rounded-2xl border border-[#D6CFC2] space-y-4 shadow-2xs flex flex-col justify-between">
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between border-b border-[#D6CFC2]/60 pb-2">
+                            <span className="font-bold text-primary text-xs uppercase font-heading tracking-wider flex items-center gap-1.5">
+                              <PhoneCall className="w-3.5 h-3.5 text-primary" /> ROUTE B — RECORD MANUALLY
+                            </span>
+                            <span className="text-[9px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
+                              Phone / WhatsApp / Email / In Person
+                            </span>
+                          </div>
+                          <p className="text-xs text-dark/70 leading-relaxed">
+                            If the customer approved via telephone call, WhatsApp message, email, or face-to-face meeting, record the approval manually with optional evidence upload.
+                          </p>
+                          <div className="p-3 bg-[#F8F7F4] rounded-xl border border-[#D6CFC2]/60 text-xs space-y-1 text-dark/80">
+                            <p className="font-bold text-dark text-[11px]">Manual Record Details:</p>
+                            <div className="text-[10px] text-dark/60 space-y-0.5">
+                              <div>• <strong>Required:</strong> Date & Channel (Phone / WhatsApp / Email / In Person)</div>
+                              <div>• <strong>Optional:</strong> Screenshot or Email evidence attachment</div>
+                              <div>• <strong>Status:</strong> Approved — noted as "recorded manually by Bram"</div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setStep6ManualModalOpen(true)}
+                          className="w-full py-2.5 bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center justify-center gap-2 mt-2"
+                        >
+                          <FileText className="w-4 h-4 text-amber-200" />
+                          <span>Record Approval Manually (Route B)</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* APPROVED STATE DISPLAY */
+                    <div className="space-y-4">
+                      <div className="p-5 bg-emerald-50/90 border border-emerald-300 rounded-2xl space-y-3 shadow-2xs">
+                        <div className="flex items-center justify-between border-b border-emerald-200 pb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-emerald-700 text-white flex items-center justify-center font-bold text-base shadow-xs">
+                              ✓
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-emerald-950 text-sm font-heading">
+                                {step6ApprovalRoute === 'ROUTE_A_ONLINE'
+                                  ? '✓ Customer Approved via Online Portal (Route A)'
+                                  : `✓ Approved — recorded manually by ${step6ApprovalMetaData?.recordedBy || 'Bram'} (Route B)`}
+                              </h4>
+                              <span className="text-[11px] text-emerald-900 font-medium">
+                                Approved on {step6ApprovalMetaData?.dateTime} · Customer: {customerName}
+                              </span>
+                            </div>
+                          </div>
+                          <span className="text-xs font-bold text-emerald-900 bg-white border border-emerald-300 px-3 py-1 rounded-xl">
+                            {step6ApprovalRoute === 'ROUTE_A_ONLINE' ? 'Route A — Online' : `Route B — ${step6ApprovalMetaData?.channel}`}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-1">
+                          <div className="p-3 bg-white/80 rounded-xl border border-emerald-200/80">
+                            <span className="text-[10px] font-bold text-emerald-900/60 uppercase block mb-0.5">Approved By</span>
+                            <span className="font-bold text-emerald-950">{customerName}</span>
+                          </div>
+                          <div className="p-3 bg-white/80 rounded-xl border border-emerald-200/80">
+                            <span className="text-[10px] font-bold text-emerald-900/60 uppercase block mb-0.5">
+                              {step6ApprovalRoute === 'ROUTE_A_ONLINE' ? 'IP Address' : 'Channel'}
+                            </span>
+                            <span className="font-bold text-emerald-950">
+                              {step6ApprovalRoute === 'ROUTE_A_ONLINE' ? step6ApprovalMetaData?.ipAddress : step6ApprovalMetaData?.channel}
+                            </span>
+                          </div>
+                          <div className="p-3 bg-white/80 rounded-xl border border-emerald-200/80">
+                            <span className="text-[10px] font-bold text-emerald-900/60 uppercase block mb-0.5">Quote Version</span>
+                            <span className="font-mono font-bold text-emerald-950">#OF-2026331 v1.0</span>
+                          </div>
+                        </div>
+
+                        {step6ApprovalRoute === 'ROUTE_B_MANUAL' && (
+                          <div className="p-3 bg-white/80 rounded-xl border border-emerald-200/80 text-xs space-y-1">
+                            <span className="text-[10px] font-bold text-emerald-900/60 uppercase block">Manual Notes & Evidence</span>
+                            <p className="text-emerald-950 font-medium">{step6ApprovalMetaData?.notes}</p>
+                            {step6ApprovalMetaData?.evidenceFile && (
+                              <span className="text-[10px] text-emerald-800 font-mono block pt-0.5">📎 Attachment: {step6ApprovalMetaData.evidenceFile}</span>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="p-2.5 bg-emerald-100/70 border border-emerald-300/80 rounded-xl text-[11px] text-emerald-900 font-semibold flex items-center justify-between">
+                          <span>🔒 Quotation is locked — changes allowed only via a new quote version</span>
+                          <span className="text-[10px] font-mono">STATUS: ACCEPTED</span>
+                        </div>
+                      </div>
+
+                      {/* AUTOMATIC CONSEQUENCE BANNER (Project Auto-Created in Step 7) */}
+                      <div className="p-4 bg-[#EDE8DF] border border-[#D6CFC2] rounded-2xl flex items-center justify-between gap-3 shadow-2xs">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-[#3E4E36] text-white flex items-center justify-center font-bold text-xs">
+                            🚀
+                          </div>
+                          <div>
+                            <span className="text-xs font-bold text-primary font-heading block">
+                              Active Project P-{lead?.id?.replace('LEAD', 'L') || '2001'} Automatically Created (Step 7)
+                            </span>
+                            <span className="text-[10px] text-dark/70 block">
+                              Work order setup complete · Notification sent to info@vanuitambacht.nl
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-3 py-1 rounded-full uppercase">
+                          ✓ Auto-Created
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 6 Navigation Bar */}
+                  <div className="p-4 bg-[#EDE8DF] border border-[#D6CFC2] rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div>
+                      <span className="text-[10px] font-mono font-bold text-accent uppercase tracking-wider block">RECOMMENDED NEXT ACTION</span>
+                      <span className="text-xs font-bold text-primary">
+                        {step6Approved
+                          ? 'Customer approved! Proceed to Step 7 (Create Project)'
+                          : 'Select Route A or Route B to record customer approval'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={!step6Approved}
+                      onClick={() => advanceStep()}
+                      className={`px-5 py-2.5 font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-2 whitespace-nowrap transition-all ${
+                        step6Approved
+                          ? 'bg-[#3E4E36] hover:bg-[#2F3C29] text-white'
+                          : 'bg-[#D6CFC2] text-dark/40 cursor-not-allowed'
+                      }`}
+                    >
+                      <ArrowRight className="w-4 h-4" />
+                      <span>Proceed to Create Project (Step 7) →</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 7: CREATE PROJECT (Final Check & Partner Privacy Release) */}
+              {currentStep === 7 && (
+                <div className="space-y-5 font-body">
+
+                  {/* 🟢 STEP HEADER BANNER */}
+                  <div className="p-4 bg-[#F8F7F4] border border-[#D6CFC2] rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-2xs">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-xs">
+                        7
+                      </div>
+                      <div>
+                        <h4 className="font-heading font-bold text-primary text-sm flex items-center gap-2">
+                          <span>Create Project</span>
+                          <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full uppercase ${
+                            step7Confirmed
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                              : 'bg-amber-100 text-amber-900 border border-amber-300'
+                          }`}>
+                            {step7Confirmed ? '✓ CONFIRMED & RELEASED' : 'STATUS: TO CONFIRM'}
+                          </span>
+                        </h4>
+                        <p className="text-[11px] text-dark/70 mt-0.5">
+                          The project already exists in system (created on approval in Step 6). This screen is the final check: confirm partner, fill in dates, and confirm. Nobody retypes anything.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 1: Carried Over From Flow — Read Only */}
+                  <div className="p-5 bg-white rounded-2xl border border-[#D6CFC2] space-y-4 shadow-2xs">
+                    <div className="flex items-center justify-between border-b border-[#D6CFC2]/60 pb-3">
+                      <h4 className="font-bold text-dark text-sm font-heading flex items-center gap-2">
+                        <Briefcase className="w-4 h-4 text-primary" />
+                        <span>Carried Over From Flow — Read Only (No Retyping)</span>
+                      </h4>
+                      <span className="text-[9px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded uppercase font-mono">
+                        AUTOMATIC DATA
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                      {/* Project Number */}
+                      <div className="p-3 bg-[#F8F7F4] rounded-xl border border-[#D6CFC2]/70">
+                        <span className="text-[10px] font-bold text-dark/50 uppercase block mb-1">Project Number</span>
+                        <span className="font-mono font-bold text-primary text-sm">
+                          PRJ-{lead?.id?.replace('LEAD', 'L') || '103'}
+                        </span>
+                        <span className="text-[9px] text-dark/50 block font-mono">Auto-generated Step 6</span>
+                      </div>
+
+                      {/* Customer & Location */}
+                      <div className="p-3 bg-[#F8F7F4] rounded-xl border border-[#D6CFC2]/70">
+                        <span className="text-[10px] font-bold text-dark/50 uppercase block mb-1">Customer & Location</span>
+                        <span className="font-bold text-dark block">{customerName}</span>
+                        <span className="text-[11px] text-dark/60 block">{lead?.city || 'Amsterdam'}</span>
+                        <span className="text-[9px] text-dark/50 block font-mono">From Step 1</span>
+                      </div>
+
+                      {/* Linked Quote */}
+                      <div className="p-3 bg-[#F8F7F4] rounded-xl border border-[#D6CFC2]/70">
+                        <span className="text-[10px] font-bold text-dark/50 uppercase block mb-1">Linked Quotation</span>
+                        <span className="font-bold text-primary block">OF-2026331</span>
+                        <span className="font-bold text-emerald-800 text-xs block">€ {step4TotalInclVat.toLocaleString('nl-NL')} incl. VAT</span>
+                        <span className="text-[9px] text-dark/50 block font-mono">From Step 4/5</span>
+                      </div>
+
+                      {/* Internal Partner Price & Margin */}
+                      <div className="p-3 bg-amber-50/80 rounded-xl border border-amber-200/80">
+                        <span className="text-[10px] font-bold text-amber-900/70 uppercase block mb-1">🔒 Partner Cost & Margin</span>
+                        <span className="font-bold text-amber-950 block">€ {effectivePartnerCost.toLocaleString('nl-NL')} Cost</span>
+                        <span className="font-bold text-emerald-900 text-xs block">€ {step4MarginAmount.toLocaleString('nl-NL')} Margin ({step4MarginPercent}%)</span>
+                        <span className="text-[9px] text-red-700 font-bold block font-mono">INTERNAL ONLY</span>
+                      </div>
+                    </div>
+
+                    {/* Specifications Copied in Full from Step 2 */}
+                    <div className="p-3.5 bg-[#F8F7F4] rounded-xl border border-[#D6CFC2]/70 space-y-1 text-xs">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-bold text-dark/50 uppercase">Full Specifications (Copied from Step 2)</span>
+                        <span className="text-[9px] font-bold text-primary font-mono">Copied in full</span>
+                      </div>
+                      <p className="font-semibold text-dark">
+                        Bespoke {customerCategory} ({step2Size || '8,00 × 4,00 m'}) — {step2Material || 'Teak Wood frame with polished concrete countertop'}
                       </p>
                     </div>
                   </div>
-                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 text-[11px] flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                    <span>Partner offerte ontvangen. Klik op "Offerte Maken →" om de klantofferte te genereren.</span>
-                  </div>
 
-                  {/* Card 2: Auto-Message Templates & Contact Actions (Middle) */}
-                  <div id="auto-message-section" className="p-5 bg-[#F8F7F4] rounded-2xl border border-[#D6CFC2]/70 space-y-3 shadow-2xs">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <MessageSquare className="w-4 h-4 text-primary" />
-                        <span className="text-xs font-bold text-primary font-heading uppercase tracking-wider">
-                          Auto-Message Templates & Contact Actions
-                        </span>
-                      </div>
-                      <select
-                        value={selectedTemplate}
-                        onChange={(e) => setSelectedTemplate(e.target.value)}
-                        className="px-3 py-1.5 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium shadow-2xs"
-                      >
-                        <option value="template1">Template 1: Initial Inquiry Response</option>
-                        <option value="template2">Template 2: 1st Follow-up Message</option>
-                        <option value="template3">Template 3: 2nd Follow-up Message</option>
-                      </select>
+                  {/* Card 2: To Be Filled In & Partner Confirmation */}
+                  <div className="p-5 bg-white rounded-2xl border border-[#D6CFC2] space-y-4 shadow-2xs">
+                    <div className="flex items-center justify-between border-b border-[#D6CFC2]/60 pb-3">
+                      <h4 className="font-bold text-dark text-sm font-heading flex items-center gap-2">
+                        <UserCheck className="w-4 h-4 text-primary" />
+                        <span>To Be Filled In & Partner Confirmation</span>
+                      </h4>
                     </div>
 
-                    <div>
-                      <textarea
-                        value={customMessageText}
-                        onChange={(e) => setCustomMessageText(e.target.value)}
-                        className="w-full px-3.5 py-2.5 bg-white border border-[#D6CFC2] rounded-xl text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[72px] resize-none leading-relaxed"
-                        placeholder="Message content..."
-                      />
-                    </div>
-
-                    <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-                      <label className="flex items-center gap-2 text-[11px] text-dark/70 cursor-pointer select-none font-semibold">
-                        <input
-                          type="checkbox"
-                          checked={attachPhotos}
-                          onChange={(e) => setAttachPhotos(e.target.checked)}
-                          className="rounded border-[#D6CFC2] text-primary focus:ring-primary/20"
-                        />
-                        <Paperclip className="w-3.5 h-3.5 text-primary" />
-                        <span>{language === 'EN' ? 'Attach project photo / 3D render (WhatsApp)' : 'Projectfoto / 3D-render bijvoegen (WhatsApp)'}</span>
-                      </label>
-
-                      <div className="flex gap-2 flex-wrap">
-                        <a
-                          href={`https://wa.me/${customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(customMessageText)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
-                        </a>
-                        <a
-                          href={`tel:${customerPhone}`}
-                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#2196F3] hover:bg-[#1e87db] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
-                        >
-                          <Phone className="w-3.5 h-3.5" /> Call
-                        </a>
-                        <a
-                          href={`mailto:${customerEmail}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#3E4E36] hover:bg-[#2e3a28] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
-                        >
-                          <Mail className="w-3.5 h-3.5" /> E-mail
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card 3: Recommended Next Action Banner (Bottom) */}
-                  <div className="p-4 bg-[#EDE8DF] border border-[#D6CFC2] rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <div>
-                      <span className="text-[10px] font-mono font-bold text-accent uppercase tracking-wider block">RECOMMENDED NEXT ACTION</span>
-                      <span className="text-xs font-bold text-primary">Partner quote received — create customer quote now</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setAutoModalType('quote')}
-                      className="px-5 py-2.5 bg-[#3E4E36] hover:bg-[#2F3C29] text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-2 whitespace-nowrap"
-                    >
-                      <ArrowRight className="w-4 h-4" />
-                      <span>Quote Received — Proceed →</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* STEP 4: OFFERTE MAKEN (Quote Builder) */}
-              {currentStep === 4 && (
-                <div className="space-y-4 font-body">
-                  {/* Partner quote recap */}
-                  <div className="p-4 bg-[#EDE8DF]/50 rounded-xl border border-[#D6CFC2]/60 space-y-2">
-                    <h4 className="font-bold text-dark text-sm flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-primary" /> Klantofferte Samenvatting (Quote Summary)
-                    </h4>
-                    <div className="space-y-1.5 text-xs">
-                      <div className="flex justify-between"><span className="text-dark/60">Bespoke {lead?.productType || customerCategory} Frame</span><span className="font-semibold">€8,500</span></div>
-                      <div className="flex justify-between"><span className="text-dark/60">Afwerking & Materialen</span><span className="font-semibold">€2,800</span></div>
-                      <div className="flex justify-between"><span className="text-dark/60">Levering & Montage</span><span className="font-semibold">€1,200</span></div>
-                      <div className="flex justify-between font-bold text-primary text-sm pt-2 border-t border-[#D6CFC2]"><span>Totaal (Incl. BTW)</span><span>€12,500</span></div>
-                    </div>
-                  </div>
-                  {/* Offerte maken button — opens Quote Builder modal */}
-                  <div className="p-4 bg-primary/5 border-2 border-dashed border-primary/30 rounded-xl text-center space-y-3">
-                    <p className="text-xs text-dark/60">Klaar om de officiële klantofferte te maken? Klik hieronder om de offertebouwer te openen met alle gegevens vooringevuld.</p>
-                    <Button
-                      variant="primary"
-                      icon={FileText}
-                      onClick={() => setAutoModalType('quote')}
-                      className="mx-auto"
-                    >
-                      Offerte Maken (Create Quote) →
-                    </Button>
-                  </div>
-
-                  {/* Card 2: Auto-Message Templates & Contact Actions (Middle) */}
-                  <div id="auto-message-section" className="p-5 bg-[#F8F7F4] rounded-2xl border border-[#D6CFC2]/70 space-y-3 shadow-2xs">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <MessageSquare className="w-4 h-4 text-primary" />
-                        <span className="text-xs font-bold text-primary font-heading uppercase tracking-wider">
-                          Auto-Message Templates & Contact Actions
-                        </span>
-                      </div>
-                      <select
-                        value={selectedTemplate}
-                        onChange={(e) => setSelectedTemplate(e.target.value)}
-                        className="px-3 py-1.5 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium shadow-2xs"
-                      >
-                        <option value="template1">Template 1: Initial Inquiry Response</option>
-                        <option value="template2">Template 2: 1st Follow-up Message</option>
-                        <option value="template3">Template 3: 2nd Follow-up Message</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <textarea
-                        value={customMessageText}
-                        onChange={(e) => setCustomMessageText(e.target.value)}
-                        className="w-full px-3.5 py-2.5 bg-white border border-[#D6CFC2] rounded-xl text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[72px] resize-none leading-relaxed"
-                        placeholder="Message content..."
-                      />
-                    </div>
-
-                    <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-                      <label className="flex items-center gap-2 text-[11px] text-dark/70 cursor-pointer select-none font-semibold">
-                        <input
-                          type="checkbox"
-                          checked={attachPhotos}
-                          onChange={(e) => setAttachPhotos(e.target.checked)}
-                          className="rounded border-[#D6CFC2] text-primary focus:ring-primary/20"
-                        />
-                        <Paperclip className="w-3.5 h-3.5 text-primary" />
-                        <span>{language === 'EN' ? 'Attach project photo / 3D render (WhatsApp)' : 'Projectfoto / 3D-render bijvoegen (WhatsApp)'}</span>
-                      </label>
-
-                      <div className="flex gap-2 flex-wrap">
-                        <a
-                          href={`https://wa.me/${customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(customMessageText)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
-                        </a>
-                        <a
-                          href={`tel:${customerPhone}`}
-                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#2196F3] hover:bg-[#1e87db] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
-                        >
-                          <Phone className="w-3.5 h-3.5" /> Call
-                        </a>
-                        <a
-                          href={`mailto:${customerEmail}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#3E4E36] hover:bg-[#2e3a28] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
-                        >
-                          <Mail className="w-3.5 h-3.5" /> E-mail
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card 3: Recommended Next Action Banner (Bottom) */}
-                  <div className="p-4 bg-[#EDE8DF] border border-[#D6CFC2] rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <div>
-                      <span className="text-[10px] font-mono font-bold text-accent uppercase tracking-wider block">RECOMMENDED NEXT ACTION</span>
-                      <span className="text-xs font-bold text-primary">Quote approved — create active project</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setAutoModalType('project')}
-                      className="px-5 py-2.5 bg-[#3E4E36] hover:bg-[#2F3C29] text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-2 whitespace-nowrap"
-                    >
-                      <ArrowRight className="w-4 h-4" />
-                      <span>Create Project →</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* STEP 5: PROJECT CREATED */}
-              {currentStep === 5 && (
-                <div className="space-y-4 font-body">
-                  {/* Card 1: Work Order Details */}
-                  <div className="p-5 bg-[#F8F7F4] rounded-2xl border border-[#D6CFC2]/70 space-y-4 shadow-2xs">
-                    <div className="flex justify-between items-center border-b border-[#D6CFC2]/60 pb-3">
-                      <span className="font-heading font-bold text-base text-[#3E4E36]">
-                        Project #{lead?.id?.replace('LEAD', 'L') || 'L-1003'} Work Order
-                      </span>
-                      <span className="text-dark/60 font-body text-xs font-medium">
-                        Active Project
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 text-xs">
-                      <div>
-                        <span className="text-[10px] text-dark/50 font-bold uppercase block mb-0.5">Project Name</span>
-                        <span className="font-bold text-dark">{customerName} — {translateCategory(customerCategory)}</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-dark/50 font-bold uppercase block mb-0.5">Target Delivery Date</span>
-                        <span className="font-semibold text-dark">{new Date(Date.now() + 30*86400000).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-dark/50 font-bold uppercase block mb-0.5">Assigned Team</span>
-                        <span className="font-semibold text-dark">Tim & Bram (Admins)</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-dark/50 font-bold uppercase block mb-0.5">Build Progress</span>
-                        <span className="font-mono text-emerald-700 font-bold">0% (Just Created)</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card 2: Auto-Message Templates & Contact Actions (Middle) */}
-                  <div id="auto-message-section" className="p-5 bg-[#F8F7F4] rounded-2xl border border-[#D6CFC2]/70 space-y-3 shadow-2xs">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <MessageSquare className="w-4 h-4 text-primary" />
-                        <span className="text-xs font-bold text-primary font-heading uppercase tracking-wider">
-                          Auto-Message Templates & Contact Actions
-                        </span>
-                      </div>
-                      <select
-                        value={selectedTemplate}
-                        onChange={(e) => setSelectedTemplate(e.target.value)}
-                        className="px-3 py-1.5 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium shadow-2xs"
-                      >
-                        <option value="template1">Template 1: Initial Inquiry Response</option>
-                        <option value="template2">Template 2: 1st Follow-up Message</option>
-                        <option value="template3">Template 3: 2nd Follow-up Message</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <textarea
-                        value={customMessageText}
-                        onChange={(e) => setCustomMessageText(e.target.value)}
-                        className="w-full px-3.5 py-2.5 bg-white border border-[#D6CFC2] rounded-xl text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[72px] resize-none leading-relaxed"
-                        placeholder="Message content..."
-                      />
-                    </div>
-
-                    <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-                      <label className="flex items-center gap-2 text-[11px] text-dark/70 cursor-pointer select-none font-semibold">
-                        <input
-                          type="checkbox"
-                          checked={attachPhotos}
-                          onChange={(e) => setAttachPhotos(e.target.checked)}
-                          className="rounded border-[#D6CFC2] text-primary focus:ring-primary/20"
-                        />
-                        <Paperclip className="w-3.5 h-3.5 text-primary" />
-                        <span>{language === 'EN' ? 'Attach project photo / 3D render (WhatsApp)' : 'Projectfoto / 3D-render bijvoegen (WhatsApp)'}</span>
-                      </label>
-
-                      <div className="flex gap-2 flex-wrap">
-                        <a
-                          href={`https://wa.me/${customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(customMessageText)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
-                        </a>
-                        <a
-                          href={`tel:${customerPhone}`}
-                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#2196F3] hover:bg-[#1e87db] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
-                        >
-                          <Phone className="w-3.5 h-3.5" /> Call
-                        </a>
-                        <a
-                          href={`mailto:${customerEmail}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#3E4E36] hover:bg-[#2e3a28] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
-                        >
-                          <Mail className="w-3.5 h-3.5" /> E-mail
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card 3: Recommended Next Action Banner (Bottom) */}
-                  <div className="p-4 bg-[#EDE8DF] border border-[#D6CFC2] rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <div>
-                      <span className="text-[10px] font-mono font-bold text-accent uppercase tracking-wider block">RECOMMENDED NEXT ACTION</span>
-                      <span className="text-xs font-bold text-primary">Assign a craftsman partner to the project</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setAutoModalType('partner')}
-                      className="px-5 py-2.5 bg-[#3E4E36] hover:bg-[#2F3C29] text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-2 whitespace-nowrap"
-                    >
-                      <ArrowRight className="w-4 h-4" />
-                      <span>Assign Partner →</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* STEP 6: PARTNER ASSIGNED */}
-              {currentStep === 6 && (
-                <div className="space-y-4 font-body">
-                  {/* Card 1: Assigned Partner & Craftsman */}
-                  <div className="p-5 bg-[#F8F7F4] rounded-2xl border border-[#D6CFC2]/70 space-y-4 shadow-2xs">
-                    <div className="flex justify-between items-center border-b border-[#D6CFC2]/60 pb-3">
-                      <span className="font-heading font-bold text-base text-[#3E4E36] flex items-center gap-2">
-                        <UserCheck className="w-4.5 h-4.5 text-primary" />
-                        Assigned Partner & Craftsman
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 text-xs">
-                      <div>
-                        <span className="text-[10px] text-dark/50 font-bold uppercase block mb-0.5">Craftsman Partner</span>
-                        <span className="font-bold text-dark">{partnerForm.partnerName || 'Sven Hoek (Hoek Bouw)'}</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-dark/50 font-bold uppercase block mb-0.5">Workload Status</span>
-                        <span className="font-mono text-emerald-700 font-bold">Available (2 Projects)</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-dark/50 font-bold uppercase block mb-0.5">Agreed Build Price</span>
-                        <span className="font-mono font-bold text-dark">€{partnerForm.buildPrice ? Number(partnerForm.buildPrice).toLocaleString() : '8,500'}</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-dark/50 font-bold uppercase block mb-0.5">Delivery Week</span>
-                        <span className="font-semibold text-dark">{partnerForm.deliveryWeek || 'Week 49 (Dec 2023)'}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card 2: Auto-Message Templates & Contact Actions (Middle) */}
-                  <div id="auto-message-section" className="p-5 bg-[#F8F7F4] rounded-2xl border border-[#D6CFC2]/70 space-y-3 shadow-2xs">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <MessageSquare className="w-4 h-4 text-primary" />
-                        <span className="text-xs font-bold text-primary font-heading uppercase tracking-wider">
-                          Auto-Message Templates & Contact Actions
-                        </span>
-                      </div>
-                      <select
-                        value={selectedTemplate}
-                        onChange={(e) => setSelectedTemplate(e.target.value)}
-                        className="px-3 py-1.5 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium shadow-2xs"
-                      >
-                        <option value="template1">Template 1: Initial Inquiry Response</option>
-                        <option value="template2">Template 2: 1st Follow-up Message</option>
-                        <option value="template3">Template 3: 2nd Follow-up Message</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <textarea
-                        value={customMessageText}
-                        onChange={(e) => setCustomMessageText(e.target.value)}
-                        className="w-full px-3.5 py-2.5 bg-white border border-[#D6CFC2] rounded-xl text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[72px] resize-none leading-relaxed"
-                        placeholder="Message content..."
-                      />
-                    </div>
-
-                    <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-                      <label className="flex items-center gap-2 text-[11px] text-dark/70 cursor-pointer select-none font-semibold">
-                        <input
-                          type="checkbox"
-                          checked={attachPhotos}
-                          onChange={(e) => setAttachPhotos(e.target.checked)}
-                          className="rounded border-[#D6CFC2] text-primary focus:ring-primary/20"
-                        />
-                        <Paperclip className="w-3.5 h-3.5 text-primary" />
-                        <span>{language === 'EN' ? 'Attach project photo / 3D render (WhatsApp)' : 'Projectfoto / 3D-render bijvoegen (WhatsApp)'}</span>
-                      </label>
-
-                      <div className="flex gap-2 flex-wrap">
-                        <a
-                          href={`https://wa.me/${customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(customMessageText)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
-                        </a>
-                        <a
-                          href={`tel:${customerPhone}`}
-                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#2196F3] hover:bg-[#1e87db] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
-                        >
-                          <Phone className="w-3.5 h-3.5" /> Call
-                        </a>
-                        <a
-                          href={`mailto:${customerEmail}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#3E4E36] hover:bg-[#2e3a28] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
-                        >
-                          <Mail className="w-3.5 h-3.5" /> E-mail
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card 3: Recommended Next Action Banner (Bottom) */}
-                  <div className="p-4 bg-[#EDE8DF] border border-[#D6CFC2] rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <div>
-                      <span className="text-[10px] font-mono font-bold text-accent uppercase tracking-wider block">RECOMMENDED NEXT ACTION</span>
-                      <span className="text-xs font-bold text-primary">Schedule site installation date</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => advanceStep()}
-                      className="px-5 py-2.5 bg-[#3E4E36] hover:bg-[#2F3C29] text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-2 whitespace-nowrap"
-                    >
-                      <ArrowRight className="w-4 h-4" />
-                      <span>Schedule Planning →</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* STEP 7: PLANNING & INSTALLATION */}
-              {currentStep === 7 && (
-                <div className="space-y-4 font-body">
-                  {/* Card 1: Installation & Calendar Schedule */}
-                  <div className="p-5 bg-[#F8F7F4] rounded-2xl border border-[#D6CFC2]/70 space-y-4 shadow-2xs">
-                    <div className="flex justify-between items-center border-b border-[#D6CFC2]/60 pb-3">
-                      <span className="font-heading font-bold text-base text-[#3E4E36] flex items-center gap-2">
-                        <Calendar className="w-4.5 h-4.5 text-primary" />
-                        Installation & Calendar Schedule
-                      </span>
-                    </div>
-
-                    <div className="p-4 bg-white rounded-xl border border-[#D6CFC2]/60 space-y-3 shadow-2xs">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <span className="font-bold text-dark text-xs block mb-0.5">Site Assembly & Delivery</span>
-                          <span className="text-[11px] text-dark/50 font-normal">Address: {lead?.location || 'Keizersgracht 402, Amsterdam'}</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                      {/* Confirm Partner Dropdown */}
+                      <div className="sm:col-span-3 bg-[#F8F7F4] p-3.5 rounded-xl border border-[#D6CFC2]/70 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <label className="block text-[10px] font-bold text-dark/70 uppercase">
+                            Confirm Partner (Pre-filled from Step 2) *
+                          </label>
+                          <span className="text-[10px] text-primary font-bold">Pre-filled from Step 2</span>
                         </div>
-                        <span className="font-mono text-xs font-semibold text-dark/80">12 Dec 2023 @ 09:00</span>
+                        <select
+                          value={step7SelectedPartner}
+                          onChange={(e) => setStep7SelectedPartner(e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-xl font-bold text-dark text-xs"
+                        >
+                          <option value="Ruben Verbeij — RV Meubels">Ruben Verbeij — RV Meubels (Preferred Partner)</option>
+                          <option value="Sven Hoek — Hoek Bouw">Sven Hoek — Hoek Bouw</option>
+                          <option value="Kees van der Meer — De Zaagtafel">Kees van der Meer — De Zaagtafel</option>
+                        </select>
+
+                        {/* Mandatory Reason if selecting another partner */}
+                        {step7SelectedPartner !== 'Ruben Verbeij — RV Meubels' && (
+                          <div className="pt-2 animate-fade-in space-y-1">
+                            <label className="block text-[10px] font-bold text-amber-900 uppercase">
+                              Reason for choosing another partner * (Mandatory)
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={step7PartnerChangeReason}
+                              onChange={(e) => setStep7PartnerChangeReason(e.target.value)}
+                              placeholder="Specify reason for selecting another partner..."
+                              className="w-full px-3 py-2 bg-amber-50 border border-amber-300 rounded-xl text-xs font-semibold text-amber-950"
+                            />
+                          </div>
+                        )}
                       </div>
 
-                      <div className="pt-2 border-t border-[#D6CFC2]/40 flex items-center gap-2 text-emerald-700 text-xs font-medium">
-                        <CheckSquare className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                        <span>Pre-assembly quality check passed in workshop by {partnerForm.partnerName || 'Sven Hoek'}.</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card 2: Auto-Message Templates & Contact Actions (Middle) */}
-                  <div id="auto-message-section" className="p-5 bg-[#F8F7F4] rounded-2xl border border-[#D6CFC2]/70 space-y-3 shadow-2xs">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <MessageSquare className="w-4 h-4 text-primary" />
-                        <span className="text-xs font-bold text-primary font-heading uppercase tracking-wider">
-                          Auto-Message Templates & Contact Actions
-                        </span>
-                      </div>
-                      <select
-                        value={selectedTemplate}
-                        onChange={(e) => setSelectedTemplate(e.target.value)}
-                        className="px-3 py-1.5 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium shadow-2xs"
-                      >
-                        <option value="template1">Template 1: Initial Inquiry Response</option>
-                        <option value="template2">Template 2: 1st Follow-up Message</option>
-                        <option value="template3">Template 3: 2nd Follow-up Message</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <textarea
-                        value={customMessageText}
-                        onChange={(e) => setCustomMessageText(e.target.value)}
-                        className="w-full px-3.5 py-2.5 bg-white border border-[#D6CFC2] rounded-xl text-xs font-body text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[72px] resize-none leading-relaxed"
-                        placeholder="Message content..."
-                      />
-                    </div>
-
-                    <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-                      <label className="flex items-center gap-2 text-[11px] text-dark/70 cursor-pointer select-none font-semibold">
+                      {/* Preferred Start Date */}
+                      <div>
+                        <label className="block text-[10px] font-bold text-dark/70 uppercase mb-1">
+                          Preferred Start Date *
+                        </label>
                         <input
-                          type="checkbox"
-                          checked={attachPhotos}
-                          onChange={(e) => setAttachPhotos(e.target.checked)}
-                          className="rounded border-[#D6CFC2] text-primary focus:ring-primary/20"
+                          type="date"
+                          value={step7StartDate}
+                          onChange={(e) => setStep7StartDate(e.target.value)}
+                          className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-xl font-bold text-dark text-xs"
                         />
-                        <Paperclip className="w-3.5 h-3.5 text-primary" />
-                        <span>{language === 'EN' ? 'Attach project photo / 3D render (WhatsApp)' : 'Projectfoto / 3D-render bijvoegen (WhatsApp)'}</span>
-                      </label>
+                      </div>
 
-                      <div className="flex gap-2 flex-wrap">
-                        <a
-                          href={`https://wa.me/${customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(customMessageText)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
-                        </a>
-                        <a
-                          href={`tel:${customerPhone}`}
-                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#2196F3] hover:bg-[#1e87db] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
-                        >
-                          <Phone className="w-3.5 h-3.5" /> Call
-                        </a>
-                        <a
-                          href={`mailto:${customerEmail}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#3E4E36] hover:bg-[#2e3a28] text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-2xs"
-                        >
-                          <Mail className="w-3.5 h-3.5" /> E-mail
-                        </a>
+                      {/* Expected Completion Date */}
+                      <div>
+                        <label className="block text-[10px] font-bold text-dark/70 uppercase mb-1">
+                          Expected Completion Date *
+                        </label>
+                        <input
+                          type="date"
+                          value={step7CompletionDate}
+                          onChange={(e) => setStep7CompletionDate(e.target.value)}
+                          className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-xl font-bold text-dark text-xs"
+                        />
+                      </div>
+
+                      {/* Internal Note */}
+                      <div className="sm:col-span-3">
+                        <label className="block text-[10px] font-bold text-dark/70 uppercase mb-1">
+                          Internal Note (Not visible to partner)
+                        </label>
+                        <textarea
+                          value={step7InternalNote}
+                          onChange={(e) => setStep7InternalNote(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-[#F8F7F4] border border-[#D6CFC2] rounded-xl font-medium text-dark text-xs min-h-[60px] resize-none"
+                          placeholder="Internal notes for company team only..."
+                        />
                       </div>
                     </div>
                   </div>
 
-                  {/* Card 3: Recommended Next Action Banner (Bottom) */}
+                  {/* Card 3: Partner Privacy Release Status Banner */}
+                  <div className={`p-4 rounded-2xl border transition-all ${
+                    step7Confirmed
+                      ? 'bg-emerald-50 border-emerald-300 shadow-2xs'
+                      : 'bg-amber-50 border-amber-200 shadow-2xs'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
+                          step7Confirmed ? 'bg-emerald-700 text-white' : 'bg-amber-700 text-white'
+                        }`}>
+                          {step7Confirmed ? '✓' : '🔒'}
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-xs uppercase font-heading tracking-wider">
+                            {step7Confirmed
+                              ? 'Partner Access & Customer Contact Details UNLOCKED'
+                              : 'Partner Privacy Protection Active'}
+                          </h4>
+                          <p className="text-[11px] mt-0.5">
+                            {step7Confirmed
+                              ? `Customer address (${lead?.location || 'Keizersgracht 402, Amsterdam'}) & phone (${customerPhone}) are now visible to ${step7SelectedPartner}.`
+                              : `Customer address and phone number remain HIDDEN from partner until you click "Confirm Project".`}
+                          </p>
+                        </div>
+                      </div>
+                      <span className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded-lg ${
+                        step7Confirmed
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          : 'bg-amber-100 text-amber-900 border border-amber-300'
+                      }`}>
+                        {step7Confirmed ? 'UNLOCKED TO PARTNER' : 'HIDDEN FROM PARTNER'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Action Bar */}
                   <div className="p-4 bg-[#EDE8DF] border border-[#D6CFC2] rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div>
                       <span className="text-[10px] font-mono font-bold text-accent uppercase tracking-wider block">RECOMMENDED NEXT ACTION</span>
-                      <span className="text-xs font-bold text-primary">Complete installation & generate final invoice</span>
+                      <span className="text-xs font-bold text-primary">
+                        {step7Confirmed
+                          ? 'Project confirmed! Proceed to Step 8 (Planning & Delivery)'
+                          : 'Confirm project details to release to partner portal'}
+                      </span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setAutoModalType('invoice')}
-                      className="px-5 py-2.5 bg-[#3E4E36] hover:bg-[#2F3C29] text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-2 whitespace-nowrap"
-                    >
-                      <ArrowRight className="w-4 h-4" />
-                      <span>Mark as Completed →</span>
-                    </button>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => showToast(language === 'EN' ? 'Project details saved as draft.' : 'Projectgegevens opgeslagen als concept.')}
+                        className="px-4 py-2.5 bg-white hover:bg-slate-50 text-dark border border-[#D6CFC2] font-bold text-xs rounded-xl shadow-2xs cursor-pointer"
+                      >
+                        Save without confirming
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleConfirmProjectStep7}
+                        className="px-5 py-2.5 bg-[#3E4E36] hover:bg-[#2F3C29] text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-2 whitespace-nowrap"
+                      >
+                        <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                        <span>Confirm Project</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={!step7Confirmed}
+                        onClick={() => advanceStep()}
+                        className={`px-5 py-2.5 font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-2 whitespace-nowrap transition-all ${
+                          step7Confirmed
+                            ? 'bg-[#3E4E36] hover:bg-[#2F3C29] text-white'
+                            : 'bg-[#D6CFC2] text-dark/40 cursor-not-allowed'
+                        }`}
+                      >
+                        <ArrowRight className="w-4 h-4" />
+                        <span>Proceed to Planning & Delivery (Step 8) →</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -2967,6 +4035,181 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
                 </button>
               </div>
             </motion.div>
+          </div>
+        )}
+
+        {/* Step 5 Send Confirmation Dialog Modal */}
+        {step5ConfirmModalOpen && (
+          <div className="fixed inset-0 bg-dark/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+            <div className="bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl border border-[#D6CFC2] space-y-4 font-body">
+              <div className="flex justify-between items-center border-b border-[#D6CFC2] pb-3">
+                <h3 className="font-heading font-bold text-primary text-base flex items-center gap-2">
+                  <span>Confirm Quote Delivery ({step5SelectedChannel})</span>
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setStep5ConfirmModalOpen(false)}
+                  className="text-dark/40 hover:text-dark p-1 rounded-lg"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <div className="p-3 bg-[#F8F7F4] rounded-xl border border-[#D6CFC2]/70">
+                  <span className="text-[10px] text-dark/50 uppercase font-bold block mb-0.5">Recipient</span>
+                  <span className="font-bold text-dark">
+                    {step5SelectedChannel === 'EMAIL' ? customerEmail : customerPhone} ({customerName})
+                  </span>
+                </div>
+
+                <div className="p-3 bg-[#F8F7F4] rounded-xl border border-[#D6CFC2]/70">
+                  <span className="text-[10px] text-dark/50 uppercase font-bold block mb-0.5">Payload & Attachments</span>
+                  <span className="font-bold text-primary block">
+                    {step5SelectedChannel === 'EMAIL'
+                      ? `Message + Approval Link + PDF Attachment (${quoteFileName})`
+                      : 'Message + Approval Link (No PDF attachment on WhatsApp)'}
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-[10px] text-dark/50 uppercase font-bold block mb-1">Message Preview</span>
+                  <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 text-dark/80 text-[11px] whitespace-pre-wrap leading-relaxed">
+                    {step5EditableMsg}
+                  </div>
+                </div>
+
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs font-bold flex items-center gap-2">
+                  <span>⚠ Are you sure you want to send this official quotation to the customer?</span>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2 border-t border-[#D6CFC2]/60">
+                <button
+                  type="button"
+                  onClick={() => setStep5ConfirmModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-dark/70 hover:text-dark border border-[#D6CFC2] rounded-xl cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExecuteSendStep5}
+                  className="px-5 py-2 text-xs font-bold bg-[#3E4E36] hover:bg-[#2F3C29] text-white rounded-xl shadow-md cursor-pointer flex items-center gap-1.5"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Yes, Send Quotation</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 6 Route B Manual Approval Modal */}
+        {step6ManualModalOpen && (
+          <div className="fixed inset-0 bg-dark/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+            <div className="bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl border border-[#D6CFC2] space-y-4 font-body">
+              <div className="flex justify-between items-center border-b border-[#D6CFC2] pb-3">
+                <h3 className="font-heading font-bold text-primary text-base flex items-center gap-2">
+                  <span>Record Approval Manually (Route B)</span>
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setStep6ManualModalOpen(false)}
+                  className="text-dark/40 hover:text-dark p-1 rounded-lg"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleRouteBManualApproval} className="space-y-3 text-xs">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-dark/70 uppercase text-[10px] mb-1">Approval Date *</label>
+                    <input
+                      type="date"
+                      required
+                      value={step6ManualForm.date}
+                      onChange={(e) => setStep6ManualForm(prev => ({ ...prev, date: e.target.value }))}
+                      className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-xl font-bold text-dark text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-dark/70 uppercase text-[10px] mb-1">Approval Channel *</label>
+                    <select
+                      value={step6ManualForm.channel}
+                      onChange={(e) => setStep6ManualForm(prev => ({ ...prev, channel: e.target.value }))}
+                      className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-xl font-bold text-dark text-xs"
+                    >
+                      <option value="Phone">Phone Call</option>
+                      <option value="WhatsApp">WhatsApp Message</option>
+                      <option value="E-mail">E-mail Confirmation</option>
+                      <option value="In person">In Person / Face-to-Face</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-dark/70 uppercase text-[10px] mb-1">Recorded By (Admin Name) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={step6ManualForm.recordedBy}
+                    onChange={(e) => setStep6ManualForm(prev => ({ ...prev, recordedBy: e.target.value }))}
+                    className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-xl font-semibold text-dark text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-dark/70 uppercase text-[10px] mb-1">Approval Notes / Summary</label>
+                  <textarea
+                    value={step6ManualForm.notes}
+                    onChange={(e) => setStep6ManualForm(prev => ({ ...prev, notes: e.target.value }))}
+                    className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-xl font-medium text-dark text-xs min-h-[60px] resize-none"
+                    placeholder="e.g., Customer confirmed agreement over telephone call..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-dark/70 uppercase text-[10px] mb-1">Upload Screenshot or Email Evidence (Optional)</label>
+                  <input
+                    type="file"
+                    accept="image/*,.pdf,.eml,.msg"
+                    onChange={(e) => {
+                      if (e.target.files?.[0]) {
+                        setStep6ManualForm(prev => ({ ...prev, evidenceFile: e.target.files[0] }));
+                      }
+                    }}
+                    className="w-full px-3 py-1.5 bg-[#F8F7F4] border border-[#D6CFC2] rounded-xl text-xs font-medium text-dark/70 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#3E4E36] file:text-white"
+                  />
+                  {step6ManualForm.evidenceFile && (
+                    <span className="text-[10px] text-emerald-700 font-bold block mt-1">✓ File attached: {step6ManualForm.evidenceFile.name}</span>
+                  )}
+                </div>
+
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-[11px] font-semibold">
+                  ⚡ Saving will update status to Accepted ("recorded manually by {step6ManualForm.recordedBy || 'Bram'}") and automatically create Project Step 7.
+                </div>
+
+                <div className="flex justify-end gap-3 pt-2 border-t border-[#D6CFC2]">
+                  <button
+                    type="button"
+                    onClick={() => setStep6ManualModalOpen(false)}
+                    className="px-4 py-2 text-xs font-bold text-dark/70 hover:text-dark border border-[#D6CFC2] rounded-xl cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 text-xs font-bold bg-[#3E4E36] hover:bg-[#2F3C29] text-white rounded-xl shadow-md cursor-pointer flex items-center gap-1.5"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-200" />
+                    <span>Save & Confirm Manual Approval</span>
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
       </AnimatePresence>

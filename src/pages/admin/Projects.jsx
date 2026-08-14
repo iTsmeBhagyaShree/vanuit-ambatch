@@ -27,8 +27,8 @@ export default function Projects() {
     return () => window.removeEventListener('app_reset_projects_view', handleResetProjectsView);
   }, []);
   
-  // Search & Filters State
-  const [activeTab, setActiveTab] = useState('All');
+  // Search & Filters State — Default to 'projects' so All Projects tab with full columns is shown by default
+  const [activeTab, setActiveTab] = useState('projects');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [sortBy, setSortBy] = useState('deadline');

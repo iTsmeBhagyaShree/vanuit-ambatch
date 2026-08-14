@@ -2,9 +2,40 @@ const getRelativeDate = (daysAgo) => new Date(Date.now() - daysAgo * 24 * 60 * 6
 
 export const mockPartners = [
   {
+    id: 'PART-000',
+    name: 'Ruben Verbeij — RV Meubels',
+    contactPerson: 'Ruben Verbeij',
+    company: 'RV Meubels',
+    email: 'ruben@rvmeubels.nl',
+    phone: '+31 6 9876 5432',
+    status: 'Actief',
+    region: 'Noord-Holland',
+    workload: 'Beschikbaar',
+    rating: 4.9,
+    completedProjects: 18,
+    productTypes: ['Buitenkeukens', 'Buitenverblijven'],
+    specialties: ['Maatwerk Teak Wood', 'Luxe Houtbewerking']
+  },
+  {
+    id: 'PART-000B',
+    name: 'Sven Hoek — Hoek Bouw',
+    contactPerson: 'Sven Hoek',
+    company: 'Hoek Bouw',
+    email: 'sven@hoekbouw.nl',
+    phone: '+31 6 8765 4321',
+    status: 'Actief',
+    region: 'Utrecht',
+    workload: 'Beschikbaar',
+    rating: 4.8,
+    completedProjects: 12,
+    productTypes: ['Buitenkeukens', 'Overkappingen'],
+    specialties: ['Timmerwerk', 'Montage op Locatie']
+  },
+  {
     id: 'PART-001',
     name: 'CraftWood Veluwe',
     contactPerson: 'Erik van den Berg',
+    company: 'CraftWood B.V.',
     email: 'erik@craftwood.nl',
     phone: '+31 6 1234 5678',
     status: 'Actief',
