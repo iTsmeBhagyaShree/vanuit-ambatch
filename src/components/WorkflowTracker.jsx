@@ -330,14 +330,13 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
   const customerName = lead?.name || 'Jan de Vries';
   const customerEmail = lead?.email || 'jan@devries.nl';
   const customerPhone = lead?.phone || '+31 6 12345678';
-  const customerCategory = lead?.category || (lead?.company?.toLowerCase().includes('kliko') ? 'Kliko-ombouw' : lead?.company?.toLowerCase().includes('snijplanken') ? 'Snijplanken' : 'Buitenkeukens');
+  const customerCategory = lead?.category || (lead?.company?.toLowerCase().includes('snijplanken') ? 'Snijplanken' : 'Buitenkeukens');
   
   const translateCategory = (cat) => {
     if (language !== 'EN' || !cat) return cat;
     return cat
       .replace(/Buitenkeukens/gi, 'Outdoor Kitchens')
       .replace(/Buitenkeuken/gi, 'Outdoor Kitchen')
-      .replace(/Kliko-ombouw/gi, 'Bin Storage')
       .replace(/Kliko/gi, 'Bin Storage')
       .replace(/Overkappingen/gi, 'Canopies')
       .replace(/Overkapping/gi, 'Canopy')

@@ -587,14 +587,12 @@ export default function Quotes() {
       style: { minWidth: '200px' },
       render: (row) => {
         const proj = (row.project || '').toLowerCase();
-        const cat = row.category || (proj.includes('kliko') || proj.includes('hiko') ? 'Kliko-ombouw' : proj.includes('snijplanken') || proj.includes('decking') ? 'Snijplanken' : 'Buitenkeukens');
-        const logoSrc = cat.includes('Kliko')
-          ? '/logo_kliko.png'
-          : cat.includes('Snijplanken')
+        const cat = row.category || (proj.includes('snijplanken') || proj.includes('decking') ? 'Snijplanken' : 'Buitenkeukens');
+        const logoSrc = cat.includes('Snijplanken')
           ? '/logo_snijplanken.png'
           : '/logo_buitenkeukens.png';
         const displayCat = language === 'EN' 
-          ? (cat.includes('Kliko') ? 'Bin Storage' : cat.includes('Snijplanken') ? 'Cutting Boards' : 'Outdoor Kitchens')
+          ? (cat.includes('Snijplanken') ? 'Cutting Boards' : 'Outdoor Kitchens')
           : cat;
         return (
           <div className="flex items-center gap-2 py-0.5">
@@ -1103,7 +1101,7 @@ export default function Quotes() {
       </AnimatePresence>
 
       {/* 100% CLEAN PDF PRINT PORTAL ATTACHED DIRECTLY TO DOCUMENT BODY */}
-      {pdfPreviewQuote && !editingQuote && createPortal(
+      {pdfPreviewQuote && !selectedQuote && createPortal(
         <div id="printable-offerte-portal">
           <Offerte6PagePDF quote={pdfPreviewQuote} />
         </div>,

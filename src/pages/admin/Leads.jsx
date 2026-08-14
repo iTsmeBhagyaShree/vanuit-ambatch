@@ -1044,7 +1044,6 @@ export default function Leads() {
                          form.productType === 'buitenverblijf' ? (language === 'EN' ? 'Garden / Outdoor Building' : 'Buitenverblijf / Tuinkamer') :
                          form.productType === 'overkapping' ? (language === 'EN' ? 'Canopy / Pergola' : 'Overkapping / Pergola') :
                          form.productType === 'poolhouse' ? 'Poolhouse' :
-                         form.productType === 'kliko' ? (language === 'EN' ? 'Bin Storage' : 'Kliko-ombouw') :
                          (form.productType || (language === 'EN' ? 'Outdoor Kitchen' : 'Buitenkeuken'))}
                       </span>
                       <ChevronDown className={`w-4 h-4 text-dark/40 transition-transform ${productTypeDropdownOpen ? 'rotate-180' : ''}`} />
@@ -1058,12 +1057,11 @@ export default function Leads() {
                             { val: 'buitenverblijf', label: language === 'EN' ? 'Garden / Outdoor Building' : 'Buitenverblijf / Tuinkamer' },
                             { val: 'overkapping', label: language === 'EN' ? 'Canopy / Pergola' : 'Overkapping / Pergola' },
                             { val: 'poolhouse', label: 'Poolhouse' },
-                            { val: 'kliko', label: language === 'EN' ? 'Bin Storage' : 'Kliko-ombouw' },
                             ...(() => {
                               try {
                                 const dynCats = JSON.parse(localStorage.getItem('app_dynamic_categories') || '[]');
                                 return dynCats
-                                  .filter(c => !['buitenkeuken','buitenverblijf','overkapping','poolhouse','kliko'].includes((c.name||'').toLowerCase()))
+                                  .filter(c => !['buitenkeuken','buitenverblijf','overkapping','poolhouse'].includes((c.name||'').toLowerCase()))
                                   .map(c => ({ val: c.name, label: c.name }));
                               } catch(e) { return []; }
                             })()

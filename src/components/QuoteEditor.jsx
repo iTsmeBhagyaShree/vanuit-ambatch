@@ -12,6 +12,7 @@ import DiagramBuilder from './DiagramBuilder';
 import Offerte6PagePDF from './Offerte6PagePDF';
 import { WOOD_LIBRARY, PRESET_PRODUCT_LIBRARY, PRODUCT_TYPE_DEFAULTS } from '../utils/quoteLibraries';
 import { calculateTotals, calculateInstalments, validateQuoteForSend } from '../utils/quoteSchema';
+import { useLanguage } from '../context/LanguageContext';
 import projectImg from '../assets/outdoor_project_card.png';
 import heroImg from '/dasbordes images.png';
 
@@ -25,6 +26,7 @@ const STEPS = [
 ];
 
 export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList = [] }) {
+  const { language } = useLanguage();
   const [activeStep, setActiveStep] = useState(1);
   const [quote, setQuote] = useState(quoteData);
   const [lastSavedTime, setLastSavedTime] = useState(new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }));
@@ -286,8 +288,13 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
     const items = [...(quote.investment?.lineItems || [])];
     items[index] = { ...items[index], [field]: val };
 
-    if (field === 'priceInclVat' && Number(val) === 0) {
-      items[index].isIncluded = true;
+    if (field === 'priceInclVat') {
+      const numVal = Number(val) || 0;
+      if (numVal > 0) {
+        items[index].isIncluded = false;
+      } else if (numVal === 0) {
+        items[index].isIncluded = true;
+      }
     }
     updateInvestmentField('lineItems', items);
   };
@@ -798,17 +805,17 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                     </select>
                     <input
                       type="text"
-                      value={`levensduur ${quote.configuration?.woodLifespan || '20 tot 25 jaar'}`}
+                      value={`lifespan ${quote.configuration?.woodLifespan || (language === 'EN' ? '20 to 25 years' : '20 tot 25 jaar')}`}
                       disabled
                       className="w-full px-3 py-1.5 bg-[#EFECE6] border border-[#D6CFC2]/60 rounded-lg text-xs font-semibold text-dark/70"
                     />
                     <p className="text-[10px] text-dark/50 font-body">a library choice fills the infobox + subtitle + line item automatically · custom wood type = fill in yourself</p>
                   </div>
 
-                  {/* Tile 3: Uitsparing */}
+                  {/* Tile 3: Cutout */}
                   <div className="p-3.5 bg-[#F8F7F4] rounded-xl border border-[#D6CFC2]/70 space-y-2">
                     <div className="flex justify-between items-center">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-dark/60 font-mono">UITSPARING</label>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-dark/60 font-mono">{language === 'EN' ? 'CUTOUT' : 'UITSPARING'}</label>
                       <span className="bg-emerald-100 text-emerald-800 text-[9px] font-bold px-2 py-0.5 rounded font-mono uppercase">FOLLOWS OPTIONS</span>
                     </div>
                     <input
@@ -819,7 +826,7 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                     />
                     <input
                       type="text"
-                      value="Large, rechts van het midden"
+                      value={language === 'EN' ? 'Large, right of center' : 'Large, rechts van het midden'}
                       disabled
                       className="w-full px-3 py-1.5 bg-[#EFECE6] border border-[#D6CFC2]/60 rounded-lg text-xs font-semibold text-dark/70"
                     />
@@ -834,17 +841,17 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                     </div>
                     <input
                       type="text"
-                      value={quote.configuration?.deliveryTime || '3 tot 5 weken'}
+                      value={quote.configuration?.deliveryTime || (language === 'EN' ? '3 to 5 weeks' : '3 tot 5 weken')}
                       onChange={(e) => updateConfigField('deliveryTime', e.target.value)}
                       className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-xl font-bold text-dark text-xs"
                     />
                     <input
                       type="text"
-                      value="na akkoord op tekening"
+                      value={language === 'EN' ? 'upon drawing approval' : 'na akkoord op tekening'}
                       disabled
                       className="w-full px-3 py-1.5 bg-[#EFECE6] border border-[#D6CFC2]/60 rounded-lg text-xs font-semibold text-dark/70"
                     />
-                    <p className="text-[10px] text-dark/50 font-body">also appears as the badge at process step "Productie" (p6)</p>
+                    <p className="text-[10px] text-dark/50 font-body">also appears as the badge at process step "Production" (p6)</p>
                   </div>
                 </div>
               </div>
@@ -876,17 +883,26 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                         value={quote.configuration?.options?.bbqCutout?.type || 'Big Green Egg'}
                         onChange={(e) => {
                           const val = e.target.value;
-                          setQuote(prev => ({
-                            ...prev,
-                            configuration: {
-                              ...prev.configuration,
-                              optionsTitle: val,
-                              options: {
-                                ...prev.configuration?.options,
-                                bbqCutout: { ...prev.configuration?.options?.bbqCutout, type: val }
-                              }
+                          setQuote(prev => {
+                            const updatedDiagram = { ...(prev.configuration?.diagram || {}) };
+                            if (updatedDiagram.segments) {
+                              updatedDiagram.segments = updatedDiagram.segments.map(seg =>
+                                seg.type === 'CUTOUT' ? { ...seg, label: val } : seg
+                              );
                             }
-                          }));
+                            return {
+                              ...prev,
+                              configuration: {
+                                ...prev.configuration,
+                                optionsTitle: val,
+                                diagram: updatedDiagram,
+                                options: {
+                                  ...prev.configuration?.options,
+                                  bbqCutout: { ...prev.configuration?.options?.bbqCutout, type: val }
+                                }
+                              }
+                            };
+                          });
                         }}
                         className="px-2.5 py-1.5 bg-white border border-[#D6CFC2] rounded-lg font-bold text-xs"
                       >
@@ -896,7 +912,7 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                       </select>
                       <input
                         type="text"
-                        value="Large, rechts van het midden"
+                        value={language === 'EN' ? 'Large, right of center' : 'Large, rechts van het midden'}
                         disabled
                         className="px-3 py-1.5 bg-white border border-[#D6CFC2] rounded-lg text-xs font-semibold text-dark/80"
                       />
@@ -1019,7 +1035,81 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                 </div>
               </div>
 
-              {/* CARD 4: FRONT-VIEW LAYOUT (DIAGRAM BUILDER) */}
+              {/* CARD 4: CONFIGURATION PHOTO (PAGE 3 HERO PHOTO) */}
+              <div className="bg-white rounded-2xl p-5 border border-[#D6CFC2] shadow-2xs space-y-3.5 font-body">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-dark/80 font-mono">
+                      {language === 'EN' ? 'CONFIGURATION PHOTO (PAGE 3)' : 'CONFIGURATIE FOTO (PAGINA 3)'}
+                    </span>
+                    <span className="bg-amber-100 text-amber-800 text-[9px] font-bold px-2 py-0.5 rounded font-mono uppercase">CUSTOM PHOTO</span>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold text-dark/50 uppercase">APPEARS ON PROPOSAL PAGE 3</span>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center gap-4 bg-[#F8F7F4] p-4 rounded-xl border border-[#D6CFC2]/70">
+                  <div className="relative w-full sm:w-60 h-40 rounded-xl overflow-hidden border border-[#D6CFC2] flex-shrink-0 bg-[#EAE5DC] flex items-center justify-center p-1.5 shadow-inner">
+                    <img
+                      src={quote.configuration?.configPhoto || projectImg}
+                      alt="Configuration Preview"
+                      className="max-h-full max-w-full object-contain rounded-lg shadow-2xs"
+                      onError={(e) => { e.target.onerror = null; e.target.src = projectImg; }}
+                    />
+                  </div>
+
+                  <div className="space-y-2 flex-1 text-xs">
+                    <p className="font-bold text-dark text-xs">
+                      {language === 'EN' ? 'Upload Custom 3D / Project Photo' : 'Upload Aangepaste 3D / Projectfoto'}
+                    </p>
+                    <p className="text-[11px] text-dark/60">
+                      {language === 'EN' 
+                        ? 'This photo is shown on Page 3 of the proposal next to the specifications and front-view diagram.'
+                        : 'Deze foto wordt getoond op Pagina 3 van de offerte naast de specificaties en het vooraanzicht.'}
+                    </p>
+
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <input
+                        type="file"
+                        id="config-photo-uploader"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (evt) => {
+                              updateConfigField('configPhoto', evt.target.result);
+                              showToast('Configuration photo updated successfully!');
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                      <label
+                        htmlFor="config-photo-uploader"
+                        className="px-3 py-1.5 bg-[#33422C] text-white font-bold rounded-lg font-mono text-xs hover:bg-[#283523] cursor-pointer shadow-2xs inline-flex items-center gap-1.5"
+                      >
+                        <span>📷 {language === 'EN' ? 'Upload New Photo' : 'Nieuwe Foto Uploaden'}</span>
+                      </label>
+
+                      {quote.configuration?.configPhoto && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            updateConfigField('configPhoto', null);
+                            showToast('Configuration photo reset to default');
+                          }}
+                          className="px-3 py-1.5 bg-white border border-[#D6CFC2] text-dark/70 font-bold rounded-lg font-mono text-xs hover:bg-gray-100 cursor-pointer"
+                        >
+                          {language === 'EN' ? 'Restore Default' : 'Standaard Herstellen'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* CARD 5: FRONT-VIEW LAYOUT (DIAGRAM BUILDER) */}
               <div className="bg-white rounded-2xl p-5 border border-[#D6CFC2] shadow-2xs space-y-4">
                 <div className="flex justify-between items-center border-b border-[#D6CFC2]/60 pb-2">
                   <span className="text-xs font-bold uppercase tracking-wider text-dark/80 font-mono">FRONT-VIEW LAYOUT</span>
@@ -1069,7 +1159,7 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                     </div>
                     <input
                       type="text"
-                      value={quote.configuration?.infobox?.title || 'Over Thermo Fraké'}
+                      value={quote.configuration?.infobox?.title || (language === 'EN' ? 'About Thermo Fraké' : 'Over Thermo Fraké')}
                       onChange={(e) => updateConfigField('infobox', { ...quote.configuration?.infobox, title: e.target.value })}
                       className="w-full px-3.5 py-2.5 bg-white border border-[#D6CFC2] rounded-xl font-bold text-dark text-xs focus:outline-none focus:border-primary"
                     />
@@ -1154,7 +1244,7 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                               type="number"
                               step="0.01"
                               value={item.priceInclVat ?? 0}
-                              onChange={(e) => handleLineItemChange(idx, 'priceInclVat', Number(e.target.value) || 0)}
+                              onChange={(e) => handleLineItemChange(idx, 'priceInclVat', e.target.value === '' ? 0 : Number(e.target.value))}
                               className="w-20 bg-transparent border-none focus:outline-none font-bold text-dark"
                             />
                           </div>

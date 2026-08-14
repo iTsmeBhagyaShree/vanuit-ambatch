@@ -94,8 +94,8 @@ export const mockLeads = [
     name: 'Sophia Taylor',
     phone: '+31 6 9988 7766',
     email: 'sophia.taylor@outlook.com',
-    productType: 'kliko',
-    size: '3 Container Box',
+    productType: 'buitenverblijf',
+    size: '6x3m Garden Studio',
     source: 'Facebook',
     status: 'Offerte verstuurd',
     assignedTo: 'Bram',
@@ -150,13 +150,14 @@ export const mockQuotes = [
   {
     id: 'Q-4002',
     customer: 'Sophia Taylor',
-    project: 'Triple Bin Storage Anthracite',
-    amount: '€ 1,850',
+    project: 'Oak Wooden Canopy 6x4m',
+    amount: '€ 14,500',
     date: getRelativeDate(8),
     status: 'Sent',
     discountPercent: 5,
     items: [
-      { description: 'Triple 240L Bin Storage Powder-coated Steel Frame', quantity: 1, unitPrice: 1947 }
+      { description: 'Rustic Oak Beam Construction 6x4m', quantity: 1, unitPrice: 11000 },
+      { description: 'Glass Sliding Wall (4-piece panel)', quantity: 1, unitPrice: 3500 }
     ]
   },
   {
@@ -189,15 +190,15 @@ export const mockProjects = [
   },
   {
     id: 'PRJ-102',
-    name: 'Triple Bin Storage Anthracite',
+    name: 'Oak Wooden Canopy 6x4m',
     customer: 'Sophia Taylor',
-    partner: 'StaalWerk Brabant',
-    progress: 20,
+    partner: 'Hout & Steen Utrecht',
+    progress: 35,
     deadline: getRelativeDate(-21),
-    status: 'Pending',
-    orderStatus: 'Awaiting steel',
+    status: 'In Progress',
+    orderStatus: 'Materials delivered',
     quoteId: 'Q-4002',
-    value: '€ 1,850'
+    value: '€ 14,500'
   }
 ];
 

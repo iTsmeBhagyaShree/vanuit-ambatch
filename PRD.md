@@ -45,7 +45,7 @@ The portal provides end-to-end management for two distinct user roles:
 - **Sidebar Header Logo**: `/logo_green_cropped.png` (Single-line horizontal `VA VANUIT AMBACHT` logo, cropped tightly for high-definition rendering)
 - **Browser Favicon & Mobile Toggle**: `/mini_logo1.png` & `/mini logo2.png` (Cream & Green Monogram Icons)
 - **Login Brand Logo**: `/logo_brand.png`
-- **Category Division Logos**: `/logo_buitenkeukens.png`, `/logo_kliko.png`, `/logo_snijplanken.png` (High-resolution transparent PNG badges)
+- **Category Division Logos**: `/logo_buitenkeukens.png`, `/logo_snijplanken.png` (High-resolution transparent PNG badges)
 
 ---
 

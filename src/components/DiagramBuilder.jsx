@@ -3,11 +3,11 @@ import { Plus, Trash2, ArrowUp, ArrowDown, AlertTriangle, Layout } from 'lucide-
 import Button from './Button';
 
 const SEGMENT_TYPES = [
-  { id: 'CABINET', label: 'Cabinet / Kastje', isDark: false },
-  { id: 'CUTOUT', label: 'Cutout / Uitsparing', isDark: true },
-  { id: 'FRIDGE', label: 'Fridge / Koelkast', isDark: true },
-  { id: 'SINK', label: 'Sink / Spoelbak', isDark: true },
-  { id: 'OPEN_BAY', label: 'Open Bay / Open vak', isDark: false }
+  { id: 'CABINET', label: 'Cabinet', isDark: false },
+  { id: 'CUTOUT', label: 'Cutout', isDark: true },
+  { id: 'FRIDGE', label: 'Fridge', isDark: true },
+  { id: 'SINK', label: 'Sink', isDark: true },
+  { id: 'OPEN_BAY', label: 'Open Bay', isDark: false }
 ];
 
 export default function DiagramBuilder({ diagram, onChange }) {
