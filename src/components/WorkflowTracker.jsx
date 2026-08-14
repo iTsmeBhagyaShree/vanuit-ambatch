@@ -236,6 +236,22 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
   const [step2Material, setStep2Material] = useState('Douglas');
   const [isPriceRequestSent, setIsPriceRequestSent] = useState(false);
 
+  // Partner Form State (Declared early so all step handlers can access it)
+  const [partnerForm, setPartnerForm] = useState({
+    partnerName: 'Ruben Verbeij — RV Meubels',
+    company: 'RV Meubels',
+    buildPrice: '8500',
+    deliveryWeek: 'Week 49 (Dec 2023)'
+  });
+
+  // Step 3 — Partner Price Received (Internal Cost — NEVER shown to customer or partner)
+  const [partnerCostPrice, setPartnerCostPrice] = useState('');
+  const [partnerValidUntil, setPartnerValidUntil] = useState(() => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+  const [partnerLeadTime, setPartnerLeadTime] = useState('4–5 weken');
+  const [partnerPriceNotes, setPartnerPriceNotes] = useState('');
+  const [marginPercent, setMarginPercent] = useState(35);
+  const [partnerPriceLocked, setPartnerPriceLocked] = useState(false);
+
   // Dynamic Available Partners List State
   const [availablePartners, setAvailablePartners] = useState([]);
   const [submittedPartnerOffer, setSubmittedPartnerOffer] = useState(null);
