@@ -48,13 +48,12 @@ export function generateJournalEntries(tx) {
   const amount = credit > 0 ? credit : debit;
   const date = tx.date || new Date().toISOString().split('T')[0];
 
-  const journalLines = [];
-
   // =========================================================
   // 1. BOL.COM PAYOUT 3-WAY RECONCILIATION (PART A)
   // Gross (€950) - Selling Costs (€150) = Net Bank Payout (€800)
+  // Supports single or multi-order specifications inside one payout
   // =========================================================
-  if (category === 'Revenue — bol.com' || counterName.toLowerCase().includes('bol.com')) {
+  if (category === 'Revenue – bol.com' || category === 'Revenue — bol.com' || counterName.toLowerCase().includes('bol.com')) {
     const grossSales = tx.bolSpecification ? Number(tx.bolSpecification.grossSales) : (credit > 0 ? credit + 150 : 950);
     const sellingCosts = tx.bolSpecification ? Number(tx.bolSpecification.commissionFees) : 150;
     const netPayout = grossSales - sellingCosts;
@@ -95,7 +94,7 @@ export function generateJournalEntries(tx) {
   // 3. ICS CREDIT CARD SUSPENSE (PART C)
   // Monthly bank debit -> Credit Card / Suspense (NOT final P&L expense)
   // =========================================================
-  if (category === 'Credit Card / Suspense' || counterName.toLowerCase().includes('int card services')) {
+  if (category === 'Credit Card Suspense' || category === 'Credit Card / Suspense' || counterName.toLowerCase().includes('int card services')) {
     return {
       txId: tx.id,
       date,
@@ -113,7 +112,7 @@ export function generateJournalEntries(tx) {
   // 4. PRIVATE / DIRECTOR WITHDRAWAL (PART F)
   // Non-business withdrawal -> Equity (Does NOT reduce operating profit)
   // =========================================================
-  if (category.toLowerCase().includes('private') || category.toLowerCase().includes('privé') || description.toLowerCase().includes('privé opname')) {
+  if (category === 'Private Withdrawal' || category.toLowerCase().includes('private') || category.toLowerCase().includes('privé') || description.toLowerCase().includes('privé opname')) {
     return {
       txId: tx.id,
       date,
@@ -131,7 +130,7 @@ export function generateJournalEntries(tx) {
   // 5. BELASTINGDIENST VAT PAYMENT (PART G)
   // Reduces VAT liability (NOT P&L expense or purchasing)
   // =========================================================
-  if (category === 'VAT remittance' || counterName.toLowerCase().includes('belastingdienst')) {
+  if (category === 'VAT Settlement' || category === 'VAT remittance' || counterName.toLowerCase().includes('belastingdienst')) {
     return {
       txId: tx.id,
       date,
@@ -149,7 +148,7 @@ export function generateJournalEntries(tx) {
   // 6. FOREIGN SUPPLIER & SEPARATE BANK FEE / BANK CHARGES (PART D & G)
   // Foreign Supplier ($USD) = Purchasing, Separate Fee = Bank Charges (VAT Exempt)
   // =========================================================
-  if (category === 'Bank charges' || (counterName.toLowerCase().includes('abn amro') && description.toLowerCase().includes('correspondent fee'))) {
+  if (category === 'Bank Charges' || category === 'Bank charges' || (counterName.toLowerCase().includes('abn amro') && description.toLowerCase().includes('correspondent fee'))) {
     return {
       txId: tx.id,
       date,
@@ -181,10 +180,10 @@ export function generateJournalEntries(tx) {
   }
 
   // =========================================================
-  // 7. CUSTOMER PAYMENT RECEIPT (PART K & M)
+  // 8. CUSTOMER PAYMENT RECEIPT (PART K & M)
   // Settles Accounts Receivable (NOT additional revenue!)
   // =========================================================
-  if (credit > 0 && (category === 'Revenue — Outdoor Kitchens' || tx.orderId)) {
+  if (credit > 0 && (category === 'Revenue – Outdoor Kitchens' || category === 'Revenue — Outdoor Kitchens' || tx.orderId)) {
     return {
       txId: tx.id,
       date,
@@ -199,10 +198,10 @@ export function generateJournalEntries(tx) {
   }
 
   // =========================================================
-  // 8. SUPPLIER PURCHASING PAYMENT (PART K & M)
+  // 9. SUPPLIER PURCHASING PAYMENT (PART K & M)
   // Dutch Supplier: Purchasing + Input VAT (Reverse Charge if Alibaba/Foreign)
   // =========================================================
-  if (debit > 0 && category === 'Purchasing') {
+  if (debit > 0 && (category === 'Purchasing (Inkoop)' || category === 'Purchasing')) {
     const isForeign = counterName.toLowerCase().includes('alibaba') || counterName.toLowerCase().includes('hossain');
     const netVal = isForeign ? debit : Math.round((debit / 1.21) * 100) / 100;
     const inputVatVal = isForeign ? 0 : Math.round((debit - netVal) * 100) / 100;
@@ -211,10 +210,10 @@ export function generateJournalEntries(tx) {
       txId: tx.id,
       date,
       type: 'Purchasing Journal',
-      description: `Inkoop ${counterName} (${isForeign ? 'Reverse Charge / Import VAT' : '21% Input VAT'})`,
+      description: `Inkoop ${counterName} (${isForeign ? 'Reverse Charge / Import VAT 0%' : '21% Input VAT'})`,
       isBalanced: true,
       lines: [
-        { account: CHART_OF_ACCOUNTS.PURCHASING, debit: netVal, credit: 0, vatRule: isForeign ? 'Reverse Charge' : '21% Input VAT' },
+        { account: CHART_OF_ACCOUNTS.PURCHASING, debit: netVal, credit: 0, vatRule: isForeign ? 'Reverse Charge / 0%' : '21% Input VAT' },
         ...(inputVatVal > 0 ? [{ account: CHART_OF_ACCOUNTS.VAT_INPUT, debit: inputVatVal, credit: 0, vatRule: '21% Input VAT' }] : []),
         { account: CHART_OF_ACCOUNTS.BANK, debit: 0, credit: debit, vatRule: 'No VAT' }
       ]
@@ -226,7 +225,7 @@ export function generateJournalEntries(tx) {
     txId: tx.id,
     date,
     type: 'Standard Operating Journal',
-    description: `Geboekt op ${category || 'Overige Kosten'}`,
+    description: `Geboekt op ${category || 'Exploitatiekosten'}`,
     isBalanced: true,
     lines: [
       { account: { code: '4900', name: category || 'Exploitatiekosten', type: 'Expense' }, debit: amount, credit: 0, vatRule: '21% VAT' },
@@ -247,5 +246,60 @@ export function calculateRefundOffset(originalExpense, refundAmount) {
     netExpense,
     countedAsRevenue: false, // Strict guarantee!
     note: `Refund van € ${refundAmount} verlaagt de oorspronkelijke kosten naar € ${netExpense}. Wordt NIET als omzet gerekend.`
+  };
+}
+
+/**
+ * Allocates underlying ICS Credit Card Line Items to clear Credit Card Suspense balance
+ */
+export function allocateIcsCreditCardLineItems(icsDebitAmount, cardLineItems = []) {
+  const allocatedSum = Math.round(cardLineItems.reduce((acc, item) => acc + (Number(item.amount) || 0), 0) * 100) / 100;
+  const remainingSuspense = Math.max(0, Math.round((icsDebitAmount - allocatedSum) * 100) / 100);
+
+  const lines = cardLineItems.map(item => ({
+    account: CHART_OF_ACCOUNTS[item.accountKey] || { code: '4900', name: item.category || 'Credit Card Item', type: 'Expense' },
+    debit: Number(item.amount),
+    credit: 0,
+    description: item.description,
+    vatRule: item.vatRule || '21% VAT'
+  }));
+
+  lines.push({
+    account: CHART_OF_ACCOUNTS.CREDIT_CARD_SUSPENSE,
+    debit: 0,
+    credit: allocatedSum,
+    description: 'Aflossing Credit Card Suspense',
+    vatRule: 'No VAT'
+  });
+
+  return {
+    icsDebitAmount,
+    allocatedSum,
+    remainingSuspense,
+    isFullyCleared: remainingSuspense === 0,
+    journalLines: lines
+  };
+}
+
+/**
+ * Foreign Supplier Payment & Exchange Difference Handler
+ */
+export function processForeignSupplierPayment(paymentAmountEur, exchangeResult = 0, bankFee = 0) {
+  const purchasingNet = paymentAmountEur;
+  const totalBankDebit = Math.round((paymentAmountEur + exchangeResult + bankFee) * 100) / 100;
+
+  return {
+    purchasingNet,
+    exchangeResult,
+    bankFee,
+    totalBankDebit,
+    vatApplied: false,
+    vatRate: '0% / Reverse Charge',
+    journalLines: [
+      { account: CHART_OF_ACCOUNTS.PURCHASING, debit: purchasingNet, credit: 0, vatRule: 'Reverse Charge / 0%' },
+      ...(exchangeResult !== 0 ? [{ account: CHART_OF_ACCOUNTS.EXCHANGE_RESULT, debit: exchangeResult, credit: 0, vatRule: 'No VAT' }] : []),
+      ...(bankFee > 0 ? [{ account: CHART_OF_ACCOUNTS.BANK_CHARGES, debit: bankFee, credit: 0, vatRule: 'VAT Exempt' }] : []),
+      { account: CHART_OF_ACCOUNTS.BANK, debit: 0, credit: totalBankDebit, vatRule: 'No VAT' }
+    ]
   };
 }

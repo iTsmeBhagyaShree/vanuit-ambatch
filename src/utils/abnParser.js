@@ -61,6 +61,17 @@ export function categorizeTransaction(tx) {
     };
   }
 
+  // RULE 1.5: Private / Director Withdrawal (Must take priority over counterparty name)
+  if (fullText.includes('privé opname') || fullText.includes('prive opname') || fullText.includes('priveontrekking') || fullText.includes('geldopname prive')) {
+    return {
+      category: 'Private Withdrawal',
+      matchReason: 'Private Withdrawal Match',
+      status: 'Categorized',
+      reviewReason: null,
+      isInternal: false
+    };
+  }
+
   // RULE 2: Smart Fulfilment B.V. -> Transport – Smart Fulfilment (NEVER Purchasing)
   if (fullText.includes('smart fulfilment')) {
     return {

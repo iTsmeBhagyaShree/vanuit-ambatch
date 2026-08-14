@@ -12,6 +12,7 @@ import { Plus, Search, Filter, X, Check, CheckCircle, Trash2, Edit2, RotateCcw, 
 import { mockQuotes as defaultQuotes } from '../../utils/mockData';
 import { useLanguage } from '../../context/LanguageContext';
 import { safeSetItem } from '../../utils/storageHelper';
+import { downloadDirectPdfFile } from '../../utils/pdfGenerator';
 
 
 // Helper to get raw numeric value from formatted amount string (e.g. "€ 12,500" -> 12500)
@@ -304,23 +305,37 @@ export default function Quotes() {
     const updatedInvoices = [inv1, inv2, ...filteredInvoices];
     localStorage.setItem('app_invoices', JSON.stringify(updatedInvoices));
 
-    // Auto Create Project
+    // Auto Create / Update Project (Prevent duplicates)
     const existingProjects = JSON.parse(localStorage.getItem('app_projects') || '[]');
-    if (!existingProjects.some(p => p.quoteId === quote.id)) {
-      const newProject = {
-        id: `PRJ-${Math.floor(100 + Math.random() * 900)}`,
-        name: quote.project,
-        customer: quote.customer,
-        partner: 'Unassigned',
-        progress: 0,
-        deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        status: 'In Progress',
-        orderStatus: 'In voorbereiding',
-        quoteId: quote.id,
-        value: quote.amount
-      };
-      localStorage.setItem('app_projects', JSON.stringify([newProject, ...existingProjects]));
+    const totalVal = getNumericAmount(quote.amount);
+    const existingIdx = existingProjects.findIndex(p => p.quoteId === quote.id || (p.customer === quote.customer && p.name === quote.project));
+
+    const projectPayload = {
+      id: existingIdx >= 0 ? existingProjects[existingIdx].id : `PRJ-${Math.floor(100 + Math.random() * 900)}`,
+      name: quote.project,
+      customer: quote.customer,
+      partner: quote.partner || existingProjects[existingIdx]?.partner || 'Unassigned',
+      partnerCost: quote.partnerCost || Math.round(totalVal * 0.65),
+      margin: quote.margin || Math.round(totalVal * 0.35),
+      products: quote.items || quote.products || [],
+      progress: existingIdx >= 0 ? existingProjects[existingIdx].progress : 0,
+      deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      status: 'In Progress',
+      orderStatus: 'In voorbereiding',
+      quoteId: quote.id,
+      value: quote.amount,
+      numericAmount: totalVal,
+      isPartnerConfirmed: existingIdx >= 0 ? (existingProjects[existingIdx].isPartnerConfirmed || false) : false,
+      partnerStatus: existingIdx >= 0 ? (existingProjects[existingIdx].partnerStatus || 'Pending Confirmation') : 'Pending Confirmation'
+    };
+
+    let updatedProjectsList = [];
+    if (existingIdx >= 0) {
+      updatedProjectsList = existingProjects.map((p, i) => i === existingIdx ? { ...p, ...projectPayload } : p);
+    } else {
+      updatedProjectsList = [projectPayload, ...existingProjects];
     }
+    localStorage.setItem('app_projects', JSON.stringify(updatedProjectsList));
 
     // Auto Update Lead Status to Gewonnen
     const savedLeads = localStorage.getItem('app_leads_v2') || localStorage.getItem('app_leads');
@@ -649,15 +664,21 @@ export default function Quotes() {
             <Printer className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> PDF
           </button>
           <button 
+            disabled={row.status === 'Concept' || row.status === 'Draft'}
             onClick={async () => {
+              if (row.status === 'Concept' || row.status === 'Draft') return;
               const publicUrl = `${window.location.origin}/offerte/${row.id}`;
               await copyTextToClipboard(publicUrl);
               setToastMsg(language === 'EN' ? `Public Offerte link copied: ${publicUrl}` : `Offerte link gekopieerd: ${publicUrl}`);
             }}
-            className="px-2 py-1 sm:px-2.5 sm:py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-lg text-[10px] sm:text-[11px] font-bold inline-flex items-center gap-1 transition-colors flex-shrink-0 cursor-pointer"
-            title="Copy Public Digital Approval Link"
+            className={`px-2 py-1 sm:px-2.5 sm:py-1 rounded-lg text-[10px] sm:text-[11px] font-bold inline-flex items-center gap-1 transition-colors flex-shrink-0 ${
+              (row.status === 'Concept' || row.status === 'Draft')
+                ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-60'
+                : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-800 cursor-pointer'
+            }`}
+            title={(row.status === 'Concept' || row.status === 'Draft') ? (language === 'EN' ? 'Draft quote — Approve quote internally to enable send buttons' : 'Concept offerte — Keur offerte intern goed om verzendopties te ontgrendelen') : 'Copy Public Digital Approval Link'}
           >
-            <Share2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-700" /> Link
+            <Share2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Link
           </button>
           <a
             href={`/offerte/${row.id}`}
@@ -1088,10 +1109,21 @@ export default function Quotes() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">
-                  <Button size="sm" icon={Printer} onClick={() => window.print()} className="text-xs">
-                    {language === 'EN' ? 'Print / Save PDF' : 'Afdrukken / Export PDF'}
+                  <Button 
+                    size="sm" 
+                    icon={Download} 
+                    onClick={() => {
+                      const downloadedName = downloadDirectPdfFile(pdfPreviewQuote);
+                      showToast(language === 'EN' ? `✓ Downloaded ${downloadedName}!` : `✓ ${downloadedName} gedownload!`);
+                    }} 
+                    className="text-xs font-bold bg-[#D97706] hover:bg-[#B45309] text-white shadow-sm cursor-pointer"
+                  >
+                    {language === 'EN' ? 'Download PDF File' : 'Download PDF Bestand'}
                   </Button>
-                  <button onClick={() => setPdfPreviewQuote(null)} className="p-1.5 text-dark/40 hover:text-dark rounded-lg hover:bg-dark/5 transition-colors">
+                  <Button size="sm" icon={Printer} onClick={() => window.print()} className="text-xs bg-[#EDE8DF] text-dark hover:bg-[#D6CFC2]">
+                    {language === 'EN' ? 'Print' : 'Afdrukken'}
+                  </Button>
+                  <button onClick={() => setPdfPreviewQuote(null)} className="p-1.5 text-dark/40 hover:text-dark rounded-lg hover:bg-dark/5 transition-colors cursor-pointer">
                     <X className="w-5 h-5" />
                   </button>
                 </div>

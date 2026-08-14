@@ -2,141 +2,205 @@ import { jsPDF } from 'jspdf';
 
 /**
  * Vanuit Ambacht — Direct Client-Side Vector PDF File Generator
- * Uses jsPDF to generate a real PDF document and triggers doc.save(fileName)
- * directly downloading the file into the user's Downloads folder with 0 print dialogs.
+ * Generates an official, beautiful branded PDF document matching the preview 100%
+ * and calls doc.save("Quote-{number} {customer}.pdf") to trigger an actual file download.
  */
-export function downloadDirectPdfFile({
-  quoteId = 'OF-2026331',
-  customerName = 'Sonu Jain',
-  customerEmail = 'sonu.jain@example.com',
-  category = 'Buitenkeukens',
-  size = '8,00 × 4,00 m',
-  material = 'Douglas wood with concrete countertop',
-  priceExclVat = 34200,
-  vatRate = 21,
-  vatAmount = 7182,
-  totalInclVat = 41382,
-  isDraft = false
-}) {
-  const cleanCustomerSlug = (customerName || 'Sonu-Jain')
-    .replace(/[^a-zA-Z0-9]/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
+export function downloadDirectPdfFile(quoteData = {}) {
+  // Extract properties supporting both raw params or full quote object
+  const quote = quoteData.quote || quoteData;
+  const quoteId = quote.id || quote.quoteId || 'OF-2026331';
+  
+  const rawCustomer = typeof quote.customer === 'object' ? quote.customer.name : quote.customer;
+  const customerName = rawCustomer || quote.customerName || 'Sonu Jain';
+  const customerEmail = quote.customerEmail || quote.email || 'klant@vanuitambacht.nl';
+  const customerPhone = quote.customerPhone || quote.phone || '+31 6 12345678';
 
-  const fileName = isDraft
-    ? `Quote-${quoteId}-${cleanCustomerSlug}-DRAFT.pdf`
-    : `Quote-${quoteId}-${cleanCustomerSlug}.pdf`;
+  const category = quote.category || quote.project || 'Buitenkeukens';
+  const woodType = quote.woodType || quote.configuration?.woodType || 'Thermo Fraké';
+  const dimensions = quote.dimensions || quote.configuration?.dimensions || '240 × 80 cm';
+
+  // Exact File Naming Rule: Quote-{number} {customer}.pdf
+  const cleanCustomerName = String(customerName)
+    .replace(/[\\/:*?"<>|]/g, '')
+    .trim();
+
+  const fileName = `Quote-${quoteId} ${cleanCustomerName}.pdf`;
+
+  // Itemized breakdown & totals
+  const items = (quote.items && quote.items.length > 0)
+    ? quote.items
+    : (quote.investment?.lineItems && quote.investment.lineItems.length > 0)
+    ? quote.investment.lineItems
+    : [
+        {
+          description: `Outdoor Kitchen ${woodType} (${dimensions})`,
+          quantity: 1,
+          unitPrice: typeof quote.amount === 'number' ? quote.amount : parseFloat(String(quote.amount || '3495').replace(/[^0-9.]/g, '')) || 3495
+        }
+      ];
+
+  const subtotalExcl = items.reduce((acc, i) => {
+    const qty = Number(i.quantity || 1);
+    const prc = Number(i.unitPrice || i.priceInclVat || 0);
+    return acc + (qty * prc);
+  }, 0);
+
+  const totalIncl = typeof quote.amount === 'number'
+    ? quote.amount
+    : (parseFloat(String(quote.amount || '0').replace(/[^0-9.]/g, '')) || subtotalExcl || 3495);
+
+  const totalExcl = Math.round((totalIncl / 1.21) * 100) / 100;
+  const vatAmount = Math.round((totalIncl - totalExcl) * 100) / 100;
 
   const doc = new jsPDF();
   
-  // Colors
-  const primaryColor = [62, 78, 54]; // #3E4E36
-  const darkColor = [30, 30, 30];
-  const accentColor = [112, 98, 79];
+  // Color Palette
+  const primaryColor = [62, 78, 54];   // #3E4E36 Forest Green
+  const darkColor = [43, 48, 40];     // #2B3028 Dark Gray
+  const accentColor = [217, 119, 6];   // #D97706 Amber
+  const warmBg = [245, 242, 235];     // #F5F2EB Cream
 
-  // Brand Header
+  // 1. BRAND HEADER
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(22);
   doc.setTextColor(...primaryColor);
-  doc.text('VANUIT AMBACHT', 20, 25);
+  doc.text('VANUIT AMBACHT', 20, 24);
 
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
   doc.setTextColor(...accentColor);
-  doc.text(isDraft ? 'INTERNE CONCEPT OFFERTE (NIET VERZONDEN)' : 'OFFICIËLE MAATOFFERTE', 20, 32);
+  doc.text('OFFICIËLE COMMERCIËLE MAATOFFERTE', 20, 31);
 
-  // Divider Line
   doc.setDrawColor(...primaryColor);
-  doc.setLineWidth(1);
-  doc.line(20, 36, 190, 36);
+  doc.setLineWidth(0.8);
+  doc.line(20, 35, 190, 35);
 
-  // Quote Metadata
+  // 2. METADATA HEADER BOX (4 COLUMNS)
+  doc.setFillColor(...warmBg);
+  doc.roundedRect(20, 42, 170, 24, 2, 2, 'F');
+
+  doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
+  doc.setTextColor(100, 100, 100);
+  doc.text('OFFERTENUMMER', 25, 49);
+  doc.text('DATUM', 70, 49);
+  doc.text('GELDIG T/M', 110, 49);
+  doc.text('STATUS', 150, 49);
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
   doc.setTextColor(...primaryColor);
-  doc.text(`Offerte ID: ${quoteId}`, 20, 48);
+  doc.text(quoteId, 25, 57);
+  doc.text(quote.date || new Date().toLocaleDateString('nl-NL'), 70, 57);
+  doc.text(quote.validUntil || 'In overleg', 110, 57);
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  doc.setTextColor(...darkColor);
-  doc.text(`Klantnaam: ${customerName}`, 20, 56);
-  doc.text(`E-mailadres: ${customerEmail}`, 20, 62);
-  doc.text(`Datum: ${new Date().toLocaleDateString('nl-NL')}`, 20, 68);
-
-  // Specifications Box
-  doc.setFillColor(248, 247, 244); // #F8F7F4
-  doc.roundedRect(20, 75, 170, 25, 3, 3, 'F');
-  
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
   doc.setTextColor(...accentColor);
-  doc.text('PROJECT SPECIFICATIES:', 25, 84);
+  doc.text(quote.status || 'Concept', 150, 57);
+
+  // 3. CUSTOMER & PROJECT SPECIFICATION CARDS
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...primaryColor);
+  doc.text('KLANTGEGEVENS', 20, 75);
+  doc.text('SPECIFICATIES', 105, 75);
 
   doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9.5);
+  doc.setTextColor(...darkColor);
+  doc.text(`Naam: ${customerName}`, 20, 83);
+  doc.text(`E-mail: ${customerEmail}`, 20, 89);
+  doc.text(`Telefoon: ${customerPhone}`, 20, 95);
+
+  doc.text(`Project: ${category}`, 105, 83);
+  doc.text(`Houtsoort: ${woodType}`, 105, 89);
+  doc.text(`Afmeting: ${dimensions}`, 105, 95);
+
+  // 4. FINANCIAL ITEMS TABLE
+  doc.setFillColor(...primaryColor);
+  doc.rect(20, 106, 170, 9, 'F');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(255, 255, 255);
+  doc.text('OMSCHRIJVING', 25, 112);
+  doc.text('AANTAL', 125, 112);
+  doc.text('BEDRAG', 160, 112);
+
+  let y = 122;
+  items.forEach((item, idx) => {
+    const desc = item.description || item.title || `Maatwerk item ${idx + 1}`;
+    const qty = item.quantity || 1;
+    const price = Number(item.unitPrice || item.priceInclVat || totalIncl);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.5);
+    doc.setTextColor(...darkColor);
+    doc.text(desc, 25, y);
+
+    doc.setFont('helvetica', 'normal');
+    doc.text(String(qty), 130, y);
+
+    const priceText = item.isIncluded || price === 0
+      ? 'Inbegrepen'
+      : `EUR ${price.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}`;
+    doc.text(priceText, 160, y);
+
+    y += 10;
+    doc.setDrawColor(230, 225, 215);
+    doc.line(20, y - 4, 190, y - 4);
+  });
+
+  // 5. TOTALS SUMMARY BOX
+  y += 5;
+  doc.setFillColor(...warmBg);
+  doc.roundedRect(105, y, 85, 36, 2, 2, 'F');
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...darkColor);
+  doc.text('Totaal excl. btw:', 110, y + 9);
+  doc.text(`EUR ${totalExcl.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}`, 155, y + 9);
+
+  doc.text('Btw (21%):', 110, y + 17);
+  doc.text(`EUR ${vatAmount.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}`, 155, y + 17);
+
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
   doc.setTextColor(...primaryColor);
-  doc.text(`Maatwerk ${category} (${size})`, 25, 92);
-  doc.text(`Afwerking: ${material}`, 25, 97);
+  doc.text('Totaal incl. btw:', 110, y + 28);
+  doc.setTextColor(...accentColor);
+  doc.text(`EUR ${totalIncl.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}`, 150, y + 28);
 
-  // Financial Table Header
-  doc.setFillColor(237, 232, 223); // #EDE8DF
-  doc.rect(20, 110, 170, 10, 'F');
-  
+  // 6. PAYMENT TERMS & INSTALMENTS
+  y += 48;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.setTextColor(...primaryColor);
-  doc.text('OMSCHRIJVING', 25, 116.5);
-  doc.text('BEDRAG', 145, 116.5);
+  doc.text('BETALINGSVOORWAARDEN (50% / 50%)', 20, y);
 
-  // Financial Table Rows
-  const fmt = (num) => `EUR ${(num || 0).toLocaleString('nl-NL')}`;
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(214, 207, 194);
+  doc.roundedRect(20, y + 5, 80, 18, 2, 2, 'DF');
+  doc.roundedRect(110, y + 5, 80, 18, 2, 2, 'DF');
+
+  doc.setFontSize(8.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...accentColor);
+  doc.text('50% Aanbetaling bij akkoord', 25, y + 12);
+  doc.text('50% Eindfactuur bij oplevering', 115, y + 12);
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
   doc.setTextColor(...darkColor);
+  doc.text(`EUR ${(totalIncl * 0.5).toLocaleString('nl-NL', { minimumFractionDigits: 2 })}`, 25, y + 18);
+  doc.text(`EUR ${(totalIncl * 0.5).toLocaleString('nl-NL', { minimumFractionDigits: 2 })}`, 115, y + 18);
 
-  doc.text(`Bespoke ${category} (${size})`, 25, 128);
-  doc.text(fmt(priceExclVat), 145, 128);
+  // 7. FOOTER BRANDING & FILE STAMP
+  doc.setFontSize(8);
+  doc.setTextColor(140, 140, 140);
+  doc.text(`Vanuit Ambacht • Koningshof 33, 3451 LM Vleuten • KVK 93097429 • BTW NL866264863B01`, 20, 280);
+  doc.text(`Bestand: ${fileName}`, 20, 285);
 
-  doc.setDrawColor(214, 207, 194);
-  doc.line(20, 133, 190, 133);
-
-  doc.text(`BTW (${vatRate}%)`, 25, 142);
-  doc.text(fmt(vatAmount), 145, 142);
-
-  doc.line(20, 147, 190, 147);
-
-  // Total Row
-  doc.setFillColor(248, 247, 244);
-  doc.rect(20, 150, 170, 12, 'F');
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(12);
-  doc.setTextColor(...primaryColor);
-  doc.text('Totaal Incl. BTW', 25, 158);
-  doc.text(fmt(totalInclVat), 145, 158);
-
-  // Status Disclaimer Badge Box
-  if (isDraft) {
-    doc.setFillColor(254, 243, 199); // amber
-    doc.roundedRect(20, 175, 170, 15, 3, 3, 'F');
-    doc.setFontSize(10);
-    doc.setTextColor(146, 64, 14);
-    doc.text('DRAFT - NIET VERZONDEN NAAR KLANT (Conceptfase)', 35, 184);
-  } else {
-    doc.setFillColor(240, 253, 244); // green
-    doc.roundedRect(20, 175, 170, 15, 3, 3, 'F');
-    doc.setFontSize(10);
-    doc.setTextColor(22, 101, 52);
-    doc.text('OFFICIEEL GOEDGEKEURDE OFFERTE DOOR VANUIT AMBACHT', 35, 184);
-  }
-
-  // Footer
-  doc.setFontSize(9);
-  doc.setTextColor(150, 150, 150);
-  doc.text(`Gegenereerd door Vanuit Ambacht Cloud Management • ${fileName}`, 35, 270);
-
-  // DIRECT AUTOMATIC FILE DOWNLOAD TO USER'S DOWNLOADS FOLDER (0 PRINT DIALOGS)
+  // DIRECT AUTOMATIC FILE DOWNLOAD TO USER'S DOWNLOADS FOLDER
   doc.save(fileName);
   return fileName;
 }

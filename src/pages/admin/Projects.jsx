@@ -11,12 +11,15 @@ import { safeSetItem, compressImage } from '../../utils/storageHelper';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../../context/LanguageContext';
 import { tValue } from '../../utils/translator';
+import { calculateOrderSettlement } from '../../utils/orderMatcher';
+import { calculateProjectMarginWithPurchasing, UNIFIED_PURCHASING_CATEGORY } from '../../utils/purchasingAllocator';
 
 export default function Projects() {
   const { t, language } = useLanguage();
   const navigate = useNavigate();
   const directFileInputRef = useRef(null);
   const [projects, setProjects] = useState([]);
+  const [bankTxns, setBankTxns] = useState([]);
   const [leadsList, setLeadsList] = useState([]);
   const [partnersList, setPartnersList] = useState([]);
   const [activeProjectDetail, setActiveProjectDetail] = useState(null);
@@ -87,8 +90,18 @@ export default function Projects() {
     };
 
     loadProjectsData();
+    const loadBankTxnsData = () => {
+      try {
+        const savedBank = localStorage.getItem('app_bank_txns_v2') || localStorage.getItem('app_bank_txns');
+        if (savedBank) setBankTxns(JSON.parse(savedBank));
+      } catch(e) {}
+    };
+    loadBankTxnsData();
+
     window.addEventListener('storage', loadProjectsData);
+    window.addEventListener('storage', loadBankTxnsData);
     window.addEventListener('app_data_changed', loadProjectsData);
+    window.addEventListener('app_data_changed', loadBankTxnsData);
 
     // Leads (for customer selection dropdown)
     const savedLeads = localStorage.getItem('app_leads_v2') || localStorage.getItem('app_leads');
@@ -132,6 +145,41 @@ export default function Projects() {
     localStorage.setItem('app_projects', JSON.stringify(updatedProjects));
     window.dispatchEvent(new Event('app_data_changed'));
     showToast(`Partner updated to "${newPartner}" for project ${projectId}!`);
+  };
+
+  // Confirm Partner for Good inside Projects tab
+  const handleConfirmPartnerForGood = (projectId) => {
+    const updatedProjects = projects.map(p => {
+      if (p.id === projectId) {
+        return {
+          ...p,
+          isPartnerConfirmed: true,
+          partnerStatus: 'Final / Locked'
+        };
+      }
+      return p;
+    });
+    setProjects(updatedProjects);
+    localStorage.setItem('app_projects', JSON.stringify(updatedProjects));
+    window.dispatchEvent(new Event('app_data_changed'));
+    showToast(`Partner assignment confirmed for good and locked for project ${projectId}!`);
+  };
+
+  const handleUnlockPartnerAssignment = (projectId) => {
+    const updatedProjects = projects.map(p => {
+      if (p.id === projectId) {
+        return {
+          ...p,
+          isPartnerConfirmed: false,
+          partnerStatus: 'Pending Confirmation'
+        };
+      }
+      return p;
+    });
+    setProjects(updatedProjects);
+    localStorage.setItem('app_projects', JSON.stringify(updatedProjects));
+    window.dispatchEvent(new Event('app_data_changed'));
+    showToast(`Partner assignment unlocked for project ${projectId}.`);
   };
 
   // Quick inline status update for Kliko Order
@@ -440,20 +488,49 @@ export default function Projects() {
     },
     { header: 'Customer', accessor: 'customer' },
     { 
-      header: 'Assigned Partner', 
-      style: { minWidth: '180px' },
-      render: (row) => (
-        <select
-          value={row.partner}
-          onChange={(e) => handleInlinePartnerChange(row.id, e.target.value)}
-          className="w-full px-2.5 py-1 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body font-semibold text-dark/80 focus:outline-none focus:ring-1 focus:ring-primary/40 cursor-pointer"
-        >
-          <option value="Unassigned">{language === 'EN' ? 'Unassigned' : 'Niet toegewezen'}</option>
-          {partnersList.map((p, idx) => (
-            <option key={idx} value={p.name}>{p.name} ({p.company})</option>
-          ))}
-        </select>
-      )
+      header: 'Assigned Partner & Confirmation', 
+      style: { minWidth: '220px' },
+      render: (row) => {
+        const isConfirmed = row.isPartnerConfirmed || row.partnerStatus === 'Final / Locked';
+        return (
+          <div className="space-y-1">
+            {isConfirmed ? (
+              <div className="flex items-center justify-between gap-1 bg-emerald-50 border border-emerald-300 p-1.5 rounded-lg text-xs">
+                <span className="font-bold text-emerald-900 truncate" title="Partner confirmed for good">🔒 {row.partner}</span>
+                <button
+                  onClick={() => handleUnlockPartnerAssignment(row.id)}
+                  className="text-[10px] text-emerald-700 hover:text-emerald-900 underline font-semibold flex-shrink-0 cursor-pointer"
+                  title="Unlock partner selection"
+                >
+                  Wijzigen
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <select
+                  value={row.partner}
+                  onChange={(e) => handleInlinePartnerChange(row.id, e.target.value)}
+                  className="flex-1 px-2 py-1 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body font-semibold text-dark/80 focus:outline-none focus:ring-1 focus:ring-primary/40 cursor-pointer"
+                >
+                  <option value="Unassigned">{language === 'EN' ? 'Unassigned' : 'Niet toegewezen'}</option>
+                  {partnersList.map((p, idx) => (
+                    <option key={idx} value={p.name}>{p.name} ({p.company})</option>
+                  ))}
+                </select>
+                {row.partner && row.partner !== 'Unassigned' && (
+                  <button
+                    onClick={() => handleConfirmPartnerForGood(row.id)}
+                    className="px-2 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-[10px] font-bold whitespace-nowrap shadow-xs cursor-pointer"
+                    title="Confirm Partner for Good & Lock"
+                  >
+                    ✓ Bevestig
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      }
     },
     { 
       header: 'Progress', 
@@ -475,6 +552,39 @@ export default function Projects() {
       )
     },
     { header: 'Deadline', accessor: 'deadline' },
+    {
+      header: 'Klantenbetalingen',
+      style: { minWidth: '170px' },
+      render: (row) => {
+        const orderVal = Number(row.numericAmount || row.amount || row.price || 6990);
+        const settlement = calculateOrderSettlement({ id: row.id, totalAmount: orderVal }, bankTxns);
+        return (
+          <div className="font-mono text-xs leading-tight">
+            <p className="text-emerald-700 font-bold">Ontvangen: € {settlement.totalReceived.toLocaleString('nl-NL')}</p>
+            <p className={`font-bold ${settlement.outstanding > 0 ? 'text-amber-800' : 'text-emerald-900'}`}>
+              {settlement.outstanding > 0 ? `Open: € ${settlement.outstanding.toLocaleString('nl-NL')}` : '✓ Betaald / Settled'}
+            </p>
+          </div>
+        );
+      }
+    },
+    {
+      header: 'Inkoop & Project Marge',
+      style: { minWidth: '180px' },
+      render: (row) => {
+        const orderVal = Number(row.numericAmount || row.amount || row.price || 6990);
+        const linkedPurchasing = bankTxns.filter(t => t.category === UNIFIED_PURCHASING_CATEGORY && (t.projectRef === row.id || t.orderId === row.id || t.projectId === row.id || (t.customerName && (row.customer || '').toLowerCase().includes(t.customerName.toLowerCase()))));
+        const marginInfo = calculateProjectMarginWithPurchasing(orderVal, linkedPurchasing);
+        return (
+          <div className="text-[11px] leading-tight space-y-1 font-mono">
+            <p className="text-blue-950 font-medium">Inkoop: € {marginInfo.totalPurchasing.toLocaleString('nl-NL')}</p>
+            <span className="inline-block px-2 py-0.5 bg-emerald-100 text-emerald-900 font-bold rounded-md">
+              Marge: € {marginInfo.projectMargin.toLocaleString('nl-NL')} ({marginInfo.marginPercentage}%)
+            </span>
+          </div>
+        );
+      }
+    },
     { 
       header: 'Status', 
       render: (row) => (
@@ -574,6 +684,39 @@ export default function Projects() {
       }
     },
     { header: language === 'EN' ? 'Expected Delivery' : 'Verwachte Levering', accessor: 'deadline' },
+    {
+      header: 'Betalingsstatus',
+      style: { minWidth: '170px' },
+      render: (row) => {
+        const orderVal = Number(row.numericAmount || row.amount || row.price || 6990);
+        const settlement = calculateOrderSettlement({ id: row.id, totalAmount: orderVal }, bankTxns);
+        return (
+          <div className="font-mono text-xs leading-tight">
+            <p className="text-emerald-700 font-bold">Ontvangen: € {settlement.totalReceived.toLocaleString('nl-NL')}</p>
+            <p className={`font-bold ${settlement.outstanding > 0 ? 'text-amber-800' : 'text-emerald-900'}`}>
+              {settlement.outstanding > 0 ? `Open: € ${settlement.outstanding.toLocaleString('nl-NL')}` : '✓ Betaald / Settled'}
+            </p>
+          </div>
+        );
+      }
+    },
+    {
+      header: 'Inkoop & Project Marge',
+      style: { minWidth: '180px' },
+      render: (row) => {
+        const orderVal = Number(row.numericAmount || row.amount || row.price || 6990);
+        const linkedPurchasing = bankTxns.filter(t => t.category === UNIFIED_PURCHASING_CATEGORY && (t.projectRef === row.id || t.orderId === row.id || t.projectId === row.id || (t.customerName && (row.customer || '').toLowerCase().includes(t.customerName.toLowerCase()))));
+        const marginInfo = calculateProjectMarginWithPurchasing(orderVal, linkedPurchasing);
+        return (
+          <div className="text-[11px] leading-tight space-y-1 font-mono">
+            <p className="text-blue-950 font-medium">Inkoop: € {marginInfo.totalPurchasing.toLocaleString('nl-NL')}</p>
+            <span className="inline-block px-2 py-0.5 bg-emerald-100 text-emerald-900 font-bold rounded-md">
+              Marge: € {marginInfo.projectMargin.toLocaleString('nl-NL')} ({marginInfo.marginPercentage}%)
+            </span>
+          </div>
+        );
+      }
+    },
     {
       header: language === 'EN' ? 'Actions' : 'Acties',
       render: (row) => (
