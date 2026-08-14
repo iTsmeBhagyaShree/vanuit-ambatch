@@ -690,10 +690,10 @@ Kenmerk: EREF-2026-9006`;
         </div>
 
         {/* Tab Switcher Buttons */}
-        <div className="flex items-center gap-2 bg-[#EDE8DF] p-1.5 rounded-xl border border-[#C4BEB3]">
+        <div className="flex items-center gap-1.5 sm:gap-2 bg-[#EDE8DF] p-1.5 rounded-xl border border-[#C4BEB3] w-full md:w-auto overflow-x-auto max-w-full no-scrollbar">
           <button
             onClick={() => setActiveTab('transactions')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap flex-1 sm:flex-none justify-center ${
               activeTab === 'transactions' ? 'bg-primary text-cream shadow-sm' : 'text-dark/70 hover:text-primary'
             }`}
           >
@@ -703,7 +703,7 @@ Kenmerk: EREF-2026-9006`;
 
           <button
             onClick={() => setActiveTab('import')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap flex-1 sm:flex-none justify-center ${
               activeTab === 'import' ? 'bg-primary text-cream shadow-sm' : 'text-dark/70 hover:text-primary'
             }`}
           >
@@ -713,7 +713,7 @@ Kenmerk: EREF-2026-9006`;
 
           <button
             onClick={() => setActiveTab('review')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 relative ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap flex-1 sm:flex-none justify-center relative ${
               activeTab === 'review' ? 'bg-primary text-cream shadow-sm' : 'text-dark/70 hover:text-primary'
             }`}
           >
@@ -729,7 +729,7 @@ Kenmerk: EREF-2026-9006`;
       </div>
 
       {/* Financial Overview Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <Card noPadding className="p-3 bg-[#F8F7F4]">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold text-dark/50 uppercase tracking-wider">Total Bank Balance</span>
@@ -763,7 +763,7 @@ Kenmerk: EREF-2026-9006`;
         <Card noPadding className="p-3 bg-[#F8F7F4]">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold text-dark/50 uppercase tracking-wider">Review Items (Pending)</span>
-            <AlertTriangle className="w-4 h-4 text-amber-600" />
+            <AlertTriangle className="w-4 h-4 text-amber-500" />
           </div>
           <p className="text-lg font-heading font-bold text-amber-800 mt-1 font-mono">
             {reviewItemsCount} Transactions
@@ -778,7 +778,7 @@ Kenmerk: EREF-2026-9006`;
         <Card p="p-4" className="space-y-4">
           {/* Filter Bar */}
           <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 bg-[#EDE8DF]/40 p-3 rounded-xl border border-[#D6CFC2]">
-            <div className="relative flex-1">
+            <div className="relative flex-1 min-w-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark/40" />
               <input 
                 type="text" 
@@ -789,12 +789,12 @@ Kenmerk: EREF-2026-9006`;
               />
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 text-xs">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 text-xs w-full lg:w-auto">
               {/* Type Filter */}
               <select
                 value={typeFilter}
                 onChange={e => setTypeFilter(e.target.value)}
-                className="px-2.5 py-1.5 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg font-semibold text-dark text-xs focus:outline-none"
+                className="w-full sm:w-auto px-2.5 py-1.5 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg font-semibold text-dark text-xs focus:outline-none"
               >
                 <option value="All">All Types (Credit/Debit)</option>
                 <option value="Credit">Credit (+)</option>
@@ -805,7 +805,7 @@ Kenmerk: EREF-2026-9006`;
               <select
                 value={categoryFilter}
                 onChange={e => setCategoryFilter(e.target.value)}
-                className="px-2.5 py-1.5 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg font-semibold text-dark text-xs focus:outline-none max-w-[200px] truncate"
+                className="w-full sm:w-auto px-2.5 py-1.5 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg font-semibold text-dark text-xs focus:outline-none max-w-full sm:max-w-[200px] truncate"
               >
                 <option value="All">All Categories</option>
                 {BOOKKEEPING_CATEGORIES.map(cat => (
@@ -817,7 +817,7 @@ Kenmerk: EREF-2026-9006`;
               <select
                 value={reviewStatusFilter}
                 onChange={e => setReviewStatusFilter(e.target.value)}
-                className="px-2.5 py-1.5 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg font-semibold text-dark text-xs focus:outline-none"
+                className="w-full sm:w-auto px-2.5 py-1.5 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg font-semibold text-dark text-xs focus:outline-none"
               >
                 <option value="All">All Statuses</option>
                 <option value="Recognized">Recognized</option>
@@ -826,12 +826,14 @@ Kenmerk: EREF-2026-9006`;
                 <option value="Manually Reclassified">Manually Reclassified</option>
               </select>
 
-              <Button size="sm" icon={Plus} onClick={() => setModalOpen(true)} className="py-1.5 text-xs font-bold">
-                + Transaction
-              </Button>
-              <Button size="sm" icon={UploadCloud} onClick={() => setImportModalOpen(true)} className="py-1.5 text-xs font-bold bg-emerald-800 hover:bg-emerald-900 text-white border-0">
-                Import Statement
-              </Button>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Button size="sm" icon={Plus} onClick={() => setModalOpen(true)} className="flex-1 sm:flex-none py-1.5 text-xs font-bold justify-center">
+                  + Transaction
+                </Button>
+                <Button size="sm" icon={UploadCloud} onClick={() => setImportModalOpen(true)} className="flex-1 sm:flex-none py-1.5 text-xs font-bold bg-emerald-800 hover:bg-emerald-900 text-white border-0 justify-center">
+                  Import Statement
+                </Button>
+              </div>
             </div>
           </div>
 

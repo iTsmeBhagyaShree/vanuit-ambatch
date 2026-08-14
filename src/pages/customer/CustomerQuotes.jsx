@@ -241,26 +241,24 @@ export default function CustomerQuotes() {
 
                 {/* Row 3: Itemized Breakdown (Minimal) */}
                 <div className="bg-white/80 rounded-xl border border-[#D6CFC2]/60 divide-y divide-[#D6CFC2]/40 text-xs">
-                  {itemsList.map((item, i) => (
-                    <div key={i} className="p-2 sm:p-2.5 flex justify-between items-center gap-3">
-                      <div className="min-w-0 flex items-center gap-1.5">
-                        <span className="text-dark/40 font-mono text-[10px] flex-shrink-0">({item.quantity || 1}x)</span>
-                        <span className="font-semibold text-dark text-xs truncate">
-                          {language === 'EN'
-                            ? (item.description || '')
-                                .replace(/Massief Teakhouten Frame met Zwart Polijst Beton werkblad/g, 'Solid Teak Frame with Black Polished Concrete Worktop')
-                                .replace(/Ingebouwde Kamado BBQ RVS Uitsparing & Gasfornuis Module/g, 'Built-in Kamado BBQ Stainless Cutout & Gas Stove Module')
-                                .replace(/Luxe RVS Kraan, Zwarte Spoelbak & Slangaansluitingen/g, 'Luxury Stainless Tap, Black Sink & Hose Connections')
-                                .replace(/Offerte Inventarisatie & Maatwerk Ontwerp Buitenkeuken/g, 'Quote Inventory & Custom Outdoor Kitchen Design')
-                                .replace(/Buitenkeuken Teak Hout Frame 4m/g, 'Outdoor Kitchen Teak Wood Frame 4m')
-                                .replace(/Beton Aanrechtblad met Kamado Uitsparing/g, 'Concrete Worktop with Kamado Cutout')
-                                .replace(/Aanrechtblad & Afwerking/g, 'Worktop & Finishing')
-                                .replace(/Triple 240L Klikobox Gepoedercoat Stalen Frame/g, 'Triple 240L Bin Storage Powder Coated Steel Frame')
-                                .replace(/Rustiek Eiken Gebint Constructie/g, 'Rustic Oak Truss Construction')
-                                .replace(/EPDM Daksysteem & Zinken Hemelwaterafvoer/g, 'EPDM Roofing System & Zinc Rainwater Drainage')
-                            : item.description}
-                        </span>
-                      </div>
+                  {itemsList.map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-center gap-2 p-2 sm:p-2.5 text-xs font-body min-w-0">
+                      <span className="text-dark/80 truncate min-w-0 flex-1 pr-1">
+                        {item.quantity ? `(${item.quantity}x) ` : ''}
+                        {language === 'EN' 
+                          ? (item.description || '')
+                              .replace(/Massief Teakhouten Frame met Zwart Polijst Beton werkblad/g, 'Solid Teak Frame with Black Polished Concrete Worktop')
+                              .replace(/Ingebouwde Kamado BBQ RVS Uitsparing & Gasfornuis Module/g, 'Built-in Kamado BBQ Stainless Cutout & Gas Stove Module')
+                              .replace(/Luxe RVS Kraan, Zwarte Spoelbak & Slangaansluitingen/g, 'Luxury Stainless Tap, Black Sink & Hose Connections')
+                              .replace(/Offerte Inventarisatie & Maatwerk Ontwerp Buitenkeuken/g, 'Quote Inventory & Custom Outdoor Kitchen Design')
+                              .replace(/Buitenkeuken Teak Hout Frame 4m/g, 'Outdoor Kitchen Teak Wood Frame 4m')
+                              .replace(/Beton Aanrechtblad met Kamado Uitsparing/g, 'Concrete Worktop with Kamado Cutout')
+                              .replace(/Aanrechtblad & Afwerking/g, 'Worktop & Finishing')
+                              .replace(/Triple 240L Klikobox Gepoedercoat Stalen Frame/g, 'Triple 240L Bin Storage Powder Coated Steel Frame')
+                              .replace(/Rustiek Eiken Gebint Constructie/g, 'Rustic Oak Truss Construction')
+                              .replace(/EPDM Daksysteem & Zinken Hemelwaterafvoer/g, 'EPDM Roofing System & Zinc Rainwater Drainage')
+                          : item.description}
+                      </span>
                       <span className="font-mono font-bold text-primary whitespace-nowrap text-xs flex-shrink-0">
                         € {((item.quantity || 1) * (item.unitPrice || 0)).toLocaleString()}
                       </span>
@@ -274,7 +272,7 @@ export default function CustomerQuotes() {
                     <FileText className="w-4 h-4 text-accent flex-shrink-0" />
                     <span>{language === 'EN' ? 'Official 6-Page Branded Proposal PDF' : 'Officiële 6-Pagina Merk Offerte PDF'}</span>
                   </div>
-                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <div className="grid grid-cols-1 xs:grid-cols-3 sm:flex sm:items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
                     <Button
                       variant="outline"
                       size="sm"
@@ -283,7 +281,7 @@ export default function CustomerQuotes() {
                         navigator.clipboard.writeText(link);
                         showToast(language === 'EN' ? 'Proposal link copied to clipboard!' : 'Offerte link gekopieerd naar klembord!');
                       }}
-                      className="flex-1 sm:flex-none text-[11px] py-1 px-2.5 border-[#C4BEB3] text-dark hover:bg-white bg-white/60"
+                      className="w-full sm:w-auto text-[11px] py-1.5 px-2.5 border-[#C4BEB3] text-dark hover:bg-white bg-white/60 justify-center"
                       title={language === 'EN' ? 'Copy shareable URL link' : 'Kopieer deelbare link'}
                     >
                       <Copy className="w-3.5 h-3.5 mr-1" />
@@ -295,7 +293,7 @@ export default function CustomerQuotes() {
                         const fn = downloadDirectPdfFile(quote);
                         showToast(language === 'EN' ? `✓ Downloaded ${fn}!` : `✓ ${fn} gedownload!`);
                       }}
-                      className="flex-1 sm:flex-none text-[11px] font-bold py-1 px-3 bg-[#D97706] hover:bg-[#B45309] text-white shadow-xs cursor-pointer"
+                      className="w-full sm:w-auto text-[11px] font-bold py-1.5 px-3 bg-[#D97706] hover:bg-[#B45309] text-white shadow-xs cursor-pointer justify-center"
                     >
                       <Download className="w-3.5 h-3.5 mr-1" />
                       {language === 'EN' ? 'Download PDF' : 'Download PDF'}
@@ -304,7 +302,7 @@ export default function CustomerQuotes() {
                       href={`/offerte/${quote.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1 text-[11px] font-bold py-1 px-3 rounded-lg bg-[#3E4E36] hover:bg-[#2D3528] text-white transition-colors shadow-xs"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-1 text-[11px] font-bold py-1.5 px-3 rounded-lg bg-[#3E4E36] hover:bg-[#2D3528] text-white transition-colors shadow-xs"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
                       {language === 'EN' ? 'Open 6-Page PDF' : 'Open 6-Pagina PDF'}

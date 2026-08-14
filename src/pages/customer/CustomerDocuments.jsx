@@ -159,28 +159,28 @@ export default function CustomerDocuments() {
         <div className="space-y-3 mt-2">
           {sharedDocuments.map((doc) => (
             <div key={doc.id} className="p-4 bg-[#F8F7F4] border border-[#D6CFC2]/60 rounded-xl hover:border-primary/40 transition-all flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-              <div className="flex items-start gap-3 min-w-0">
+              <div className="flex items-start gap-3 min-w-0 flex-1 w-full">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 mt-0.5">
                   <FileText className="w-5 h-5" />
                 </div>
-                <div>
+                <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h4 className="font-bold text-sm text-dark font-body">{doc.title}</h4>
                     <Badge variant="primary" className="text-[9px]">{doc.category}</Badge>
                   </div>
-                  <p className="text-xs text-dark/60 mt-0.5">{doc.description}</p>
-                  <p className="text-[10px] text-dark/40 font-mono mt-1">
+                  <p className="text-xs text-dark/60 mt-0.5 leading-snug break-words">{doc.description}</p>
+                  <p className="text-[10px] text-dark/40 font-mono mt-1 break-words">
                     {language === 'EN' ? 'File:' : 'Bestand:'} {doc.name} • {doc.size} • {language === 'EN' ? 'Date:' : 'Datum:'} {doc.date}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 self-end sm:self-auto flex-shrink-0 w-full sm:w-auto justify-end">
-                <Button size="sm" variant="outline" onClick={() => setSelectedBlueprint(doc)} className="text-xs py-1.5">
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-[#D6CFC2]/40">
+                <Button size="sm" variant="outline" onClick={() => setSelectedBlueprint(doc)} className="flex-1 sm:flex-none text-xs py-1.5 justify-center">
                   <Eye className="w-3.5 h-3.5 mr-1" />
                   {language === 'EN' ? 'View' : 'Bekijk'}
                 </Button>
-                <Button size="sm" onClick={() => handleDownloadPDF(doc.title, doc.name, false)} className="text-xs py-1.5 bg-primary text-white">
+                <Button size="sm" onClick={() => handleDownloadPDF(doc.title, doc.name, false)} className="flex-1 sm:flex-none text-xs py-1.5 bg-primary text-white justify-center">
                   <Download className="w-3.5 h-3.5 mr-1" />
                   {language === 'EN' ? 'Download PDF' : 'Download PDF'}
                 </Button>
