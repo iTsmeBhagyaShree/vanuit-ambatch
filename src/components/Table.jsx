@@ -58,13 +58,13 @@ export default function Table({ columns, data, keyField = 'id', getRowClassName,
                   );
                 }
 
-                // 3. Regular Data Columns: Render as key-value pairs
+                // 3. Regular Data Columns: Render as key-value pairs with responsive wrapping
                 return (
-                  <div key={cIdx} className="flex justify-between items-start gap-3 min-w-0">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-dark/50 flex-shrink-0 pt-0.5">
+                  <div key={cIdx} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 sm:gap-3 min-w-0 py-0.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-dark/50 flex-shrink-0">
                       {headerText}
                     </span>
-                    <div className="text-right font-medium text-dark/90 min-w-0 break-words flex-1">
+                    <div className="text-left sm:text-right font-medium text-dark/90 min-w-0 break-words flex-1 w-full sm:w-auto">
                       {cellContent}
                     </div>
                   </div>

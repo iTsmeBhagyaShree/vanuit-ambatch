@@ -169,9 +169,9 @@ export default function TopNav() {
           className="h-6 w-6 object-contain rounded-md hidden sm:block lg:hidden flex-shrink-0" 
         />
         {crumbs.map((crumb, i) => (
-          <span key={i} className="flex items-center gap-1.5 min-w-0">
+          <span key={i} className={`flex items-center gap-1.5 min-w-0 ${i < crumbs.length - 1 ? 'hidden sm:flex' : 'flex'}`}>
             {i > 0 && <span className="text-dark/25 flex-shrink-0">/</span>}
-            <span className={`${i === crumbs.length - 1 ? 'font-semibold text-dark/80' : 'text-dark/40'} truncate`}>
+            <span className={`${i === crumbs.length - 1 ? 'font-bold text-dark text-[11px] sm:text-xs' : 'text-dark/40'} truncate`}>
               {crumb}
             </span>
           </span>
