@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bell, Search, ChevronDown, User, LogOut, Settings, Check, Clock, FileText, Briefcase, UserPlus, Globe, Camera } from 'lucide-react';
+import { Bell, Search, ChevronDown, User, LogOut, Settings, Check, Clock, FileText, Briefcase, UserPlus, Globe, Camera, Menu } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../context/LanguageContext';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -152,8 +152,17 @@ export default function TopNav() {
 
   return (
     <header className="h-14 bg-[#EDE8DF] border-b border-[#D6CFC2] flex items-center justify-between px-3 sm:px-4 lg:px-6 z-[99999] flex-shrink-0 relative">
-      {/* Breadcrumb with Mini Brand Monogram */}
-      <div className="flex items-center gap-1.5 text-xs text-dark/50 font-body ml-[70px] sm:ml-20 lg:ml-0 min-w-0 truncate flex-1 mr-2">
+      {/* Mobile Hamburger Button + Breadcrumb */}
+      <div className="flex items-center gap-2 text-xs text-dark/50 font-body min-w-0 truncate flex-1 mr-2">
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new Event('app_toggle_mobile_sidebar'))}
+          className="sm:hidden flex items-center justify-center p-2 bg-[#3E4E36] hover:bg-[#2F3C29] text-white rounded-xl shadow-xs cursor-pointer flex-shrink-0"
+          title="Open Menu"
+        >
+          <Menu className="w-4 h-4" />
+        </button>
+
         <img 
           src="/mini logo2.png" 
           alt="VA Monogram" 

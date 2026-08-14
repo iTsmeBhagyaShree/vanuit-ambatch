@@ -28,6 +28,12 @@ export default function Sidebar({ role }) {
     });
   };
 
+  useEffect(() => {
+    const handleToggleMobile = () => setMobileOpen(true);
+    window.addEventListener('app_toggle_mobile_sidebar', handleToggleMobile);
+    return () => window.removeEventListener('app_toggle_mobile_sidebar', handleToggleMobile);
+  }, []);
+
   const toggleDropdown = (name) => {
     setOpenDropdowns(prev => ({ ...prev, [name]: !prev[name] }));
   };
