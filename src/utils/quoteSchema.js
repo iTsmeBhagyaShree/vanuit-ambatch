@@ -6,12 +6,17 @@ export function createDefaultQuote(customerData = null, existingQuote = null) {
   const today = new Date().toISOString().split('T')[0];
   const validUntilDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-  const custName = customerData?.name || existingQuote?.customer || 'Bjorn Valk';
-  const firstName = custName.split(' ')[0] || 'Bjorn';
-  const city = customerData?.city || customerData?.location || existingQuote?.deliveryLocation || existingQuote?.city || 'Dongen';
-  const email = customerData?.email || customerData?.customerEmail || `${firstName.toLowerCase()}@gmail.com`;
-  const phone = customerData?.phone || customerData?.customerPhone || '+31 6 12345678';
-  const address = customerData?.address || 'Keizersgracht 420';
+  // customer can be a string OR an object {name, city, ...} from QuoteEditor
+  const existingCustomer = existingQuote?.customer;
+  const existingCustomerName = existingCustomer
+    ? (typeof existingCustomer === 'object' ? existingCustomer.name : existingCustomer)
+    : null;
+  const custName = customerData?.name || existingCustomerName || 'Bjorn Valk';
+  const firstName = (typeof custName === 'string' ? custName : '').split(' ')[0] || 'Bjorn';
+  const city = customerData?.city || customerData?.location || existingQuote?.deliveryLocation || existingQuote?.city || (typeof existingCustomer === 'object' ? existingCustomer.city : null) || 'Dongen';
+  const email = customerData?.email || customerData?.customerEmail || (typeof existingCustomer === 'object' ? existingCustomer.email : null) || `${firstName.toLowerCase()}@gmail.com`;
+  const phone = customerData?.phone || customerData?.customerPhone || (typeof existingCustomer === 'object' ? existingCustomer.phone : null) || '+31 6 12345678';
+  const address = customerData?.address || (typeof existingCustomer === 'object' ? existingCustomer.address : null) || 'Keizersgracht 420';
 
   const defaultWood = WOOD_LIBRARY[0]; // Thermo Fraké
   const defaultProductType = 'Outdoor kitchen';

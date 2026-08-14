@@ -211,16 +211,20 @@ export default function Offerte6PagePDF({ quote }) {
           {/* 3 Photo Strip */}
           <div className="grid grid-cols-3 gap-[2px] -mx-6 sm:-mx-10 mt-4 mb-2">
             {coverPhotos.map((pImg, idx) => (
-              <img
+              <div
                 key={idx}
-                src={pImg || (idx === 1 ? '/dasbordes images.png' : '/outdoor_project_card.png')}
-                alt={`Cover Photo ${idx + 1}`}
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = idx === 1 ? '/dasbordes images.png' : '/outdoor_project_card.png';
-                }}
-                className="h-40 sm:h-52 w-full object-cover"
-              />
+                className="h-36 sm:h-44 w-full overflow-hidden bg-[#2D3A27] flex-shrink-0"
+              >
+                <img
+                  src={pImg || (idx === 1 ? '/dasbordes images.png' : '/outdoor_project_card.png')}
+                  alt={`Cover Photo ${idx + 1}`}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = idx === 1 ? '/dasbordes images.png' : '/outdoor_project_card.png';
+                  }}
+                  className="h-full w-full object-cover object-center"
+                />
+              </div>
             ))}
           </div>
 

@@ -34,6 +34,7 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
   const [showLibraryModal, setShowLibraryModal] = useState(false);
   const [letterExpanded, setLetterExpanded] = useState(false);
   const [uspExpanded, setUspExpanded] = useState(false);
+  const [showSendModal, setShowSendModal] = useState(false);
 
   // Auto-save effect whenever quote state updates
   useEffect(() => {
@@ -337,7 +338,7 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
       {/* Toast Notification */}
       <AnimatePresence>
         {toastMsg && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-4 right-4 z-[999999] flex items-center gap-2 bg-[#3E4E36] text-white px-4 py-3 rounded-xl shadow-2xl text-xs">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-20 right-4 z-[999999] flex items-center gap-2 bg-[#3E4E36] text-white px-4 py-3 rounded-xl shadow-2xl text-xs">
             <CheckCircle className="w-4 h-4 text-green-400" />
             {toastMsg}
           </motion.div>
@@ -1757,13 +1758,15 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
 
                   <button
                     type="button"
-                    onClick={() => {
-                      onSaveQuote({ ...quote, status: 'Verzonden' }, true);
-                      showToast(`Quote ${quote.id} marked as Verzonden!`);
-                    }}
-                    className="px-4 py-2.5 bg-[#33422C] text-[#FDFBF7] font-bold text-xs rounded-xl shadow-xs hover:bg-[#283523] transition-all cursor-pointer font-mono flex items-center gap-2"
+                    disabled={quote?.status === 'Verzonden' || quote?.status === 'Approved' || quote?.status === 'Geaccepteerd'}
+                    onClick={() => setShowSendModal(true)}
+                    className={`px-4 py-2.5 font-bold text-xs rounded-xl shadow-xs transition-all font-mono flex items-center gap-2 ${
+                      quote?.status === 'Verzonden' || quote?.status === 'Approved' || quote?.status === 'Geaccepteerd'
+                        ? 'bg-emerald-700 text-white cursor-not-allowed opacity-80'
+                        : 'bg-[#33422C] text-[#FDFBF7] hover:bg-[#283523] cursor-pointer'
+                    }`}
                   >
-                    <span>✈ Send → status "Verzonden"</span>
+                    <span>{quote?.status === 'Verzonden' ? '✅ Sent' : quote?.status === 'Approved' || quote?.status === 'Geaccepteerd' ? '✅ Approved' : '✈ Send → status "Sent"'}</span>
                   </button>
 
                   <button
@@ -1841,6 +1844,104 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
         </div>
 
       </div>
+
+      {/* SEND CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {showSendModal && (
+          <div className="fixed inset-0 z-[999999] bg-dark/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-[#EDE8DF] border border-[#C4BEB3] rounded-2xl p-6 w-full max-w-md space-y-5 shadow-2xl"
+            >
+              {/* Header */}
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-serif font-bold text-lg text-primary">Send Quotation</h3>
+                  <p className="text-xs text-dark/60 font-body mt-0.5">Confirm before sending</p>
+                </div>
+                <button onClick={() => setShowSendModal(false)} className="text-dark/40 hover:text-dark cursor-pointer"><X className="w-5 h-5" /></button>
+              </div>
+
+              {/* Quote Summary */}
+              <div className="bg-white rounded-xl border border-[#D6CFC2] p-4 space-y-2.5 text-xs font-body">
+                <div className="flex justify-between items-center">
+                  <span className="text-dark/60 font-mono uppercase text-[10px] font-bold">Quote ID</span>
+                  <span className="font-bold text-primary font-mono">{quote.id}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-dark/60 font-mono uppercase text-[10px] font-bold">Client</span>
+                  <span className="font-bold text-dark">{quote.customer?.name || 'Bjorn Valk'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-dark/60 font-mono uppercase text-[10px] font-bold">E-mail</span>
+                  <span className="font-bold text-dark">{quote.customer?.email || '—'}</span>
+                </div>
+                <div className="flex justify-between items-center border-t border-[#D6CFC2] pt-2 mt-1">
+                  <span className="text-dark/60 font-mono uppercase text-[10px] font-bold">Total incl. VAT</span>
+                  <span className="font-bold text-primary text-sm">€ {calculateTotals(quote?.investment?.lineItems || []).totalInclVat.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+
+              {/* Approval link preview */}
+              <div className="bg-[#F8F7F4] rounded-xl border border-[#D6CFC2] p-3.5 space-y-1.5">
+                <span className="text-[10px] font-mono font-bold text-dark/60 uppercase tracking-wider block">Approval Link (for client)</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono text-primary truncate flex-1 bg-white border border-[#D6CFC2] rounded-lg px-2.5 py-1.5">
+                    {window.location.origin}/offerte/{quote.id}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/offerte/${quote.id}`);
+                      showToast('Link copied!');
+                    }}
+                    className="px-2.5 py-1.5 bg-white border border-[#D6CFC2] rounded-lg text-xs font-bold text-dark hover:bg-[#EDE8DF] cursor-pointer font-mono"
+                  >
+                    📋 Copy
+                  </button>
+                </div>
+              </div>
+
+              {/* What happens info */}
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 text-xs text-emerald-900 space-y-1 font-body">
+                <p className="font-bold">✅ What happens after confirming:</p>
+                <ul className="space-y-0.5 text-emerald-800">
+                  <li>• Status changes from <strong>Draft → Sent</strong></li>
+                  <li>• Quote is saved in the system</li>
+                  <li>• Client can view the proposal via the approval link</li>
+                  <li>• Quote is locked after client approval</li>
+                </ul>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowSendModal(false)}
+                  className="flex-1 px-4 py-2.5 bg-white border border-[#D6CFC2] text-dark font-bold text-xs rounded-xl hover:bg-[#EDE8DF] cursor-pointer font-mono"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const updatedQuote = { ...quote, status: 'Verzonden' };
+                    setQuote(updatedQuote);
+                    onSaveQuote(updatedQuote, true);
+                    setShowSendModal(false);
+                    showToast(`✅ Quote ${quote.id} sent to ${quote.customer?.name || 'client'}!`);
+                  }}
+                  className="flex-1 px-4 py-2.5 bg-[#33422C] text-[#FDFBF7] font-bold text-xs rounded-xl hover:bg-[#283523] cursor-pointer font-mono flex items-center justify-center gap-2"
+                >
+                  <span>✈ Confirm & Send</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* PRODUCT LIBRARY MODAL */}
       <AnimatePresence>
