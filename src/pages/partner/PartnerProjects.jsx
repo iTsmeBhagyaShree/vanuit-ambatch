@@ -53,15 +53,15 @@ export default function PartnerProjects() {
       partner: p.partner || (idx % 2 === 0 ? 'Sven Hoek' : 'Lars Jansen')
     }));
 
-    // STRICTLY FILTER: Only Assigned Projects for current logged in partner
-    const assignedOnly = enriched.filter(p => (p.partner || '').toLowerCase().includes(currentPartnerName.toLowerCase()) || p.partner === 'Sven Hoek');
+    // STRICTLY FILTER: Only ASSIGNED and CONFIRMED (isPartnerConfirmed === true) Projects for current logged in partner
+    // Unconfirmed projects (isPartnerConfirmed !== true) are STRICTLY HIDDEN from the partner until Admin confirms!
+    const assignedAndConfirmedOnly = enriched.filter(p => {
+      const isAssigned = (p.partner || '').toLowerCase().includes(currentPartnerName.toLowerCase()) || (p.partner || '').includes('Sven Hoek');
+      const isConfirmed = p.isPartnerConfirmed === true || p.partnerStatus === 'Final / Locked';
+      return isAssigned && isConfirmed;
+    });
     
-    // Fallback if none assigned
-    if (assignedOnly.length === 0) {
-      setProjects(enriched.slice(0, 3));
-    } else {
-      setProjects(assignedOnly);
-    }
+    setProjects(assignedAndConfirmedOnly);
   }, []);
 
   const showToast = (msg) => {
