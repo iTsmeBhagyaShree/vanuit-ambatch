@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../context/LanguageContext';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
@@ -34,11 +34,30 @@ export default function Login() {
       return;
     }
 
-    const user = DEMO_USERS[email];
-    if (user && user.password === password) {
+    const inputEmail = (email || '').trim().toLowerCase();
+    
+    // 1. Check static demo accounts
+    let user = DEMO_USERS[inputEmail];
+    
+    // 2. Check dynamic system users created in User Management
+    if (!user) {
+      try {
+        const savedUsers = JSON.parse(localStorage.getItem('app_system_users') || '[]');
+        const found = savedUsers.find(u => (u.email || '').trim().toLowerCase() === inputEmail && u.status === 'Actief');
+        if (found) {
+          user = {
+            password: found.password || '123456',
+            role: found.role || 'customer',
+            name: found.name || 'User'
+          };
+        }
+      } catch (err) {}
+    }
+
+    if (user && (user.password === password || (!password && user.password === ''))) {
       login(user.role, user.name);
     } else {
-      setError('Invalid credentials. Use demo credentials below.');
+      setError(language === 'EN' ? 'Invalid credentials. Please check your email and password.' : 'Ongeldige inloggegevens. Controleer uw e-mailadres en wachtwoord.');
     }
   };
 

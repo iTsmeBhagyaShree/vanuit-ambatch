@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import en from '../i18n/en.json';
 import nl from '../i18n/nl.json';
 
@@ -679,15 +679,41 @@ export function LanguageProvider({ children }) {
     return localStorage.getItem('app_language') || 'EN';
   });
 
+  // ── Google Translate integration ────────────────────────────────
+  // When language changes, forward it to Google Translate so any
+  // text not covered by t() keys is also translated at the DOM level.
+  // The existing t() / tStatus / DICTIONARY system is unchanged.
   const setLanguage = (lang) => {
     setLanguageState(lang);
     localStorage.setItem('app_language', lang);
+
+    // Forward to Google Translate (defined in index.html)
+    if (typeof window.googleTranslatePage === 'function') {
+      // Google Translate uses lowercase ISO codes: 'en' | 'nl'
+      const gtLang = lang === 'NL' ? 'nl' : 'en';
+      window.googleTranslatePage(gtLang);
+    }
   };
+
+  // Re-apply Google Translate on initial page load / navigation if NL was saved.
+  // This ensures language persists across React Router navigations and refreshes.
+  useEffect(() => {
+    const saved = localStorage.getItem('app_language') || 'EN';
+    if (saved === 'NL' && typeof window.googleTranslatePage === 'function') {
+      // Small delay to allow Google Translate SDK to finish initialising
+      const timer = setTimeout(() => {
+        window.googleTranslatePage('nl');
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+  // ── End Google Translate integration ────────────────────────────
 
   // Do not mutate the rendered DOM to translate text. The former
   // MutationObserver solution repeatedly scanned the entire application after
   // DOM updates and could freeze the browser. Every screen must render its
   // labels through t('...') instead, which is deterministic and responsive.
+
 
   // Nested object lookup helper e.g. t('common.search') or t('dashboard.totalLeads')
   const t = (path, params = {}) => {

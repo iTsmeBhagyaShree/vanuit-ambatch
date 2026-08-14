@@ -5,6 +5,8 @@ import Badge from '../../components/Badge';
 import Button from '../../components/Button';
 import ProjectTracker from '../../components/ProjectTracker';
 import { Plus, Search, Filter, Trash2, Edit2, X, CheckCircle, RotateCcw, Compass, MapPin, Calendar, UserCheck, Layers, FileText, CheckSquare, Sparkles, Truck, ShoppingBag, Download, Camera, Image as ImageIcon } from 'lucide-react';
+import { downloadBlueprintPdf } from '../../utils/pdfGenerator';
+
 import { useNavigate } from 'react-router-dom';
 import { mockProjects, mockLeads, mockPartners } from '../../utils/mockData';
 import { safeSetItem, compressImage } from '../../utils/storageHelper';
@@ -765,112 +767,11 @@ export default function Projects() {
   const columns = mainColumns;
   const hasActiveFilters = searchQuery !== '' || statusFilter !== 'All' || sortBy !== 'deadline';
 
-  // Real Branded Printable PDF Document & Save to PDF trigger
+  // Real Branded PDF Blueprint Document — direct download via jsPDF (no print dialog)
   const handleDownloadBlueprintPdf = (project) => {
     if (!project) return;
-    const fileName = `BLU-${project.id || '2001'}-SPEC.pdf`;
-    
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      showToast(`Pop-up geblokkeerd! Download: ${fileName}`);
-      return;
-    }
-
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>${fileName}</title>
-          <style>
-            body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; color: #4A4A43; background: #fff; max-width: 800px; margin: 0 auto; }
-            .header { border-bottom: 3px solid #3E4E36; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: flex-end; }
-            .brand { color: #3E4E36; font-size: 26px; font-weight: bold; margin: 0; font-family: 'Georgia', serif; }
-            .subtitle { color: #70624F; font-size: 13px; font-weight: 600; margin-top: 4px; }
-            .badge { background: #3E4E36; color: #EDE8DF; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-family: monospace; font-weight: bold; }
-            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
-            .card { background: #F8F7F4; padding: 15px; border-radius: 10px; border: 1px solid #D6CFC2; }
-            .label { font-size: 10px; text-transform: uppercase; color: #70624F; font-weight: bold; letter-spacing: 0.5px; }
-            .value { font-size: 15px; font-weight: bold; margin-top: 4px; color: #3E4E36; }
-            .spec-section { background: #F8F7F4; padding: 20px; border-radius: 10px; border: 1px solid #D6CFC2; margin-bottom: 25px; }
-            .spec-title { font-size: 14px; font-weight: bold; color: #3E4E36; border-bottom: 1px solid #D6CFC2; padding-bottom: 8px; margin-bottom: 12px; text-transform: uppercase; }
-            .spec-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #D6CFC2; font-size: 13px; }
-            .footer { margin-top: 40px; padding-top: 15px; border-top: 1px solid #D6CFC2; font-size: 11px; color: #888; text-align: center; }
-            @media print {
-              body { padding: 0; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div>
-              <h1 class="brand">VANUIT AMBACHT</h1>
-              <div class="subtitle">TECHNICAL BLUEPRINT & CONSTRUCTION SPECIFICATION</div>
-            </div>
-            <div>
-              <span class="badge">${project.id || 'PRJ-2001'}</span>
-            </div>
-          </div>
-
-          <div style="margin-bottom: 20px;">
-            <h2 style="font-size: 20px; color: #3E4E36; margin: 0 0 5px 0;">${project.name}</h2>
-            <p style="margin: 0; color: #666; font-size: 13px;">Officiële CAD Constructietekening & Productie Specificaties</p>
-          </div>
-
-          <div class="grid">
-            <div class="card">
-              <div class="label">Klantnaam (Customer)</div>
-              <div class="value">${project.customer || 'Onbekend'}</div>
-            </div>
-            <div class="card">
-              <div class="label">Toegewezen Vakman (Craftsman)</div>
-              <div class="value">${project.partner || 'Niet toegewezen'}</div>
-            </div>
-            <div class="card">
-              <div class="label">Target Opleverdeadline</div>
-              <div class="value">${project.deadline || '2026-08-30'}</div>
-            </div>
-            <div class="card">
-              <div class="label">Voortgang Status</div>
-              <div class="value">${project.progress || 0}% Compleet</div>
-            </div>
-          </div>
-
-          <div class="spec-section">
-            <div class="spec-title">Technische Materialen & Constructie Details</div>
-            <div class="spec-row">
-              <span style="font-weight: 600;">Afmetingen (Dimensions):</span>
-              <span style="font-family: monospace; font-weight: bold; color: #3E4E36;">${project.dimensions || '350cm x 90cm x 95cm'}</span>
-            </div>
-            <div class="spec-row">
-              <span style="font-weight: 600;">Hout Frame Materiaal:</span>
-              <span>${project.frameMaterial || 'Massief Teak Hout (FSC Certificaat)'}</span>
-            </div>
-            <div class="spec-row">
-              <span style="font-weight: 600;">Aanrechtblad Afwerking:</span>
-              <span>${project.topMaterial || 'Polijst Beton (Dark Grey)'}</span>
-            </div>
-            <div class="spec-row" style="border-bottom: none;">
-              <span style="font-weight: 600;">Opleverlocatie:</span>
-              <span>${project.deliveryAddress || 'Keizersgracht 420, Amsterdam'}</span>
-            </div>
-          </div>
-
-          <div class="footer">
-            Generated officially by Vanuit Ambacht Cloud Management System • ${new Date().toLocaleDateString('nl-NL')}
-          </div>
-
-          <script>
-            window.onload = function() {
-              setTimeout(function() {
-                window.print();
-              }, 400);
-            };
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-    showToast(`Blueprint PDF geopend voor afdrukken/download: ${fileName}`);
+    const fileName = downloadBlueprintPdf(project);
+    showToast(`Blueprint PDF gedownload: ${fileName}`);
   };
 
   const [adminNotifs, setAdminNotifs] = useState([]);

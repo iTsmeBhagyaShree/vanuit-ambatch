@@ -238,8 +238,8 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
 
   // Partner Form State (Declared early so all step handlers can access it)
   const [partnerForm, setPartnerForm] = useState({
-    partnerName: 'Sven Hoek',
-    company: 'Hoek Bouw',
+    partnerName: 'Ruben Verbeij — RV Meubels',
+    company: 'RV Meubels',
     buildPrice: '8500',
     deliveryWeek: 'Week 49 (Dec 2023)'
   });
@@ -251,6 +251,107 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
   const [partnerPriceNotes, setPartnerPriceNotes] = useState('');
   const [marginPercent, setMarginPercent] = useState(35);
   const [partnerPriceLocked, setPartnerPriceLocked] = useState(false);
+
+  // Dynamic Available Partners List State
+  const [availablePartners, setAvailablePartners] = useState([]);
+  const [submittedPartnerOffer, setSubmittedPartnerOffer] = useState(null);
+
+  useEffect(() => {
+    const loadPartners = () => {
+      let combined = [];
+
+      // 1. Load from app_partners_v4 / app_partners
+      try {
+        const saved = localStorage.getItem('app_partners_v4') || localStorage.getItem('app_partners');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            parsed.forEach(p => {
+              const name = p.name || p.company || p.contactPerson;
+              if (name && !combined.some(c => c.name === name)) {
+                combined.push({ id: p.id || name, name: name, company: p.company || name });
+              }
+            });
+          }
+        }
+      } catch (e) {}
+
+      // 2. Load from app_system_users (role === 'partner')
+      try {
+        const savedUsers = localStorage.getItem('app_system_users');
+        if (savedUsers) {
+          const parsedUsers = JSON.parse(savedUsers);
+          if (Array.isArray(parsedUsers)) {
+            parsedUsers.filter(u => u.role === 'partner' && u.status !== 'Inactief').forEach(u => {
+              if (u.name && !combined.some(c => c.name === u.name || c.name.includes(u.name))) {
+                combined.push({ id: u.id, name: u.name, company: u.name });
+              }
+            });
+          }
+        }
+      } catch (e) {}
+
+      // 3. Defaults fallback
+      if (combined.length === 0) {
+        combined = [
+          { id: '1', name: 'Ruben Verbeij — RV Meubels', company: 'RV Meubels' },
+          { id: '2', name: 'Sven Hoek (Hoek Bouw)', company: 'Hoek Bouw' },
+          { id: '3', name: 'Lars Jansen (Jansen Houtwerk)', company: 'Jansen Houtwerk' },
+          { id: '4', name: 'Theo Mulder (Mulder Tuinen)', company: 'Mulder Tuinen' }
+        ];
+      }
+
+      setAvailablePartners(combined);
+      
+      // Auto-set initial selected partner if not set
+      if (!partnerForm.partnerName && combined.length > 0) {
+        setPartnerForm(prev => ({ ...prev, partnerName: combined[0].name, company: combined[0].company || combined[0].name }));
+      }
+    };
+
+    loadPartners();
+    window.addEventListener('storage', loadPartners);
+    window.addEventListener('app_data_changed', loadPartners);
+    return () => {
+      window.removeEventListener('storage', loadPartners);
+      window.removeEventListener('app_data_changed', loadPartners);
+    };
+  }, []);
+
+  // Check if partner submitted an offer for this lead
+  useEffect(() => {
+    const checkSubmittedOffer = () => {
+      try {
+        const submitted = JSON.parse(localStorage.getItem('app_partner_submitted_offers') || '[]');
+        if (Array.isArray(submitted) && submitted.length > 0) {
+          const custNameLower = (lead?.name || lead?.customerName || '').toLowerCase();
+          const match = submitted.find(s => 
+            (s.leadId && s.leadId === lead?.id) || 
+            (custNameLower && s.customer && s.customer.toLowerCase().includes(custNameLower)) ||
+            (s.partnerName && partnerForm.partnerName && (s.partnerName.includes(partnerForm.partnerName) || partnerForm.partnerName.includes(s.partnerName)))
+          );
+          if (match) {
+            setSubmittedPartnerOffer(match);
+            const numVal = parseFloat(String(match.price).replace(/[^0-9,/.-]/g, '').replace(/\./g, '').replace(',', '.'));
+            if (!isNaN(numVal) && numVal > 0) {
+              setPartnerCostPrice(String(numVal));
+            }
+            if (match.leadTimeEN || match.leadTimeNL) {
+              setPartnerLeadTime(match.leadTimeEN || match.leadTimeNL);
+            }
+          }
+        }
+      } catch (e) {}
+    };
+
+    checkSubmittedOffer();
+    window.addEventListener('storage', checkSubmittedOffer);
+    window.addEventListener('app_data_changed', checkSubmittedOffer);
+    return () => {
+      window.removeEventListener('storage', checkSubmittedOffer);
+      window.removeEventListener('app_data_changed', checkSubmittedOffer);
+    };
+  }, [lead?.id, partnerForm.partnerName]);
 
 
   // Helper to construct STRICT Privacy-Sanitized Partner Payload (NO customerName, phone, email, address, budget)
@@ -1460,13 +1561,22 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
                           <label className="block text-[10px] font-bold text-dark/60 uppercase mb-1">PARTNER</label>
                           <select 
                             value={partnerForm.partnerName} 
-                            onChange={(e) => setPartnerForm(prev => ({ ...prev, partnerName: e.target.value }))}
+                            onChange={(e) => {
+                              const selectedVal = e.target.value;
+                              const partnerObj = availablePartners.find(p => p.name === selectedVal || p.id === selectedVal);
+                              setPartnerForm(prev => ({ 
+                                ...prev, 
+                                partnerName: selectedVal,
+                                company: partnerObj?.company || selectedVal
+                              }));
+                            }}
                             className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-xl text-xs font-bold text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer shadow-2xs"
                           >
-                            <option value="Ruben Verbeij — RV Meubels">Ruben Verbeij — RV Meubels ▾</option>
-                            <option value="Sven Hoek (Hoek Bouw)">Sven Hoek (Hoek Bouw) ▾</option>
-                            <option value="Lars Jansen (Jansen Houtwerk)">Lars Jansen (Jansen Houtwerk) ▾</option>
-                            <option value="Theo Mulder (Mulder Tuinen)">Theo Mulder (Mulder Tuinen) ▾</option>
+                            {availablePartners.map((p) => (
+                              <option key={p.id || p.name} value={p.name}>
+                                {p.name} ▾
+                              </option>
+                            ))}
                           </select>
                         </div>
                         <div>
@@ -1759,9 +1869,34 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
                       type="button"
                       onClick={() => {
                         const sanitizedPayload = buildSanitizedPartnerPayload();
-                        console.log('🔒 Sanitized Partner Payload (Privacy Filtered):', sanitizedPayload);
+                        const newReq = {
+                          id: `PR-2026-${Math.floor(100 + Math.random() * 900)}`,
+                          leadId: lead?.id || 'LEAD-101',
+                          projectNL: `${lead?.productType || customerCategory || 'Maatwerk Project'} - ${step2Material}`,
+                          projectEN: `${lead?.productType || customerCategory || 'Custom Project'} - ${step2Material}`,
+                          customer: `${customerName} (${lead?.city || (lead?.location ? lead.location.split(',')[0].trim() : 'Amsterdam')})`,
+                          partnerName: partnerForm.partnerName || 'Ruben Verbeij — RV Meubels',
+                          divisionNL: activeCategoryKey === 'buitenverblijf' ? 'Buitenverblijven' : activeCategoryKey === 'overkapping' ? 'Overkappingen' : 'Buitenkeukens',
+                          divisionEN: activeCategoryKey,
+                          deadlineNL: step2ExpectedDate,
+                          deadlineEN: step2ExpectedDate,
+                          dueDateNL: step2ExpectedDate,
+                          dueDateEN: step2ExpectedDate,
+                          specsNL: `Categorie: ${activeCategoryKey}, Afmetingen: ${step2Size || '8x4m'}, Materiaal: ${step2Material}. Opmerkingen: ${step2Notes || 'Geen'}`,
+                          specsEN: `Category: ${activeCategoryKey}, Dimensions: ${step2Size || '8x4m'}, Material: ${step2Material}. Notes: ${step2Notes || 'None'}`,
+                          requestedDate: step2RequestedDate,
+                          status: 'Open'
+                        };
+
+                        try {
+                          const existingReqs = JSON.parse(localStorage.getItem('app_partner_requests') || '[]');
+                          const updatedReqs = [newReq, ...existingReqs];
+                          localStorage.setItem('app_partner_requests', JSON.stringify(updatedReqs));
+                          window.dispatchEvent(new Event('app_data_changed'));
+                        } catch (e) {}
+
                         setIsPriceRequestSent(true);
-                        showToast(language === 'EN' ? 'Price request sent to partner!' : 'Prijsaanvraag verzonden naar partner!');
+                        showToast(language === 'EN' ? `Price request sent to ${newReq.partnerName}!` : `Prijsaanvraag verzonden naar ${newReq.partnerName}!`);
                         advanceStep();
                       }}
                       className="px-5 py-2.5 bg-[#3E4E36] hover:bg-[#2F3C29] text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-2 whitespace-nowrap"
@@ -1802,7 +1937,7 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
                       )}
                     </div>
 
-                    {/* Partner Name */}
+                    {/* Partner Name & Submitted Offer Banner */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="p-3 bg-white rounded-xl border border-[#D6CFC2]/80">
                         <span className="text-[10px] font-bold text-dark/50 uppercase block mb-1">Partner</span>
@@ -1813,6 +1948,42 @@ export default function WorkflowTracker({ lead, onClose, onUpdateStatus, onOpenP
                         <span className="font-bold text-dark text-sm">{step2RequestedDate}</span>
                       </div>
                     </div>
+
+                    {/* LIVE SUBMITTED OFFER FROM PARTNER PORTAL */}
+                    {submittedPartnerOffer && (
+                      <div className="p-4 bg-emerald-50 border border-emerald-300 rounded-xl space-y-2">
+                        <div className="flex items-center justify-between border-b border-emerald-200 pb-2">
+                          <span className="font-bold text-xs text-emerald-900 flex items-center gap-1.5">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                            {language === 'EN' 
+                              ? `✓ Partner Offer Submitted by ${submittedPartnerOffer.partnerName || partnerForm?.partnerName}!`
+                              : `✓ Partner Offerte Ingediend door ${submittedPartnerOffer.partnerName || partnerForm?.partnerName}!`}
+                          </span>
+                          <span className="font-mono text-xs font-bold bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded border border-emerald-300">
+                            {submittedPartnerOffer.submittedOn}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-body">
+                          <div>
+                            <span className="text-[10px] text-dark/50 uppercase block font-bold">Build Price</span>
+                            <strong className="text-sm font-mono text-emerald-900">{submittedPartnerOffer.price}</strong>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-dark/50 uppercase block font-bold">Lead Time</span>
+                            <strong className="text-xs font-semibold text-dark">{submittedPartnerOffer.leadTimeEN || submittedPartnerOffer.leadTimeNL || '—'}</strong>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-dark/50 uppercase block font-bold">Validity</span>
+                            <strong className="text-xs font-semibold text-dark">{submittedPartnerOffer.validityEN || submittedPartnerOffer.validityNL || '—'}</strong>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-dark/50 uppercase block font-bold">Remarks</span>
+                            <strong className="text-xs font-semibold text-dark truncate block" title={submittedPartnerOffer.remarksEN || submittedPartnerOffer.remarksNL}>{submittedPartnerOffer.remarksEN || submittedPartnerOffer.remarksNL || '—'}</strong>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Internal Cost Price Entry */}
                     <div className="p-4 bg-amber-50 border border-amber-200/80 rounded-xl space-y-3">

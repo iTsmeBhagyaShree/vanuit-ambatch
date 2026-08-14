@@ -12,7 +12,7 @@ import { Plus, Search, Filter, X, Check, CheckCircle, Trash2, Edit2, RotateCcw, 
 import { mockQuotes as defaultQuotes } from '../../utils/mockData';
 import { useLanguage } from '../../context/LanguageContext';
 import { safeSetItem } from '../../utils/storageHelper';
-import { downloadDirectPdfFile } from '../../utils/pdfGenerator';
+import { downloadQuotePdf, downloadDirectPdfFile } from '../../utils/pdfGenerator';
 
 
 // Helper to get raw numeric value from formatted amount string (e.g. "€ 12,500" -> 12500)
@@ -656,13 +656,7 @@ export default function Quotes() {
               <span>Project</span>
             </button>
           )}
-          <button 
-            onClick={() => setPdfPreviewQuote(row)}
-            className="px-2 py-1 sm:px-2.5 sm:py-1 bg-[#EDE8DF] hover:bg-[#D6CFC2] text-primary rounded-lg text-[10px] sm:text-[11px] font-bold inline-flex items-center gap-1 transition-colors flex-shrink-0 cursor-pointer"
-            title="Preview / Export PDF"
-          >
-            <Printer className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> PDF
-          </button>
+
           <button 
             disabled={row.status === 'Concept' || row.status === 'Draft'}
             onClick={async () => {
@@ -1113,7 +1107,7 @@ export default function Quotes() {
                     size="sm" 
                     icon={Download} 
                     onClick={() => {
-                      const downloadedName = downloadDirectPdfFile(pdfPreviewQuote);
+                      const downloadedName = downloadQuotePdf(pdfPreviewQuote);
                       showToast(language === 'EN' ? `✓ Downloaded ${downloadedName}!` : `✓ ${downloadedName} gedownload!`);
                     }} 
                     className="text-xs font-bold bg-[#D97706] hover:bg-[#B45309] text-white shadow-sm cursor-pointer"

@@ -11,6 +11,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import FactuurPDFTemplate from '../../components/FactuurPDFTemplate';
 
 import { convertLeadToCustomerOnInvoiceSent } from '../../utils/customerConversion';
+import { downloadInvoicePdf } from '../../utils/pdfGenerator';
 
 import { calculateOrderSettlement } from '../../utils/orderMatcher';
 import { calculateProjectMarginWithPurchasing, UNIFIED_PURCHASING_CATEGORY } from '../../utils/purchasingAllocator';
@@ -562,8 +563,11 @@ export default function Invoices() {
                   </h3>
                 </div>
                 <div className="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">
-                  <Button size="sm" icon={Printer} onClick={() => window.print()} className="text-xs font-bold">
-                    <span className="hidden sm:inline">Afdrukken / </span>Export PDF
+                  <Button size="sm" icon={Download} onClick={() => {
+                    const fileName = downloadInvoicePdf(pdfInvoice);
+                    // show toast if possible
+                  }} className="text-xs font-bold">
+                    <span className="hidden sm:inline">Download </span>PDF
                   </Button>
                   <button onClick={() => setPdfInvoice(null)} className="p-1.5 text-dark/40 hover:text-dark rounded-lg hover:bg-dark/5 transition-colors">
                     <X className="w-5 h-5" />
