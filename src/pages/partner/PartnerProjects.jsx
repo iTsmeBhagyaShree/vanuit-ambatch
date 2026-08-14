@@ -219,9 +219,7 @@ Generated for Partner Craftsman Workspace
                 <div className="absolute top-2.5 right-2.5 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-lg border border-[#D6CFC2] shadow-xs flex items-center gap-1.5">
                   <img
                     src={
-                      project.name.toLowerCase().includes('kliko') || project.name.toLowerCase().includes('rotterdam')
-                        ? '/logo_kliko.png'
-                        : project.name.toLowerCase().includes('snijplanken') || project.name.toLowerCase().includes('utrecht')
+                      project.name.toLowerCase().includes('snijplanken') || project.name.toLowerCase().includes('utrecht')
                         ? '/logo_snijplanken.png'
                         : '/logo_buitenkeukens.png'
                     }
@@ -229,9 +227,7 @@ Generated for Partner Craftsman Workspace
                     className="h-4 max-w-[60px] object-contain mix-blend-multiply"
                   />
                   <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-md whitespace-nowrap">
-                    {project.name.toLowerCase().includes('kliko') || project.name.toLowerCase().includes('rotterdam')
-                      ? 'Kliko-ombouw'
-                      : project.name.toLowerCase().includes('snijplanken') || project.name.toLowerCase().includes('utrecht')
+                    {project.name.toLowerCase().includes('snijplanken') || project.name.toLowerCase().includes('utrecht')
                       ? 'Snijplanken'
                       : 'Buitenkeukens'}
                   </span>

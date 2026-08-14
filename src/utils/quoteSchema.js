@@ -20,8 +20,8 @@ export function createDefaultQuote(customerData = null, existingQuote = null) {
   const initialLineItems = existingQuote?.items || [
     {
       id: 'item-1',
-      title: `Buitenkeuken ${defaultWood.name}`,
-      description: `Houten bovenblad met keramische stenen, uitsparing Big Green Egg Large, afgewerkt met naturel olie`,
+      title: `Outdoor Kitchen ${defaultWood.name}`,
+      description: `Wooden worktop with ceramic stones, custom cutout for Big Green Egg Large, finished with natural oil`,
       quantity: 1,
       priceInclVat: 3495,
       vatRate: 21,
@@ -29,8 +29,8 @@ export function createDefaultQuote(customerData = null, existingQuote = null) {
     },
     {
       id: 'item-2',
-      title: `Bezorging ${city}`,
-      description: `Gratis bezorgd in ${city}, op een moment dat jou uitkomt`,
+      title: `Delivery ${city}`,
+      description: `Free delivery in ${city}, scheduled at your convenience`,
       quantity: 1,
       priceInclVat: 0,
       vatRate: 21,
@@ -73,14 +73,14 @@ export function createDefaultQuote(customerData = null, existingQuote = null) {
       woodType: defaultWood.name,
       woodLifespan: defaultWood.lifespan,
       optionsTitle: 'Big Green Egg Large',
-      deliveryTime: '3 tot 5 weken',
+      deliveryTime: '3 to 5 weeks',
 
       options: {
         bbqCutout: {
           enabled: true,
           type: 'Big Green Egg',
           size: 'Large',
-          position: 'rechts van het midden'
+          position: 'right of center'
         },
         fridge: {
           enabled: false
@@ -93,33 +93,33 @@ export function createDefaultQuote(customerData = null, existingQuote = null) {
       specifications: [
         {
           id: 'sec-1',
-          title: 'BOVENBLAD',
+          title: 'WORKTOP',
           lines: [
-            { id: 'l-1', text: 'Keramische stenen in het werkblad – hittebestendig en onderhoudsarm', isOption: false },
-            { id: 'l-2', text: 'Uitsparing op maat voor Big Green Egg Large', isOption: true }
+            { id: 'l-1', text: 'Ceramic stones in worktop – heat-resistant and low maintenance', isOption: false },
+            { id: 'l-2', text: 'Custom cutout engineered for Big Green Egg Large', isOption: true }
           ]
         },
         {
           id: 'sec-2',
-          title: 'INDELING & OPBERGRUIMTE',
+          title: 'LAYOUT & STORAGE',
           lines: [
-            { id: 'l-3', text: 'Twee ruime opbergvakken met deurtjes en soft-close scharnieren', isOption: false },
-            { id: 'l-4', text: 'Open schap voor houtopslag', isOption: false }
+            { id: 'l-3', text: 'Two spacious storage compartments with doors and soft-close hinges', isOption: false },
+            { id: 'l-4', text: 'Open shelf for wood storage', isOption: false }
           ]
         },
         {
           id: 'sec-3',
-          title: 'AFWERKING & MOBILITEIT',
+          title: 'FINISH & MOBILITY',
           lines: [
-            { id: 'l-5', text: 'Olieafwerking in twee lagen (naturel)', isOption: false },
-            { id: 'l-6', text: 'Verborgen heavy-duty zwenkwielen voor eenvoudige verplaatsing', isOption: false }
+            { id: 'l-5', text: 'Two-layer protective oil finish (natural)', isOption: false },
+            { id: 'l-6', text: 'Hidden heavy-duty swivel castors for easy mobility', isOption: false }
           ]
         },
         {
           id: 'sec-4',
-          title: 'BEZORGING',
+          title: 'DELIVERY',
           lines: [
-            { id: 'l-7', text: `Gratis bezorgd in ${city}, op een moment dat jou uitkomt`, isOption: false }
+            { id: 'l-7', text: `Free delivery in ${city}, scheduled at your convenience`, isOption: false }
           ]
         }
       ],
@@ -130,10 +130,10 @@ export function createDefaultQuote(customerData = null, existingQuote = null) {
         show: true,
         totalWidth: 240,
         segments: [
-          { id: 'seg-1', type: 'CABINET', label: 'kastje', width: 60 },
-          { id: 'seg-2', type: 'CABINET', label: 'kastje', width: 60 },
+          { id: 'seg-1', type: 'CABINET', label: 'cabinet', width: 60 },
+          { id: 'seg-2', type: 'CABINET', label: 'cabinet', width: 60 },
           { id: 'seg-3', type: 'CUTOUT', label: 'Big Green Egg', width: 70 },
-          { id: 'seg-4', type: 'CABINET', label: 'kastje', width: 50 }
+          { id: 'seg-4', type: 'CABINET', label: 'cabinet', width: 50 }
         ]
       },
 

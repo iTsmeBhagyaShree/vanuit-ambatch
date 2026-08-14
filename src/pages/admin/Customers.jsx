@@ -639,7 +639,6 @@ export default function Customers() {
                          newCustomerForm.productInterest === 'buitenverblijf' ? (language === 'EN' ? 'Garden / Outdoor Building' : 'Buitenverblijf / Tuinkamer') :
                          newCustomerForm.productInterest === 'overkapping' ? (language === 'EN' ? 'Canopy / Pergola' : 'Overkapping / Pergola') :
                          newCustomerForm.productInterest === 'poolhouse' ? 'Poolhouse' :
-                         newCustomerForm.productInterest === 'kliko' ? (language === 'EN' ? 'Bin Storage' : 'Kliko-ombouw') :
                          (newCustomerForm.productInterest || (language === 'EN' ? 'Outdoor Kitchen' : 'Luxe Buitenkeuken'))}
                       </span>
                       <ChevronDown className={`w-4 h-4 text-dark/40 transition-transform ${productInterestDropdownOpen ? 'rotate-180' : ''}`} />
@@ -653,12 +652,11 @@ export default function Customers() {
                             { val: 'Buitenverblijf / Tuinkamer', label: language === 'EN' ? 'Garden / Outdoor Building' : 'Buitenverblijf / Tuinkamer' },
                             { val: 'Overkapping / Pergola', label: language === 'EN' ? 'Canopy / Pergola' : 'Overkapping / Pergola' },
                             { val: 'Poolhouse', label: 'Poolhouse' },
-                            { val: 'Kliko-ombouw', label: language === 'EN' ? 'Bin Storage' : 'Kliko-ombouw' },
                             ...(() => {
                               try {
                                 const dynCats = JSON.parse(localStorage.getItem('app_dynamic_categories') || '[]');
                                 return dynCats
-                                  .filter(c => !['buitenkeuken','buitenverblijf','overkapping','poolhouse','kliko'].includes((c.name||'').toLowerCase()))
+                                  .filter(c => !['buitenkeuken','buitenverblijf','overkapping','poolhouse'].includes((c.name||'').toLowerCase()))
                                   .map(c => ({ val: c.name, label: c.name }));
                               } catch(e) { return []; }
                             })()

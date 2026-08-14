@@ -107,9 +107,7 @@ export default function PartnerDashboard() {
                       <div className="flex items-center gap-1.5 bg-primary/10 px-2 py-0.5 rounded-md">
                         <img 
                           src={
-                            project.name.toLowerCase().includes('kliko') || project.name.toLowerCase().includes('rotterdam')
-                              ? '/logo_kliko.png'
-                              : project.name.toLowerCase().includes('snijplanken') || project.name.toLowerCase().includes('utrecht')
+                            project.name.toLowerCase().includes('snijplanken') || project.name.toLowerCase().includes('utrecht')
                               ? '/logo_snijplanken.png'
                               : '/logo_buitenkeukens.png'
                           } 
@@ -117,9 +115,7 @@ export default function PartnerDashboard() {
                           className="h-4 object-contain mix-blend-multiply" 
                         />
                         <span className="text-[10px] font-bold text-primary font-body">
-                          {project.name.toLowerCase().includes('kliko') || project.name.toLowerCase().includes('rotterdam')
-                            ? 'Kliko-ombouw'
-                            : project.name.toLowerCase().includes('snijplanken') || project.name.toLowerCase().includes('utrecht')
+                          {project.name.toLowerCase().includes('snijplanken') || project.name.toLowerCase().includes('utrecht')
                             ? 'Snijplanken'
                             : 'Buitenkeukens'}
                         </span>

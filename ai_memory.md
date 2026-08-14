@@ -148,6 +148,21 @@ This file tracks all modifications, additions, and updates made to the **Vanuit 
      - Synchronized `localStorage` keys (`app_quotes` and `app_quotes_v1`) for seamless real-time proposal data state across Admin & Customer portals.
   2. Verified clean production build (`npm run build`).
 
+## 147. Complete Removal of Kliko (Bin Storage) System (Completed 2026-08-13)
+* **Goal**: Remove all Kliko (bin storage) orders, tabs, logos, and product categories completely from the portal per client instruction.
+* **Changes**:
+  1. **Projects Page (`Projects.jsx`)**: Removed the dedicated `Kliko Webshop Orders` tab and updated page header title from `Projecten & Kliko-ombouw` to `Projects & Installation Management` / `Projecten & Installatie Beheer`.
+  2. **Product Categories**: Removed `kliko` / `Bin Storage` from product dropdowns, mock datasets, and filters across `Leads.jsx`, `Customers.jsx`, `Projects.jsx`, `Quotes.jsx`, `Partners.jsx`, `PartnerDashboard.jsx`, and `PartnerProjects.jsx`.
+  3. **Memory & Specs**: Updated `ai_memory.md`, `PRD.md`, and `CLIENT_REQUIREMENTS.md` to reflect the removal of the Kliko system.
+  4. Verified clean production build (`npm run build`).
+
+---
+
+## 146. Partner Module & Kanban Recruitment Pipeline Bilingual Fix (Completed 2026-08-13)
+* **Goal**: Fix Dutch toast notifications and Kanban recruitment pipeline labels when English language mode is selected.
+* **Changes**:
+  1. **`Partners.jsx`**: Updated stage advancement toast message (`Candidate advanced to next stage!`), Kanban column headers (*1. Interested*, *2. In Discussion*, *3. Trial Project*, *4. Active Partner*), and action button (*Next Stage*) to render in pure English when `EN` is active.
+
 ---
 
 ## 140. 100% Pure English vs Dutch Translation Engine & Language Mixing Elimination (Completed 2026-08-06)

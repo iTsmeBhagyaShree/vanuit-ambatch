@@ -61,8 +61,10 @@ export default function Projects() {
       if (savedProjects) {
         try {
           const parsed = JSON.parse(savedProjects);
-          if (Array.isArray(parsed) && parsed.length > 0) setProjects(parsed);
-          else setProjects(mockProjects);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const cleaned = parsed.filter(p => !((p.name || '').toLowerCase().includes('kliko') || (p.name || '').toLowerCase().includes('bin storage')));
+            setProjects(cleaned.length > 0 ? cleaned : mockProjects);
+          } else setProjects(mockProjects);
         } catch(e) { setProjects(mockProjects); }
       } else {
         setProjects(mockProjects);
@@ -256,11 +258,8 @@ export default function Projects() {
   // Filter & Search logic
   const filteredProjects = [...projects]
     .filter(p => {
-      // Kliko Orders Tab Filter
-      if (activeTab === 'Kliko Orders') {
-        const cat = p.category || ((p.name || '').toLowerCase().includes('kliko') || (p.name || '').toLowerCase().includes('rotterdam') ? 'Kliko-ombouw' : '');
-        if (!cat.includes('Kliko')) return false;
-      }
+      // Filter out any stale Kliko/Bin Storage item
+      if ((p.name || '').toLowerCase().includes('kliko') || (p.name || '').toLowerCase().includes('bin storage')) return false;
 
       const nameMatch = (p.name || '').toLowerCase().includes(searchQuery.toLowerCase());
       const custMatch = (p.customer || '').toLowerCase().includes(searchQuery.toLowerCase());
@@ -512,7 +511,7 @@ export default function Projects() {
     }
   ];
 
-  const columns = activeTab === 'projects' ? mainColumns : orderColumns;
+  const columns = mainColumns;
   const hasActiveFilters = searchQuery !== '' || statusFilter !== 'All' || sortBy !== 'deadline';
 
   // Real Branded Printable PDF Document & Save to PDF trigger
@@ -682,7 +681,7 @@ export default function Projects() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-heading font-bold text-primary">
-            {language === 'EN' ? 'Projects & Installation Management' : 'Projecten & Kliko-ombouw'}
+            {language === 'EN' ? 'Projects & Installation Management' : 'Projecten & Installatie Beheer'}
           </h2>
           <p className="text-xs text-dark/70 mt-1 font-body">
             {language === 'EN' ? 'Manage active installations, partner assignments, and technical blueprints.' : 'Beheer actieve installaties, koppel vakmannen en bekijk bouwtekeningen.'}
@@ -730,30 +729,6 @@ export default function Projects() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Tabs */}
-      <div className="flex gap-2 border-b border-[#D6CFC2] pb-2">
-        <button
-          onClick={() => setActiveTab('projects')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold font-body transition-all ${
-            activeTab === 'projects'
-              ? 'bg-primary text-cream shadow-sm'
-              : 'bg-[#EDE8DF]/40 text-dark/70 hover:bg-[#EDE8DF]'
-          }`}
-        >
-          {language === 'EN' ? 'All Projects (All Installations)' : 'Alle Projecten (Buitenkeukens & Verblijven)'}
-        </button>
-        <button
-          onClick={() => setActiveTab('orders')}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold font-body transition-all ${
-            activeTab === 'orders'
-              ? 'bg-primary text-cream shadow-sm'
-              : 'bg-[#EDE8DF]/40 text-dark/70 hover:bg-[#EDE8DF]'
-          }`}
-        >
-          <span>📦</span> {language === 'EN' ? 'Kliko Webshop Orders' : 'Kliko Webshop Bestellingen'}
-        </button>
-      </div>
 
       {/* Main Content Area */}
       <Card>

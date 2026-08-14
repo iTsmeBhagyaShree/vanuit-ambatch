@@ -170,7 +170,7 @@ export default function Partners() {
         }
         return p;
       });
-      showToast(`Partner "${form.name}" geüpdatet!`);
+      showToast(language === 'EN' ? `Partner "${form.name}" updated!` : `Partner "${form.name}" geüpdatet!`);
     } else {
       const newPartner = {
         id: `PT-${partners.length + 3001}`,
@@ -186,7 +186,7 @@ export default function Partners() {
         notes: 'Nieuw toegevoegde partner.'
       };
       updatedList = [newPartner, ...partners];
-      showToast(`Nieuwe partner "${form.name}" toegevoegd!`);
+      showToast(language === 'EN' ? `New partner "${form.name}" added!` : `Nieuwe partner "${form.name}" toegevoegd!`);
     }
 
     setPartners(updatedList);
@@ -205,7 +205,7 @@ export default function Partners() {
       }
       return cand;
     }));
-    showToast('Kandidaat doorgeschoven naar volgende fase!');
+    showToast(language === 'EN' ? 'Candidate advanced to next stage!' : 'Kandidaat doorgeschoven naar volgende fase!');
   };
 
   const getAssignedProjectsCount = (partnerName) => {
@@ -464,19 +464,25 @@ export default function Partners() {
         <div className="space-y-4 font-body">
           <div className="bg-[#EDE8DF]/50 p-4 rounded-xl border border-[#D6CFC2] flex justify-between items-center text-xs">
             <div>
-              <h3 className="font-heading font-bold text-primary text-sm">Prospective Partner Recruitment Pipeline</h3>
-              <p className="text-dark/60">Volg nieuwe vakman-sollicitaties van eerste interesse tot actief proefproject.</p>
+              <h3 className="font-heading font-bold text-primary text-sm">
+                {language === 'EN' ? 'Prospective Partner Recruitment Pipeline' : 'Potentiële Partner Wervingspijplijn'}
+              </h3>
+              <p className="text-dark/60">
+                {language === 'EN' 
+                  ? 'Track new craftsman applications from initial interest to active trial project.' 
+                  : 'Volg nieuwe vakman-sollicitaties van eerste interesse tot actief proefproject.'}
+              </p>
             </div>
-            <Badge variant="info">4 Fasen Pipeline</Badge>
+            <Badge variant="info">{language === 'EN' ? '4 Stage Pipeline' : '4 Fasen Pipeline'}</Badge>
           </div>
 
           {/* 4-Stage Kanban Board */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {[
-              { id: 'Geïnteresseerd', title: '🟡 1. Geïnteresseerd', color: 'border-amber-300 bg-amber-50/40' },
-              { id: 'In gesprek', title: '🔵 2. In Gesprek', color: 'border-blue-300 bg-blue-50/40' },
-              { id: 'Proefproject', title: '🟣 3. Proefproject', color: 'border-purple-300 bg-purple-50/40' },
-              { id: 'Actief', title: '🟢 4. Actief Partner', color: 'border-green-300 bg-green-50/40' }
+              { id: 'Geïnteresseerd', title: language === 'EN' ? '🟡 1. Interested' : '🟡 1. Geïnteresseerd', color: 'border-amber-300 bg-amber-50/40' },
+              { id: 'In gesprek', title: language === 'EN' ? '🔵 2. In Discussion' : '🔵 2. In Gesprek', color: 'border-blue-300 bg-blue-50/40' },
+              { id: 'Proefproject', title: language === 'EN' ? '🟣 3. Trial Project' : '🟣 3. Proefproject', color: 'border-purple-300 bg-purple-50/40' },
+              { id: 'Actief', title: language === 'EN' ? '🟢 4. Active Partner' : '🟢 4. Actief Partner', color: 'border-green-300 bg-green-50/40' }
             ].map(col => {
               const cands = pipelineCandidates.filter(c => c.stage === col.id);
               return (
@@ -510,7 +516,7 @@ export default function Partners() {
                           onClick={() => handleAdvancePipelineStage(cand.id)}
                           className="w-full mt-1 py-1.5 bg-primary text-cream hover:bg-primary/90 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1 shadow-xs"
                         >
-                          Volgende Fase <ChevronRight className="w-3 h-3" />
+                          {language === 'EN' ? 'Next Stage' : 'Volgende Fase'} <ChevronRight className="w-3 h-3" />
                         </button>
                       )}
                     </Card>
@@ -518,7 +524,7 @@ export default function Partners() {
 
                   {cands.length === 0 && (
                     <div className="text-center py-4 text-[10px] text-dark/40 italic">
-                      Geen kandidaten in deze fase.
+                      {language === 'EN' ? 'No candidates in this stage.' : 'Geen kandidaten in deze fase.'}
                     </div>
                   )}
                 </div>
