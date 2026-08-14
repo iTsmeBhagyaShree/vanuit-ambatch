@@ -12,6 +12,7 @@ import { Plus, Search, Filter, X, Check, CheckCircle, Trash2, Edit2, RotateCcw, 
 import { mockQuotes as defaultQuotes } from '../../utils/mockData';
 import { useLanguage } from '../../context/LanguageContext';
 import { safeSetItem } from '../../utils/storageHelper';
+import { downloadQuotePdf } from '../../utils/pdfGenerator';
 
 
 // Helper to get raw numeric value from formatted amount string (e.g. "€ 12,500" -> 12500)
@@ -641,13 +642,7 @@ export default function Quotes() {
               <span>Project</span>
             </button>
           )}
-          <button 
-            onClick={() => setPdfPreviewQuote(row)}
-            className="px-2 py-1 sm:px-2.5 sm:py-1 bg-[#EDE8DF] hover:bg-[#D6CFC2] text-primary rounded-lg text-[10px] sm:text-[11px] font-bold inline-flex items-center gap-1 transition-colors flex-shrink-0 cursor-pointer"
-            title="Preview / Export PDF"
-          >
-            <Printer className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> PDF
-          </button>
+
           <button 
             onClick={async () => {
               const publicUrl = `${window.location.origin}/offerte/${row.id}`;
@@ -1088,8 +1083,11 @@ export default function Quotes() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">
-                  <Button size="sm" icon={Printer} onClick={() => window.print()} className="text-xs">
-                    {language === 'EN' ? 'Print / Save PDF' : 'Afdrukken / Export PDF'}
+                  <Button size="sm" icon={Download} onClick={() => {
+                    const fileName = downloadQuotePdf(pdfPreviewQuote);
+                    showToast(language === 'EN' ? `PDF downloaded: ${fileName}` : `PDF gedownload: ${fileName}`);
+                  }} className="text-xs">
+                    {language === 'EN' ? 'Download PDF' : 'Download PDF'}
                   </Button>
                   <button onClick={() => setPdfPreviewQuote(null)} className="p-1.5 text-dark/40 hover:text-dark rounded-lg hover:bg-dark/5 transition-colors">
                     <X className="w-5 h-5" />

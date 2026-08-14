@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import Badge from '../../components/Badge';
-import { Building2, Upload, Palette, Bell, Save, CheckCircle, Users, Plus, Trash2, Edit2, Shield, Sliders, Hash, Percent, X, UserPlus, ToggleLeft, ToggleRight, FileText, MessageSquare, Layers, Wrench, FileCode, FolderPlus, DollarSign, TrendingUp, PieChart } from 'lucide-react';
+import { Building2, Upload, Palette, Bell, Save, CheckCircle, Users, Plus, Trash2, Edit2, Shield, Sliders, Hash, Percent, X, UserPlus, ToggleLeft, ToggleRight, FileText, MessageSquare, Layers, Wrench, FileCode, FolderPlus, DollarSign, TrendingUp, PieChart, Eye, EyeOff, Lock, Key } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
 export default function Settings() {
@@ -100,10 +100,12 @@ export default function Settings() {
   });
 
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [showPasswordInModal, setShowPasswordInModal] = useState(false);
   const [inviteForm, setInviteForm] = useState({
     name: '',
     email: '',
-    role: 'partner'
+    role: 'customer',
+    password: ''
   });
 
   // -------------------------------------------------------------
@@ -377,21 +379,30 @@ export default function Settings() {
   const handleInviteSubmit = (e) => {
     e.preventDefault();
     if (!inviteForm.name.trim() || !inviteForm.email.trim()) {
-      showToast('Vul een geldige naam en e-mailadres in.');
+      showToast(language === 'EN' ? 'Please enter a valid name and email address.' : 'Vul een geldige naam en e-mailadres in.');
+      return;
+    }
+    if (!inviteForm.password.trim()) {
+      showToast(language === 'EN' ? 'Please specify a account password.' : 'Vul een wachtwoord in voor de gebruiker.');
       return;
     }
     const newUser = {
       id: `USR-${usersList.length + 101}`,
-      name: inviteForm.name,
-      email: inviteForm.email,
+      name: inviteForm.name.trim(),
+      email: inviteForm.email.trim().toLowerCase(),
       role: inviteForm.role,
+      password: inviteForm.password.trim(),
       status: 'Actief',
       joinedDate: new Date().toISOString().split('T')[0]
     };
     const updated = [newUser, ...usersList];
     setUsersList(updated);
     localStorage.setItem('app_system_users', JSON.stringify(updated));
-    showToast(`Uitnodiging verzonden naar ${inviteForm.email} (Rol: ${inviteForm.role})!`);
+    window.dispatchEvent(new Event('app_data_changed'));
+    showToast(language === 'EN' 
+      ? `User "${newUser.name}" created successfully (Role: ${newUser.role.toUpperCase()})!` 
+      : `Gebruiker "${newUser.name}" succesvol aangemaakt (Rol: ${newUser.role.toUpperCase()})!`);
+    setInviteForm({ name: '', email: '', role: 'customer', password: '' });
     setInviteModalOpen(false);
   };
 
@@ -854,9 +865,14 @@ export default function Settings() {
                         <span className="text-[10px] font-mono text-dark/40">({usr.id})</span>
                       </div>
                       <p className="text-dark/60 text-xs">{usr.email}</p>
-                      <p className="text-[10px] text-dark/40 mt-0.5">
-                        {language === 'EN' ? 'Joined:' : 'Lid sinds:'} {usr.joinedDate}
-                      </p>
+                      <div className="flex items-center gap-2 text-[10px] text-dark/50 mt-0.5 font-mono">
+                        <span>{language === 'EN' ? 'Joined:' : 'Lid sinds:'} {usr.joinedDate}</span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1 text-primary font-bold">
+                          <Lock className="w-3 h-3 text-accent" />
+                          {usr.password ? `Password: ••••••••` : 'Password: Protected'}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
@@ -1244,15 +1260,36 @@ export default function Settings() {
               <form onSubmit={handleInviteSubmit} className="space-y-3 font-body">
                 <div>
                   <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'EN' ? 'Name' : 'Naam'}</label>
-                  <input type="text" required value={inviteForm.name} onChange={e => setInviteForm(prev => ({ ...prev, name: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg" placeholder="e.g. Bram van den Berg" />
+                  <input type="text" required value={inviteForm.name} onChange={e => setInviteForm(prev => ({ ...prev, name: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs" placeholder="e.g. Prashant Kumar" />
                 </div>
                 <div>
                   <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'EN' ? 'Email Address' : 'E-mailadres'}</label>
-                  <input type="email" required value={inviteForm.email} onChange={e => setInviteForm(prev => ({ ...prev, email: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg" placeholder="e.g. bram@vanuitambacht.nl" />
+                  <input type="email" required value={inviteForm.email} onChange={e => setInviteForm(prev => ({ ...prev, email: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs" placeholder="e.g. sarah123@gmail.com" />
+                </div>
+                <div>
+                  <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'EN' ? 'Password' : 'Wachtwoord'}</label>
+                  <div className="relative">
+                    <input 
+                      type={showPasswordInModal ? "text" : "password"} 
+                      required 
+                      value={inviteForm.password} 
+                      onChange={e => setInviteForm(prev => ({ ...prev, password: e.target.value }))} 
+                      className="w-full pl-3 pr-10 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs font-mono" 
+                      placeholder="••••••••" 
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswordInModal(!showPasswordInModal)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-dark/40 hover:text-dark p-1"
+                      title={showPasswordInModal ? "Hide Password" : "Show Password"}
+                    >
+                      {showPasswordInModal ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label className="block font-semibold text-dark/60 mb-1 uppercase">{language === 'EN' ? 'System Role' : 'Systeem Rol'}</label>
-                  <select value={inviteForm.role} onChange={e => setInviteForm(prev => ({ ...prev, role: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg font-bold">
+                  <select value={inviteForm.role} onChange={e => setInviteForm(prev => ({ ...prev, role: e.target.value }))} className="w-full px-3 py-2 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg font-bold text-xs">
                     <option value="admin">👑 Admin Portal</option>
                     <option value="partner">🤝 Partner Portal</option>
                     <option value="customer">👤 Customer Portal</option>
@@ -1261,7 +1298,7 @@ export default function Settings() {
 
                 <div className="flex justify-end gap-2 pt-3 border-t border-cream-dark/60">
                   <Button type="button" variant="outline" onClick={() => setInviteModalOpen(false)}>{t('common.cancel')}</Button>
-                  <Button type="submit">{language === 'EN' ? 'Send Invitation' : 'Verstuur Uitnodiging'}</Button>
+                  <Button type="submit">{language === 'EN' ? 'Send Invitation / Create User' : 'Verstuur Uitnodiging / Aanmaken'}</Button>
                 </div>
               </form>
             </motion.div>

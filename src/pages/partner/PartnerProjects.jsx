@@ -3,6 +3,8 @@ import Card from '../../components/Card';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
 import { Calendar, Briefcase, Clock, Upload, FileText, CheckCircle, Eye, Edit3, X, Filter, MapPin, DollarSign, Download, Compass, ShieldCheck, FileCheck, Layers, Camera, Image as ImageIcon, Sparkles, Bell } from 'lucide-react';
+import { downloadBlueprintPdf } from '../../utils/pdfGenerator';
+
 import { mockProjects } from '../../utils/mockData';
 import { safeSetItem, compressImage } from '../../utils/storageHelper';
 import { useNavigate } from 'react-router-dom';
@@ -151,25 +153,22 @@ export default function PartnerProjects() {
     setPhotoForm({ title: '', desc: '', img: projectImg });
   };
 
+  // Real PDF Blueprint download via jsPDF — direct file, no popup
   const handleDownloadBlueprint = (fileName) => {
-    const docName = fileName || 'BLU-2001-SPEC.pdf';
-    const content = `%PDF-1.4
-VANUIT AMBACHT - TECHNICAL BLUEPRINT & SPECIFICATION
-==================================================
-Blueprint File: ${docName}
-Generated for Partner Craftsman Workspace
-==================================================
-`;
-    const blob = new Blob([content], { type: 'application/pdf' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = docName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(link.href);
-
-    showToast(`Blueprint PDF gedownload: ${docName}`);
+    const projectObj = {
+      id: fileName || 'BLU-2001',
+      name: selectedProject?.name || 'Buitenkeuken Project',
+      customer: selectedProject?.customer || 'Klant',
+      partner: selectedProject?.partnerName || 'Tim & Bram',
+      deadline: selectedProject?.deadline || '—',
+      progress: selectedProject?.progress || 0,
+      dimensions: selectedProject?.dimensions || '350cm × 90cm × 95cm',
+      frameMaterial: selectedProject?.frameMaterial || 'Massief Teak Hout',
+      topMaterial: selectedProject?.topMaterial || 'Polijst Beton',
+      deliveryAddress: selectedProject?.deliveryAddress || '—',
+    };
+    const realFileName = downloadBlueprintPdf(projectObj);
+    showToast(`Blueprint PDF gedownload: ${realFileName}`);
   };
 
   const filteredProjects = statusFilter === 'All' 

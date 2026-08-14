@@ -15,6 +15,7 @@ import { calculateTotals, calculateInstalments, validateQuoteForSend } from '../
 import { useLanguage } from '../context/LanguageContext';
 import projectImg from '../assets/outdoor_project_card.png';
 import heroImg from '/dasbordes images.png';
+import { downloadQuotePdf } from '../utils/pdfGenerator';
 
 const STEPS = [
   { id: 1, number: '1', title: 'Customer & details', desc: 'Bjorn Valk · Dongen' },
@@ -1750,7 +1751,10 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                 <div className="flex flex-wrap items-center gap-3">
                   <button
                     type="button"
-                    onClick={() => window.print()}
+                    onClick={() => {
+                      const fileName = downloadQuotePdf(quote);
+                      showToast(`✅ PDF gedownload: ${fileName}`);
+                    }}
                     className="px-4 py-2.5 bg-[#33422C] text-[#FDFBF7] font-bold text-xs rounded-xl shadow-xs hover:bg-[#283523] transition-all cursor-pointer font-mono flex items-center gap-2"
                   >
                     <span>↓ Download PDF</span>

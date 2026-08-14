@@ -529,13 +529,13 @@ Kenmerk: EREF-2026-9006`;
       case 'Matched':
         return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-100 text-blue-900 text-[10px] font-bold border border-blue-300"><Check className="w-3 h-3" /> Matched</span>;
       case 'Internal Transfer':
-        return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-cyan-100 text-cyan-900 text-[10px] font-bold border border-cyan-300"><RefreshCw className="w-3 h-3" /> Kruispost</span>;
+        return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-cyan-100 text-cyan-900 text-[10px] font-bold border border-cyan-300"><RefreshCw className="w-3 h-3" /> Internal Transfer</span>;
       case 'Review Needed':
         return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500 text-white text-[10px] font-bold shadow-xs"><AlertTriangle className="w-3 h-3" /> Review Needed</span>;
       case 'Manually Reclassified':
         return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-100 text-purple-900 text-[10px] font-bold border border-purple-300"><Tag className="w-3 h-3" /> Reclassified</span>;
       default:
-        return <Badge variant="secondary">{status || 'In behandeling'}</Badge>;
+        return <Badge variant="secondary">{status || 'Pending'}</Badge>;
     }
   };
 
@@ -685,8 +685,8 @@ Kenmerk: EREF-2026-9006`;
       {/* Header & Main Tabs */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[#D6CFC2] pb-4">
         <div>
-          <h2 className="text-2xl font-heading font-bold text-primary">Bank & Bankafschriften (ABN AMRO)</h2>
-          <p className="text-dark/60 text-xs mt-0.5">Beheer banktransacties, ABN afschrifteninvoer met saldocontrole en herrubricering van vraagposten.</p>
+          <h2 className="text-2xl font-heading font-bold text-primary">Bank & Statements (ABN AMRO)</h2>
+          <p className="text-dark/60 text-xs mt-0.5">Manage bank transactions, import ABN AMRO statements with balance validation and reclassify review items.</p>
         </div>
 
         {/* Tab Switcher Buttons */}
@@ -698,7 +698,7 @@ Kenmerk: EREF-2026-9006`;
             }`}
           >
             <Landmark className="w-3.5 h-3.5" />
-            <span>Banktransacties</span>
+            <span>Transactions</span>
           </button>
 
           <button
@@ -708,7 +708,7 @@ Kenmerk: EREF-2026-9006`;
             }`}
           >
             <UploadCloud className="w-3.5 h-3.5" />
-            <span>Afschrift Importeren</span>
+            <span>Import Statement</span>
           </button>
 
           <button
@@ -718,7 +718,7 @@ Kenmerk: EREF-2026-9006`;
             }`}
           >
             <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-            <span>Vraagposten</span>
+            <span>Review Items</span>
             {reviewItemsCount > 0 && (
               <span className="ml-1 bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">
                 {reviewItemsCount}
@@ -732,7 +732,7 @@ Kenmerk: EREF-2026-9006`;
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Card noPadding className="p-3 bg-[#F8F7F4]">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-dark/50 uppercase tracking-wider">Bank Saldo Totaal</span>
+            <span className="text-[10px] font-bold text-dark/50 uppercase tracking-wider">Total Bank Balance</span>
             <Landmark className="w-4 h-4 text-primary" />
           </div>
           <p className="text-lg font-heading font-bold text-primary mt-1 font-mono">
@@ -742,7 +742,7 @@ Kenmerk: EREF-2026-9006`;
 
         <Card noPadding className="p-3 bg-[#F8F7F4]">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-dark/50 uppercase tracking-wider">Totaal Bijschrijvingen</span>
+            <span className="text-[10px] font-bold text-dark/50 uppercase tracking-wider">Total Credits</span>
             <ArrowDownRight className="w-4 h-4 text-emerald-700" />
           </div>
           <p className="text-lg font-heading font-bold text-emerald-800 mt-1 font-mono">
@@ -752,7 +752,7 @@ Kenmerk: EREF-2026-9006`;
 
         <Card noPadding className="p-3 bg-[#F8F7F4]">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-dark/50 uppercase tracking-wider">Totaal Afschrijvingen</span>
+            <span className="text-[10px] font-bold text-dark/50 uppercase tracking-wider">Total Debits</span>
             <ArrowUpRight className="w-4 h-4 text-red-600" />
           </div>
           <p className="text-lg font-heading font-bold text-red-700 mt-1 font-mono">
@@ -762,11 +762,11 @@ Kenmerk: EREF-2026-9006`;
 
         <Card noPadding className="p-3 bg-[#F8F7F4]">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-dark/50 uppercase tracking-wider">Vraagposten (Review Needed)</span>
+            <span className="text-[10px] font-bold text-dark/50 uppercase tracking-wider">Review Items (Pending)</span>
             <AlertTriangle className="w-4 h-4 text-amber-600" />
           </div>
           <p className="text-lg font-heading font-bold text-amber-800 mt-1 font-mono">
-            {reviewItemsCount} Transacties
+            {reviewItemsCount} Transactions
           </p>
         </Card>
       </div>
@@ -782,7 +782,7 @@ Kenmerk: EREF-2026-9006`;
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark/40" />
               <input 
                 type="text" 
-                placeholder="Zoek op naam, IBAN, omschrijving of kenmerk (EREF)..."
+                placeholder="Search by name, IBAN, description or reference (EREF)..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-3 py-1.5 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 text-[#4A4A43]"
@@ -796,9 +796,9 @@ Kenmerk: EREF-2026-9006`;
                 onChange={e => setTypeFilter(e.target.value)}
                 className="px-2.5 py-1.5 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg font-semibold text-dark text-xs focus:outline-none"
               >
-                <option value="All">Alle Types (Bij/Af)</option>
-                <option value="Credit">Bijschrijving (+)</option>
-                <option value="Debit">Afschrijving (-)</option>
+                <option value="All">All Types (Credit/Debit)</option>
+                <option value="Credit">Credit (+)</option>
+                <option value="Debit">Debit (-)</option>
               </select>
 
               {/* Category Filter */}
@@ -807,7 +807,7 @@ Kenmerk: EREF-2026-9006`;
                 onChange={e => setCategoryFilter(e.target.value)}
                 className="px-2.5 py-1.5 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg font-semibold text-dark text-xs focus:outline-none max-w-[200px] truncate"
               >
-                <option value="All">Alle Categorieën (All 17)</option>
+                <option value="All">All Categories</option>
                 {BOOKKEEPING_CATEGORIES.map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
@@ -819,18 +819,18 @@ Kenmerk: EREF-2026-9006`;
                 onChange={e => setReviewStatusFilter(e.target.value)}
                 className="px-2.5 py-1.5 bg-[#F8F7F4] border border-[#D6CFC2] rounded-lg font-semibold text-dark text-xs focus:outline-none"
               >
-                <option value="All">Alle Statussen</option>
-                <option value="Recognized">Herkend (Recognized)</option>
-                <option value="Internal Transfer">Kruispost (Internal Transfer)</option>
-                <option value="Review Needed">Vraagpost (Review Needed)</option>
-                <option value="Manually Reclassified">Hergecategoriseerd</option>
+                <option value="All">All Statuses</option>
+                <option value="Recognized">Recognized</option>
+                <option value="Internal Transfer">Internal Transfer</option>
+                <option value="Review Needed">Review Needed</option>
+                <option value="Manually Reclassified">Manually Reclassified</option>
               </select>
 
               <Button size="sm" icon={Plus} onClick={() => setModalOpen(true)} className="py-1.5 text-xs font-bold">
-                + Transactie
+                + Transaction
               </Button>
               <Button size="sm" icon={UploadCloud} onClick={() => setImportModalOpen(true)} className="py-1.5 text-xs font-bold bg-emerald-800 hover:bg-emerald-900 text-white border-0">
-                Import Afschrift
+                Import Statement
               </Button>
             </div>
           </div>
@@ -867,7 +867,7 @@ Kenmerk: EREF-2026-9006`;
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="font-heading font-bold text-lg text-primary">Import Bank Statements</h3>
-                      <span className="px-2 py-0.5 bg-emerald-800 text-white text-[10px] font-bold rounded-md tracking-wider">BOEKHOUDING</span>
+                      <span className="px-2 py-0.5 bg-emerald-800 text-white text-[10px] font-bold rounded-md tracking-wider">BOOKKEEPING</span>
                     </div>
                     <p className="text-dark/60 text-xs mt-0.5">Parse Rabobank, ING & ABN AMRO bank exports directly into accounting ledger & VAT.</p>
                   </div>
@@ -885,7 +885,7 @@ Kenmerk: EREF-2026-9006`;
                 {/* File Format Selector */}
                 <div>
                   <label className="block text-[10px] font-bold uppercase text-dark/50 tracking-wider mb-2">
-                    FILE FORMAT SELECTOR (BESTANDSFORMAAT)
+                    FILE FORMAT SELECTOR
                   </label>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
@@ -894,7 +894,7 @@ Kenmerk: EREF-2026-9006`;
                         onChange={e => setFileFormat(e.target.value)}
                         className="w-full appearance-none pl-8 pr-3 py-2.5 bg-white border border-[#D6CFC2] rounded-xl text-xs font-bold text-dark focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
                       >
-                        <option value="PDF">PDF (.pdf Bankafschrift)</option>
+                        <option value="PDF">PDF (.pdf Bank Statement)</option>
                         <option value="TXT">TXT / CSV (ABN AMRO Export)</option>
                         <option value="MT940">MT940 (.sta)</option>
                         <option value="CAMT">CAMT.053 (.xml)</option>
@@ -953,7 +953,7 @@ Kenmerk: EREF-2026-9006`;
                       <CheckCircle className="w-8 h-8 text-emerald-600" />
                       <div className="text-center">
                         <p className="text-sm font-bold text-emerald-800">{importFile.name}</p>
-                        <p className="text-xs text-dark/50 mt-0.5">{(importFile.size / 1024).toFixed(1)} KB geladen</p>
+                        <p className="text-xs text-dark/50 mt-0.5">{(importFile.size / 1024).toFixed(1)} KB loaded</p>
                       </div>
                     </>
                   ) : (
@@ -978,7 +978,7 @@ Kenmerk: EREF-2026-9006`;
                   <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs">
                     <div className="flex items-center gap-2 font-bold text-emerald-800">
                       <Check className="w-4 h-4" />
-                      {parsedStatementTxns.length} transacties ingelezen en klaar voor validatie
+                      {parsedStatementTxns.length} transactions parsed and ready for validation
                     </div>
                   </div>
                 )}
@@ -992,10 +992,10 @@ Kenmerk: EREF-2026-9006`;
                   }`}>
                     <div className="flex items-center gap-2 font-bold">
                       {validationResult.isValid
-                        ? <><ShieldCheck className="w-4 h-4 text-emerald-600" /> Saldo controle geslaagd!</>
-                        : <><AlertTriangle className="w-4 h-4 text-red-600" /> Validatie mislukt — import geblokkeerd!</>}
+                        ? <><ShieldCheck className="w-4 h-4 text-emerald-600" /> Balance checksum passed!</>
+                        : <><AlertTriangle className="w-4 h-4 text-red-600" /> Validation failed — import blocked!</>}
                     </div>
-                    <p className="mt-1">{validationResult.errorMessage || 'Alle saldo- en aantaltotalen kloppen.'}</p>
+                    <p className="mt-1">{validationResult.errorMessage || 'All balances and counts match.'}</p>
                   </div>
                 )}
               </div>
@@ -1018,7 +1018,7 @@ Kenmerk: EREF-2026-9006`;
                   icon={Sparkles}
                   onClick={() => {
                     if (!rawTextContent.trim()) {
-                      showToast('Geen bestand of tekst geladen. Laad eerst een bankafschrift.');
+                      showToast('No file or text loaded. Please load a bank statement first.');
                       return;
                     }
                     setImportModalOpen(false);

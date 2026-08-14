@@ -1,6 +1,8 @@
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import { Download, TrendingUp, Briefcase, Users } from 'lucide-react';
+import { downloadDocumentPdf } from '../../utils/pdfGenerator';
+
 
 export default function Reports() {
   const handleExportExcel = () => {
@@ -33,7 +35,13 @@ export default function Reports() {
   };
 
   const handleDownloadPDF = () => {
-    window.print();
+    downloadDocumentPdf({
+      name: `Vanuit-Ambacht-Reports-${new Date().toISOString().split('T')[0]}.pdf`,
+      id: `RPT-${new Date().toISOString().split('T')[0]}`,
+      category: 'Business Reports & Analytics',
+      uploader: 'Vanuit Ambacht System',
+      date: new Date().toLocaleDateString('nl-NL'),
+    });
   };
 
   return (

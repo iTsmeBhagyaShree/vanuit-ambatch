@@ -1,142 +1,509 @@
 import { jsPDF } from 'jspdf';
 
-/**
- * Vanuit Ambacht — Direct Client-Side Vector PDF File Generator
- * Uses jsPDF to generate a real PDF document and triggers doc.save(fileName)
- * directly downloading the file into the user's Downloads folder with 0 print dialogs.
- */
-export function downloadDirectPdfFile({
-  quoteId = 'OF-2026331',
-  customerName = 'Sonu Jain',
-  customerEmail = 'sonu.jain@example.com',
-  category = 'Buitenkeukens',
-  size = '8,00 × 4,00 m',
-  material = 'Douglas wood with concrete countertop',
-  priceExclVat = 34200,
-  vatRate = 21,
-  vatAmount = 7182,
-  totalInclVat = 41382,
-  isDraft = false
-}) {
-  const cleanCustomerSlug = (customerName || 'Sonu-Jain')
+// ─────────────────────────────────────────────────────────────────
+// VANUIT AMBACHT — Unified Real PDF Generator
+// All functions produce actual .pdf files via jsPDF doc.save()
+// Zero print dialogs. File lands directly in Downloads folder.
+// ─────────────────────────────────────────────────────────────────
+
+const BRAND = {
+  primary: [62, 78, 54],    // #3E4E36
+  accent:  [112, 98, 79],   // #70624F
+  cream:   [237, 232, 223], // #EDE8DF
+  dark:    [30, 30, 30],
+  mid:     [100, 100, 95],
+  line:    [214, 207, 194], // #D6CFC2
+};
+
+// ── shared helpers ────────────────────────────────────────────────
+function drawHeader(doc, title, subtitle, quoteId) {
+  // Green top bar
+  doc.setFillColor(...BRAND.primary);
+  doc.rect(0, 0, 210, 18, 'F');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.setTextColor(237, 232, 223);
+  doc.text('VANUIT AMBACHT', 14, 12);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(190, 183, 170);
+  doc.text('Craftsman Outdoor Kitchens & Canopies', 14, 16.5);
+
+  if (quoteId) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(237, 232, 223);
+    doc.text(quoteId, 196, 12, { align: 'right' });
+  }
+
+  // Cream divider
+  doc.setFillColor(...BRAND.cream);
+  doc.rect(0, 18, 210, 1, 'F');
+
+  // Document title block
+  doc.setFontSize(17);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...BRAND.primary);
+  doc.text(title, 14, 32);
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...BRAND.accent);
+  doc.text(subtitle, 14, 38);
+
+  // Thin line
+  doc.setDrawColor(...BRAND.line);
+  doc.setLineWidth(0.4);
+  doc.line(14, 41, 196, 41);
+
+  return 48; // next Y
+}
+
+function drawFooter(doc, pageCount) {
+  const h = doc.internal.pageSize.height;
+  doc.setDrawColor(...BRAND.line);
+  doc.setLineWidth(0.3);
+  doc.line(14, h - 14, 196, h - 14);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...BRAND.mid);
+  doc.text('Vanuit Ambacht B.V. • info@vanuitambacht.nl • +31 6 12345678 • vanuitambacht.nl', 14, h - 9);
+  doc.text(`Pagina ${pageCount}`, 196, h - 9, { align: 'right' });
+}
+
+function infoRow(doc, label, value, y, xLeft = 14, xRight = 105) {
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(...BRAND.accent);
+  doc.text(label.toUpperCase(), xLeft, y);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9.5);
+  doc.setTextColor(...BRAND.dark);
+  doc.text(String(value || '—'), xRight, y);
+  return y + 6;
+}
+
+function sectionTitle(doc, text, y) {
+  doc.setFillColor(...BRAND.cream);
+  doc.rect(14, y - 4, 182, 9, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.setTextColor(...BRAND.primary);
+  doc.text(text.toUpperCase(), 17, y + 1.5);
+  return y + 10;
+}
+
+function slugify(name) {
+  return String(name || '')
     .replace(/[^a-zA-Z0-9]/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
+}
 
-  const fileName = isDraft
-    ? `Quote-${quoteId}-${cleanCustomerSlug}-DRAFT.pdf`
-    : `Quote-${quoteId}-${cleanCustomerSlug}.pdf`;
+// ── 1. QUOTE PDF ─────────────────────────────────────────────────
+/**
+ * Download a real quote PDF.
+ * @param {object} quote  - row from quotes state
+ */
+export function downloadQuotePdf(quote) {
+  const id        = quote?.id || 'OF-2026-001';
+  const customer  = typeof quote?.customer === 'object'
+    ? (quote.customer.name || 'Klant')
+    : (quote?.customer || 'Klant');
+  const project   = quote?.project || 'Buitenkeuken Maatwerk';
+  const amount    = quote?.amount || '€ 0';
+  const status    = quote?.status || 'Concept';
+  const date      = quote?.date || new Date().toISOString().split('T')[0];
+  const validTill = quote?.validUntil || '—';
+  const items     = Array.isArray(quote?.items) && quote.items.length > 0
+    ? quote.items
+    : (Array.isArray(quote?.investment?.lineItems) ? quote.investment.lineItems : []);
 
-  const doc = new jsPDF();
-  
-  // Colors
-  const primaryColor = [62, 78, 54]; // #3E4E36
-  const darkColor = [30, 30, 30];
-  const accentColor = [112, 98, 79];
+  const fileName = `Offerte-${id}-${slugify(customer)}.pdf`;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
 
-  // Brand Header
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(22);
-  doc.setTextColor(...primaryColor);
-  doc.text('VANUIT AMBACHT', 20, 25);
+  let y = drawHeader(doc, 'OFFICIËLE MAATOFFERTE', `Vanuit Ambacht • ${id} • ${date}`, id);
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.setTextColor(...accentColor);
-  doc.text(isDraft ? 'INTERNE CONCEPT OFFERTE (NIET VERZONDEN)' : 'OFFICIËLE MAATOFFERTE', 20, 32);
+  // Customer + project block
+  y = sectionTitle(doc, 'Klant & Project', y);
+  y = infoRow(doc, 'Klantnaam',  customer, y);
+  y = infoRow(doc, 'Project',    project,  y);
+  y = infoRow(doc, 'Datum',      date,     y);
+  y = infoRow(doc, 'Geldig tot', validTill,y);
+  y = infoRow(doc, 'Status',     status,   y);
+  y += 4;
 
-  // Divider Line
-  doc.setDrawColor(...primaryColor);
-  doc.setLineWidth(1);
-  doc.line(20, 36, 190, 36);
+  // Line items table
+  if (items.length > 0) {
+    y = sectionTitle(doc, 'Offerte Artikelen', y);
 
-  // Quote Metadata
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.setTextColor(...primaryColor);
-  doc.text(`Offerte ID: ${quoteId}`, 20, 48);
+    // Table header
+    doc.setFillColor(...BRAND.primary);
+    doc.rect(14, y, 182, 7, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(237, 232, 223);
+    doc.text('OMSCHRIJVING',     17,  y + 4.5);
+    doc.text('AANTAL',          130,  y + 4.5);
+    doc.text('PRIJS',           155,  y + 4.5);
+    doc.text('TOTAAL',          182,  y + 4.5, { align: 'right' });
+    y += 9;
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  doc.setTextColor(...darkColor);
-  doc.text(`Klantnaam: ${customerName}`, 20, 56);
-  doc.text(`E-mailadres: ${customerEmail}`, 20, 62);
-  doc.text(`Datum: ${new Date().toLocaleDateString('nl-NL')}`, 20, 68);
+    let subtotal = 0;
+    items.forEach((item, idx) => {
+      const desc  = String(item.description || item.title || '—');
+      const qty   = Number(item.quantity) || 1;
+      const price = Number(item.unitPrice || item.priceInclVat) || 0;
+      const total = qty * price;
+      subtotal   += total;
 
-  // Specifications Box
-  doc.setFillColor(248, 247, 244); // #F8F7F4
-  doc.roundedRect(20, 75, 170, 25, 3, 3, 'F');
-  
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.setTextColor(...accentColor);
-  doc.text('PROJECT SPECIFICATIES:', 25, 84);
+      // Alternate row shading
+      if (idx % 2 === 0) {
+        doc.setFillColor(248, 247, 244);
+        doc.rect(14, y - 3, 182, 7, 'F');
+      }
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(11);
-  doc.setTextColor(...primaryColor);
-  doc.text(`Maatwerk ${category} (${size})`, 25, 92);
-  doc.text(`Afwerking: ${material}`, 25, 97);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(...BRAND.dark);
 
-  // Financial Table Header
-  doc.setFillColor(237, 232, 223); // #EDE8DF
-  doc.rect(20, 110, 170, 10, 'F');
-  
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.setTextColor(...primaryColor);
-  doc.text('OMSCHRIJVING', 25, 116.5);
-  doc.text('BEDRAG', 145, 116.5);
+      const lines = doc.splitTextToSize(desc, 108);
+      doc.text(lines, 17, y + 0.5);
+      doc.text(String(qty),                         130,  y + 0.5);
+      doc.text(`€ ${price.toLocaleString('nl-NL')}`, 155,  y + 0.5);
+      doc.text(`€ ${total.toLocaleString('nl-NL')}`, 182,  y + 0.5, { align: 'right' });
+      y += Math.max(7, lines.length * 4.5);
+    });
 
-  // Financial Table Rows
-  const fmt = (num) => `EUR ${(num || 0).toLocaleString('nl-NL')}`;
+    y += 2;
+    doc.setDrawColor(...BRAND.line);
+    doc.line(14, y, 196, y);
+    y += 6;
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  doc.setTextColor(...darkColor);
+    // Totals
+    const discount = Number(quote?.discountPercent) || 0;
+    const discountAmt = subtotal * (discount / 100);
+    const afterDiscount = subtotal - discountAmt;
+    const vat = afterDiscount * 0.21;
+    const total = afterDiscount + vat;
 
-  doc.text(`Bespoke ${category} (${size})`, 25, 128);
-  doc.text(fmt(priceExclVat), 145, 128);
+    const totalsX = 130;
+    const amtX = 196;
 
-  doc.setDrawColor(214, 207, 194);
-  doc.line(20, 133, 190, 133);
+    const totLine = (label, val, bold = false) => {
+      doc.setFont('helvetica', bold ? 'bold' : 'normal');
+      doc.setFontSize(bold ? 10 : 8.5);
+      doc.setTextColor(bold ? BRAND.primary[0] : BRAND.dark[0], bold ? BRAND.primary[1] : BRAND.dark[1], bold ? BRAND.primary[2] : BRAND.dark[2]);
+      doc.text(label, totalsX, y);
+      doc.text(val, amtX, y, { align: 'right' });
+      y += bold ? 8 : 6;
+    };
 
-  doc.text(`BTW (${vatRate}%)`, 25, 142);
-  doc.text(fmt(vatAmount), 145, 142);
+    totLine('Subtotaal (excl. BTW):',    `€ ${subtotal.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}`);
+    if (discount > 0) {
+      totLine(`Korting (${discount}%):`, `- € ${discountAmt.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}`);
+    }
+    totLine('BTW (21%):',               `€ ${vat.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}`);
 
-  doc.line(20, 147, 190, 147);
-
-  // Total Row
-  doc.setFillColor(248, 247, 244);
-  doc.rect(20, 150, 170, 12, 'F');
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(12);
-  doc.setTextColor(...primaryColor);
-  doc.text('Totaal Incl. BTW', 25, 158);
-  doc.text(fmt(totalInclVat), 145, 158);
-
-  // Status Disclaimer Badge Box
-  if (isDraft) {
-    doc.setFillColor(254, 243, 199); // amber
-    doc.roundedRect(20, 175, 170, 15, 3, 3, 'F');
-    doc.setFontSize(10);
-    doc.setTextColor(146, 64, 14);
-    doc.text('DRAFT - NIET VERZONDEN NAAR KLANT (Conceptfase)', 35, 184);
-  } else {
-    doc.setFillColor(240, 253, 244); // green
-    doc.roundedRect(20, 175, 170, 15, 3, 3, 'F');
-    doc.setFontSize(10);
-    doc.setTextColor(22, 101, 52);
-    doc.text('OFFICIEEL GOEDGEKEURDE OFFERTE DOOR VANUIT AMBACHT', 35, 184);
+    doc.setFillColor(...BRAND.primary);
+    doc.rect(totalsX - 4, y - 5, 60 + 4, 9, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10.5);
+    doc.setTextColor(237, 232, 223);
+    doc.text('Totaal Incl. BTW:', totalsX, y + 0.5);
+    doc.text(`€ ${total.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}`, amtX, y + 0.5, { align: 'right' });
+    y += 14;
   }
 
-  // Footer
+  // Status badge
+  const isAccepted = ['Geaccepteerd', 'Accepted', 'Approved'].includes(status);
+  doc.setFillColor(...(isAccepted ? [240, 253, 244] : [254, 243, 199]));
+  doc.roundedRect(14, y, 182, 10, 2, 2, 'F');
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
-  doc.setTextColor(150, 150, 150);
-  doc.text(`Gegenereerd door Vanuit Ambacht Cloud Management • ${fileName}`, 35, 270);
+  doc.setTextColor(...(isAccepted ? [22, 101, 52] : [146, 64, 14]));
+  doc.text(
+    isAccepted
+      ? '✓  OFFICIEEL GEACCEPTEERDE OFFERTE DOOR VANUIT AMBACHT'
+      : '⚠  CONCEPT OFFERTE — NOG NIET VERZONDEN NAAR KLANT',
+    105, y + 6.5, { align: 'center' }
+  );
 
-  // DIRECT AUTOMATIC FILE DOWNLOAD TO USER'S DOWNLOADS FOLDER (0 PRINT DIALOGS)
+  drawFooter(doc, 1);
   doc.save(fileName);
   return fileName;
 }
+
+// ── 2. INVOICE PDF ───────────────────────────────────────────────
+/**
+ * Download a real invoice PDF.
+ * @param {object} invoice - invoice row object
+ */
+export function downloadInvoicePdf(invoice) {
+  const id       = invoice?.id || 'INV-001';
+  const customer = typeof invoice?.customer === 'object'
+    ? (invoice.customer.name || 'Klant')
+    : (invoice?.customer || 'Klant');
+  const quoteId  = invoice?.quoteId || '—';
+  const type     = invoice?.type || 'Factuur';
+  const rawAmount = invoice?.amount || '€ 0';
+  let numAmt = Number(invoice?.numericAmount) || 0;
+  if (!numAmt && rawAmount) {
+    // Parse "€ 12.500,00" or "€ 12500"
+    const cleaned = String(rawAmount).replace(/[^0-9,/.-]/g, '').replace(/\./g, '').replace(',', '.');
+    numAmt = parseFloat(cleaned) || 0;
+  }
+  const amount = rawAmount !== '€ 0' ? rawAmount : `€ ${numAmt.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}`;
+  const status   = invoice?.status || 'Openstaand';
+  const dueDate  = invoice?.dueDate || '—';
+  const creDate  = invoice?.createdDate || new Date().toISOString().split('T')[0];
+
+  const fileName = `Factuur-${id}-${slugify(customer)}.pdf`;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+  let y = drawHeader(doc, 'OFFICIËLE FACTUUR', `Vanuit Ambacht • ${id} • ${creDate}`, id);
+
+  y = sectionTitle(doc, 'Factuur Details', y);
+  y = infoRow(doc, 'Factuur Nr.',    id,       y);
+  y = infoRow(doc, 'Klant',         customer, y);
+  y = infoRow(doc, 'Offerte Ref.',   quoteId,  y);
+  y = infoRow(doc, 'Factuurdatum',   creDate,  y);
+  y = infoRow(doc, 'Vervaldatum',    dueDate,  y);
+  y = infoRow(doc, 'Status',         status,   y);
+  y += 6;
+
+  // Amount table
+  y = sectionTitle(doc, 'Bedrag Overzicht', y);
+
+  doc.setFillColor(...BRAND.primary);
+  doc.rect(14, y, 182, 7, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(237, 232, 223);
+  doc.text('OMSCHRIJVING', 17, y + 4.5);
+  doc.text('BEDRAG', 182, y + 4.5, { align: 'right' });
+  y += 9;
+
+  const exclVat  = numAmt / 1.21;
+  const vatAmt   = numAmt - exclVat;
+
+  const row = (label, val, shade = false) => {
+    if (shade) {
+      doc.setFillColor(248, 247, 244);
+      doc.rect(14, y - 3, 182, 7, 'F');
+    }
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...BRAND.dark);
+    doc.text(label, 17, y + 0.5);
+    doc.text(val, 182, y + 0.5, { align: 'right' });
+    y += 7;
+  };
+
+  row(type,     `€ ${exclVat.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}`, true);
+  row('BTW 21%',`€ ${vatAmt.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}`,  false);
+
+  y += 2;
+  doc.setFillColor(...BRAND.primary);
+  doc.rect(14, y - 3, 182, 10, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(237, 232, 223);
+  doc.text('TOTAAL INCL. BTW', 17, y + 3.5);
+  doc.text(amount, 182, y + 3.5, { align: 'right' });
+  y += 16;
+
+  // Payment info box
+  y = sectionTitle(doc, 'Betalingsinformatie', y);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(...BRAND.dark);
+  doc.text('Bankrekeningnummer:', 17, y + 1);
+  doc.setFont('helvetica', 'bold');
+  doc.text('NL91 ABNA 0412 8892 10',  80, y + 1);
+  y += 7;
+  doc.setFont('helvetica', 'normal');
+  doc.text('Bedrijfsnaam:', 17, y + 1);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Vanuit Ambacht B.V.', 80, y + 1);
+  y += 7;
+  doc.setFont('helvetica', 'normal');
+  doc.text('KVK / BTW:', 17, y + 1);
+  doc.setFont('helvetica', 'bold');
+  doc.text('KVK 84729102 • BTW NL863492817B01', 80, y + 1);
+  y += 14;
+
+  // Status badge
+  const isPaid = ['Betaald', 'Paid'].includes(status);
+  doc.setFillColor(...(isPaid ? [240, 253, 244] : [254, 243, 199]));
+  doc.roundedRect(14, y, 182, 10, 2, 2, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(...(isPaid ? [22, 101, 52] : [146, 64, 14]));
+  doc.text(
+    isPaid ? `✓  BETAALD — Dank voor uw betaling` : `⚠  OPENSTAAND — Gelieve te betalen voor ${dueDate}`,
+    105, y + 6.5, { align: 'center' }
+  );
+
+  drawFooter(doc, 1);
+  doc.save(fileName);
+  return fileName;
+}
+
+// ── 3. BLUEPRINT / PROJECT PDF ───────────────────────────────────
+/**
+ * Download a real project blueprint PDF.
+ * @param {object} project - project row object
+ */
+export function downloadBlueprintPdf(project) {
+  const id       = project?.id || 'PRJ-001';
+  const name     = project?.name || 'Buitenkeuken Maatwerk';
+  const customer = typeof project?.customer === 'object'
+    ? (project.customer.name || 'Klant')
+    : (project?.customer || 'Klant');
+  const partner  = project?.partner || 'Niet toegewezen';
+  const deadline = project?.deadline || '—';
+  const progress = project?.progress || 0;
+  const dims     = project?.dimensions || '350cm × 90cm × 95cm';
+  const frame    = project?.frameMaterial || 'Massief Teak Hout (FSC Gecertificeerd)';
+  const worktop  = project?.topMaterial || 'Polijst Beton (Donkergrijs)';
+  const delivery = project?.deliveryAddress || project?.deliveryLocation || '—';
+  const value    = project?.value || '—';
+
+  const fileName = `Blueprint-${id}-${slugify(name)}.pdf`;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+  let y = drawHeader(doc, 'TECHNISCHE CONSTRUCTIETEKENING', `Vanuit Ambacht • ${id} • ${new Date().toLocaleDateString('nl-NL')}`, id);
+
+  y = sectionTitle(doc, 'Project Informatie', y);
+  y = infoRow(doc, 'Project naam', name,     y);
+  y = infoRow(doc, 'Klant',        customer, y);
+  y = infoRow(doc, 'Vakman',       partner,  y);
+  y = infoRow(doc, 'Deadline',     deadline, y);
+  y = infoRow(doc, 'Voortgang',    `${progress}% compleet`, y);
+  y = infoRow(doc, 'Waarde',       value,    y);
+  y += 6;
+
+  y = sectionTitle(doc, 'Technische Specificaties & Materialen', y);
+  y = infoRow(doc, 'Afmetingen (B×D×H)', dims,     y);
+  y = infoRow(doc, 'Frame Materiaal',    frame,    y);
+  y = infoRow(doc, 'Werkblad',           worktop,  y);
+  y = infoRow(doc, 'Levering',           delivery, y);
+  y += 8;
+
+  // Schematic diagram (text-based)
+  y = sectionTitle(doc, 'Schematische Indeling (CAD Referentie)', y);
+
+  doc.setFillColor(15, 23, 42);
+  doc.roundedRect(14, y, 182, 45, 3, 3, 'F');
+
+  doc.setFont('courier', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(34, 211, 238);
+  doc.text('┌─────────────────────────────────────────────────────────────────────┐', 18, y + 7);
+  doc.text('│  KABINETBLOK 1    │   UITSPARING (BBQ)   │     KABINETBLOK 2       │', 18, y + 13);
+  doc.text('│    60 – 80 cm      │     70 – 90 cm       │       60 – 80 cm        │', 18, y + 18);
+  doc.text('│                   │   [Big Green Egg /   │                         │', 18, y + 23);
+  doc.text('│   2× deuren +     │    Kamado BBQ /      │  Open schap + lade      │', 18, y + 28);
+  doc.text('│   soft-close      │    Gasgrill Large]   │  + soft-close deuren    │', 18, y + 33);
+  doc.text('└─────────────────────────────────────────────────────────────────────┘', 18, y + 38);
+
+  doc.setFontSize(7);
+  doc.setTextColor(103, 232, 249);
+  doc.text(`Referentie afmetingen: ${dims}  •  Schaal 1:20  •  Gecertificeerde productietekening`, 105, y + 43, { align: 'center' });
+  y += 52;
+
+  // Checklist
+  y = sectionTitle(doc, 'Productie Checklist', y);
+  const checks = [
+    'Hout frame gesneden en geschuurd op maat',
+    'Scharnieren en soft-close dempers gemonteerd',
+    'Uitsparing gefreesd voor BBQ / apparaat',
+    'Werkblad gelijmd en gehecht',
+    'Olie-afwerking aangebracht (2 lagen)',
+    'Wielen bevestigd (heavy-duty zwenkwielen)',
+    'Kwaliteitscontrole uitgevoerd door vakman',
+    'Klaar voor bezorging bij klant',
+  ];
+
+  checks.forEach((item) => {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...BRAND.dark);
+    doc.text(`☐  ${item}`, 17, y);
+    y += 6;
+  });
+
+  drawFooter(doc, 1);
+  doc.save(fileName);
+  return fileName;
+}
+
+// ── 4. DOCUMENT PDF ──────────────────────────────────────────────
+/**
+ * Download a generic document PDF.
+ * @param {object} docObj  - document object { name, category, uploader, date, id }
+ */
+export function downloadDocumentPdf(docObj) {
+  const name     = docObj?.name || 'Document';
+  const category = docObj?.category || 'General';
+  const uploader = docObj?.uploader || 'Vanuit Ambacht';
+  const date     = docObj?.date || new Date().toLocaleDateString('nl-NL');
+  const docId    = docObj?.id || 'DOC-001';
+
+  const fileName = `VA-${slugify(name)}.pdf`;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+  let y = drawHeader(doc, name.toUpperCase(), `Vanuit Ambacht • ${category} • ${date}`, docId);
+
+  y = sectionTitle(doc, 'Document Informatie', y);
+  y = infoRow(doc, 'Bestandsnaam', name,     y);
+  y = infoRow(doc, 'Categorie',    category, y);
+  y = infoRow(doc, 'Geüpload door',uploader, y);
+  y = infoRow(doc, 'Datum',        date,     y);
+  y = infoRow(doc, 'Document ID',  docId,    y);
+  y += 8;
+
+  // Content block
+  y = sectionTitle(doc, 'Document Inhoud', y);
+  doc.setFillColor(248, 247, 244);
+  doc.roundedRect(14, y, 182, 40, 3, 3, 'F');
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9.5);
+  doc.setTextColor(...BRAND.dark);
+  const bodyText = [
+    `Dit is een officieel geverifieerd document van Vanuit Ambacht B.V.,`,
+    `uitgegeven ten behoeve van project gerelateerde documentatie en`,
+    `klantcommunicatie. Alle vermelde specificaties, garanties en`,
+    `afspraken in dit document zijn geldig en bindend.`,
+    ``,
+    `Categorie: ${category}`,
+    `Geüpload door: ${uploader}`,
+    `Uitgiftedatum: ${date}`,
+  ];
+  bodyText.forEach((line, i) => {
+    doc.text(line, 18, y + 8 + i * 5);
+  });
+  y += 50;
+
+  // Verification stamp
+  doc.setDrawColor(22, 163, 74);
+  doc.setLineWidth(0.8);
+  doc.roundedRect(14, y, 182, 14, 3, 3, 'S');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(22, 101, 52);
+  doc.text('✓  DIGITAAL GEVERIFIEERD & GOEDGEKEURD DOOR VANUIT AMBACHT B.V.', 105, y + 9, { align: 'center' });
+
+  drawFooter(doc, 1);
+  doc.save(fileName);
+  return fileName;
+}
+
+// ── 5. Legacy named export (backwards compat) ─────────────────────
+export { downloadQuotePdf as downloadDirectPdfFile };

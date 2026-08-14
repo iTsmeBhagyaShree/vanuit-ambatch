@@ -1,9 +1,10 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  FileText, Image as ImageIcon, FileArchive, File, 
+import {
+  FileText, Image as ImageIcon, FileArchive, File,
   Upload, Search, Download, Trash2, Plus, Filter, CheckCircle, X, Eye
 } from 'lucide-react';
+import { downloadDocumentPdf } from '../utils/pdfGenerator';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Badge from '../components/Badge';
@@ -207,89 +208,10 @@ export default function Documents({ role }) {
     }
   };
 
-  // Formatted PDF Printable download trigger
+  // Direct PDF download via jsPDF — no print dialog, no popup
   const handleDownload = (doc) => {
-    showToast(`${language === 'NL' ? 'Bezig met genereren/downloaden van' : 'Generating & Downloading'} ${doc.name}...`);
-    
-    const printWin = window.open('', '_blank');
-    if (!printWin) return;
-
-    const isBlueprint = doc.name.includes('AUTOCAD') || doc.category === 'Designs';
-
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>${doc.name}</title>
-        <style>
-          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f8f9fa; color: #1a202c; padding: 40px; }
-          .header { border-bottom: 3px solid #3E4E36; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
-          .logo { font-size: 24px; font-weight: bold; color: #3E4E36; letter-spacing: 2px; }
-          .subtitle { font-size: 12px; color: #718096; text-transform: uppercase; letter-spacing: 1px; }
-          .cad-box { background: #0f172a; border: 2px solid #0891b2; border-radius: 16px; padding: 30px; color: #22d3ee; margin: 30px 0; font-family: monospace; }
-          .cad-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; text-transform: uppercase; border-bottom: 1px solid #164e63; padding-bottom: 10px; }
-          .cad-diagram { border: 2px dashed #06b6d4; padding: 25px; text-align: center; border-radius: 12px; background: #020617; font-size: 14px; font-weight: bold; margin: 20px 0; }
-          .doc-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-          .badge { background: #3E4E36; color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; }
-          .footer { margin-top: 50px; border-top: 1px solid #e2e8f0; padding-top: 20px; text-align: center; font-size: 11px; color: #a0aec0; }
-          .stamp { border: 2px solid #16a34a; color: #16a34a; padding: 8px 16px; border-radius: 8px; font-weight: bold; display: inline-block; margin-top: 20px; text-transform: uppercase; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div>
-            <div class="logo">VANUIT AMBACHT</div>
-            <div class="subtitle">Official Project File & CAD Drawing • Spec & Verification</div>
-          </div>
-          <span class="badge">${isBlueprint ? 'AUTOCAD 1:20 SPEC' : 'VERIFIED DOCUMENT'}</span>
-        </div>
-
-        ${isBlueprint ? `
-          <div class="cad-box">
-            <div class="cad-title">📐 OFFICIAL SCHEMATIC BLUEPRINT (AUTOCAD SPEC V2)</div>
-            <p><strong>Document Name:</strong> ${doc.name}</p>
-            <p><strong>Uploader:</strong> ${doc.uploader}</p>
-            <p><strong>Scale:</strong> 1:20 • Approved Workshop Construction Spec</p>
-            
-            <div class="cad-diagram">
-              [ 3.5m TEAK FRAME ] ═══════ [ CONCRETE SLAB ] ═══════ [ SINK & KAMADO CUTOUT ]
-              <br><br>
-              <span style="font-size: 11px; color: #67e8f9;">Dimensions: 350cm (W) x 85cm (D) x 92cm (H) • Material: Grade-A Teak Wood + 8cm Beton Cire</span>
-            </div>
-
-            <p style="font-size: 11px; color: #a5f3fc;">Verified by Head Craftsmen Tim & Bram • Certified Workshop Production File</p>
-          </div>
-        ` : `
-          <div class="doc-card">
-            <h2 style="color: #3E4E36; margin-top: 0;">${doc.name}</h2>
-            <p><strong>Category:</strong> ${doc.category}</p>
-            <p><strong>Uploaded By:</strong> ${doc.uploader}</p>
-            <p><strong>Date Issued:</strong> ${doc.date}</p>
-            <hr style="border: none; border-top: 1px solid #edf2f7; margin: 20px 0;">
-            <p style="line-height: 1.6; color: #4a5568;">
-              This is an official verified document provided for Vanuit Ambacht B.V. project operations.
-            </p>
-            <div class="stamp">✓ Digitally Signed & Verified</div>
-          </div>
-        `}
-
-        <div class="footer">
-          Vanuit Ambacht B.V. • Craftsman Outdoor Kitchens & Canopies • Netherlands
-          <br>
-          Document ID: ${doc.id} • ${doc.name}
-        </div>
-
-        <script>
-          setTimeout(() => {
-            window.print();
-          }, 600);
-        </script>
-      </body>
-      </html>
-    `;
-
-    printWin.document.write(htmlContent);
-    printWin.document.close();
+    const fileName = downloadDocumentPdf(doc);
+    showToast(`${language === 'NL' ? 'PDF gedownload' : 'PDF downloaded'}: ${fileName}`);
   };
 
   const handleDelete = (id, name) => {
