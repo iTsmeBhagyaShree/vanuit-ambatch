@@ -508,11 +508,11 @@ export default function Projects() {
                 </button>
               </div>
             ) : (
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 min-w-0 max-w-full">
+              <div className="flex flex-col gap-1.5 w-full min-w-0">
                 <select
                   value={row.partner}
                   onChange={(e) => handleInlinePartnerChange(row.id, e.target.value)}
-                  className="flex-1 min-w-0 max-w-full truncate px-2 py-1 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body font-semibold text-dark/80 focus:outline-none focus:ring-1 focus:ring-primary/40 cursor-pointer"
+                  className="w-full min-w-0 truncate px-2.5 py-1.5 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body font-semibold text-dark/80 focus:outline-none focus:ring-1 focus:ring-primary/40 cursor-pointer"
                 >
                   <option value="Unassigned">{language === 'EN' ? 'Unassigned' : 'Niet toegewezen'}</option>
                   {partnersList.map((p, idx) => (
@@ -522,10 +522,10 @@ export default function Projects() {
                 {row.partner && row.partner !== 'Unassigned' && (
                   <button
                     onClick={() => handleConfirmPartnerForGood(row.id)}
-                    className="px-2 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-[10px] font-bold whitespace-nowrap shadow-xs cursor-pointer flex-shrink-0"
+                    className="w-full py-1.5 px-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-[11px] font-bold shadow-xs cursor-pointer flex items-center justify-center gap-1"
                     title="Confirm Partner for Good & Lock"
                   >
-                    ✓ Bevestig
+                    ✓ Bevestig Partner
                   </button>
                 )}
               </div>
