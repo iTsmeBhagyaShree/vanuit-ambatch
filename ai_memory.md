@@ -7,6 +7,42 @@ This file tracks all modifications, additions, and updates made to the **Vanuit 
 - **Key Features**: Admin Panel, Partner Panel, Role-Based Route Protection, Responsive Layout.
 - **Theme**: Premium Forest Green (`#3E4E36`), Accent Cream/Beige, custom typography.
 
+## 154. Step 1 — Garden Room Data Model & Backward-Compatible Architecture (Completed 2026-08-18)
+* **Goal**: Establish the extended data models, helpers, and normalizer for Garden Rooms, Poolhouses, and Canopies while preserving 100% backward compatibility for base Outdoor Kitchen projects.
+* **Changes**:
+  1. **New Utility File (`src/utils/gardenRoomDataModel.js`)**:
+     - `detectProjectType()`: Differentiates `outdoor_kitchen`, `garden_room`, `poolhouse`, `canopy`.
+     - `getPaymentInstalmentsModel()`: 50/50 for Outdoor Kitchens vs 40/40/20 with handover lock for Garden Rooms.
+     - `getPlanningPhaseModel()`: 5-phase for Outdoor Kitchens vs 7-phase (including Schouw / Site Survey) for Garden Rooms.
+     - Default data model creators for: `renderPackage`, `prepChecklist`, `teamUpdates`, `handoverModel`, `seasonalMaintenance`, and `threeMonthCheck`.
+     - `normalizeProjectData()`: Graceful normalizer ensuring all existing localStorage projects load cleanly without breaking changes.
+  2. **Documentation**:
+     - Updated `client_requirements.md` and `ai_memory.md`.
+
+---
+
+## 153. Admin Projects Screen Alignment with Client Briefing v1.0 Page 8/11 (Completed 2026-08-18)
+* **Goal**: Clean up the Admin Projects page (`/admin/projects`) per client's exact briefing specification (Page 8/11). Remove Kliko webshop order remnants and align table to the exact 7-column schema.
+* **Changes**:
+  1. **Projects Page (`src/pages/admin/Projects.jsx`)**:
+     - Removed redundant webshop `orderColumns` definitions and Kliko webshop order tab references.
+     - Cleaned category dropdown options to remove "Kliko" across filters and modals.
+     - Re-aligned main table columns to match client's exact 7-column layout (Page 8/11):
+       - `PROJECT NO.` (ID e.g. `PRJ-103`)
+       - `CATEGORY` (Canopy, Outdoor kitchen, Poolhouse, etc.)
+       - `PROJECT` (Project Name e.g. `Canopy 8×4 m Douglas`)
+       - `CUSTOMER` (Customer Name e.g. `Mark Davis`)
+       - `PARTNER` (Assigned Partner dropdown / locked badge e.g. `RV Meubels`)
+       - `STATUS` (Client build statuses: `To confirm`, `In production`, `On site`, `Completed`)
+       - `VALUE (INCL. VAT)` (Quote value linked to quote e.g. `€ 37.950,00`)
+       - `COMPLETION` (Target delivery date e.g. `27-09-2026`)
+       - `ACTIONS` (Upload Photos, Edit, Delete)
+     - Added 100% bilingual NL / EN translation support (`language === 'EN' ? ... : ...`).
+  2. **Documentation**:
+     - Updated `client_requirements.md` and `ai_memory.md`.
+
+---
+
 ## 152. Mobile Responsiveness Audit & Multi-Device Layout Optimization (Completed 2026-08-07)
 * **Goal**: Perform comprehensive mobile responsiveness check across Admin, Partner, Customer portals and public 6-page proposal views to ensure 100% clean layouts on 360px-414px mobile viewports.
 * **Changes**:

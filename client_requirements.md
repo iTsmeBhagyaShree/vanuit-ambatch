@@ -1,4 +1,4 @@
-﻿# CLIENT REQUIREMENTS — VANUIT AMBACHT PORTAL
+# CLIENT REQUIREMENTS — VANUIT AMBACHT PORTAL
 ## Status Analysis: What Exists vs What is Missing
 
 **Last Updated:** 08 August 2026
@@ -263,30 +263,28 @@ File: src/pages/admin/Projects.jsx
 ### PHASE 8 — Tasks (COMPLETE — nothing to do)
 
 ### PHASE 9 — Projects and Photos
-- PR1: Admin photo upload in Project detail
-- PR2: Partner photo upload in PartnerProjects
-- PR3: Mock admin notification on partner photo upload
-- PR4: CustomerPhotos receives photos from upload flow
+- PR1: Admin photo upload in Project detail (COMPLETE)
+- PR2: Partner photo upload in PartnerProjects (COMPLETE)
+- PR3: Mock admin notification on partner photo upload (COMPLETE)
+- PR4: CustomerPhotos receives photos from upload flow (COMPLETE)
+- PR5: Admin Projects Screen clean-up per Frontend Briefing Lead Flow v1.0 Page 8/11 (COMPLETE)
+  - Removed Kliko webshop orders tab and Kliko category dropdown references
+  - Removed webshop item/status columns and Shipped status
+  - Table updated to exact 7-column schema: PROJECT NO., CATEGORY, PROJECT, CUSTOMER, PARTNER, STATUS (To confirm / In production / On site / Completed), VALUE (INCL. VAT), COMPLETION
+  - Bilingual NL/EN support for all labels
 
-### PHASE 10 — Language Consistency
-- All newly added components must support both NL and EN
-
----
-
-## IMPLEMENTATION RULES (Non-Negotiable)
-
-1. NO backend, NO API, NO database
-2. NO redesign of existing pages
-3. NO change to existing colors, fonts, typography, spacing
-4. NO removal of existing features
-5. Use localStorage for state (already established pattern)
-6. Use existing components: Card, Button, Badge, Table
-7. Match existing design tokens exactly
-8. All text must support NL and EN using: language === 'EN' ? 'English' : 'Dutch'
-9. New modals follow AnimatePresence + motion.div pattern
-10. New toasts: fixed top-20 right-4 z-[9999] with x:80 to x:0 animation
+### PHASE 11 — Garden Room & Poolhouse Customer Portal Extension
+- STEP 0: Existing Customer Portal Codebase Audit & Gap Analysis (COMPLETE)
+- STEP 1: Garden Room Data Model & Backward-Compatible Architecture (COMPLETE)
+  - Created `src/utils/gardenRoomDataModel.js` with `detectProjectType()` for `outdoor_kitchen`, `garden_room`, `poolhouse`, `canopy`.
+  - Extended payment model: 2-stage (50/50) for Outdoor Kitchens; 3-stage (40/40/20) with handover lock for Garden Rooms.
+  - Extended planning model: 5-phase for Outdoor Kitchens; 7-phase (with Schouw & Prov/Def status) for Garden Rooms.
+  - Formulated renderPackage, prepChecklist, teamUpdates, handoverModel, seasonalMaintenance, and threeMonthCheck models.
+  - 100% backward-compatible with existing projects via `normalizeProjectData()`.
 
 ---
 
-Updated: 08 August 2026
-No code changes made in this document update — analysis only
+Updated: 18 August 2026
+Step 1 Completed — Garden Room Data Model & Backward-Compatible Architecture created.
+
+
