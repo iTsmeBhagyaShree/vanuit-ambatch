@@ -15,6 +15,8 @@ import { useLanguage } from '../../context/LanguageContext';
 import { tValue } from '../../utils/translator';
 import { calculateOrderSettlement } from '../../utils/orderMatcher';
 import { calculateProjectMarginWithPurchasing, UNIFIED_PURCHASING_CATEGORY } from '../../utils/purchasingAllocator';
+import { detectProjectType } from '../../utils/projectType';
+
 
 export default function Projects() {
   const { t, language } = useLanguage();
@@ -350,9 +352,30 @@ export default function Projects() {
     }
   };
 
+  const handleCategoryTypeChange = (projectId, newType) => {
+    const updated = projects.map(p => {
+      if (p.id === projectId) {
+        return {
+          ...p,
+          projectType: newType,
+          division: newType === 'outdoor_kitchen' ? 'Buitenkeukens op maat' : 'Buitenverblijven op maat',
+          category: newType === 'outdoor_kitchen' ? 'Buitenkeukens' : newType === 'poolhouse' ? 'Poolhouse' : newType === 'canopy' ? 'Overkappingen' : 'Buitenverblijf'
+        };
+      }
+      return p;
+    });
+    setProjects(updated);
+    try {
+      localStorage.setItem('app_projects', JSON.stringify(updated));
+      window.dispatchEvent(new Event('app_data_changed'));
+    } catch(e) {}
+    showToast(language === 'EN' ? `Updated project type to ${newType}` : `Projecttype bijgewerkt naar ${newType}`);
+  };
+
   const handleQuickRemoveFile = (idx) => {
     setSelectedUploadFiles(prev => prev.filter((_, i) => i !== idx));
   };
+
 
   const handleQuickUploadSubmit = async (e) => {
     e.preventDefault();
@@ -405,7 +428,7 @@ export default function Projects() {
   // Filter & Search logic
   const filteredProjects = [...projects]
     .filter(p => {
-      // Filter out any stale Kliko/Bin Storage item
+      // Filter out any Kliko/Bin Storage item
       if ((p.name || '').toLowerCase().includes('kliko') || (p.name || '').toLowerCase().includes('bin storage')) return false;
 
       const nameMatch = (p.name || '').toLowerCase().includes(searchQuery.toLowerCase());
@@ -414,7 +437,7 @@ export default function Projects() {
       const idMatch = (p.id || '').toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesSearch = nameMatch || custMatch || partMatch || idMatch;
-      const matchesStatus = statusFilter === 'All' || p.status === statusFilter;
+      const matchesStatus = statusFilter === 'All' || p.status === statusFilter || p.buildStatus === statusFilter;
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
@@ -425,15 +448,12 @@ export default function Projects() {
       return 0;
     });
 
-  // Dynamic columns: Hide partner assignment column for Kliko Orders & use Webshop order statuses
   const translateProjectName = (name) => {
     if (language !== 'EN' || !name) return name;
     return name
       .replace(/Luxe Teak Buitenkeuken 4m/g, 'Luxury Teak Outdoor Kitchen 4m')
-      .replace(/Kliko Ombouw Triple Antraciet/g, 'Triple Bin Storage Anthracite')
       .replace(/Eiken Houten Overkapping 6x4m/g, 'Oak Wooden Canopy 6x4m')
       .replace(/Buitenkeuken/g, 'Outdoor Kitchen')
-      .replace(/Kliko Ombouw/g, 'Bin Storage')
       .replace(/Overkapping/g, 'Canopy');
   };
 
@@ -441,14 +461,16 @@ export default function Projects() {
     if (language !== 'EN' || !cat) return cat;
     return cat
       .replace(/Buitenkeukens/g, 'Outdoor Kitchens')
-      .replace(/Kliko-ombouw/g, 'Bin Storage')
       .replace(/Overkappingen/g, 'Canopies')
+      .replace(/Overkapping/g, 'Canopy')
+      .replace(/Poolhouse/g, 'Poolhouse')
       .replace(/Snijplanken/g, 'Cutting Boards');
   };
 
+  // Client Briefing Page 8/11 Exact Table Columns Schema
   const mainColumns = [
     { 
-      header: 'ID', 
+      header: language === 'EN' ? 'PROJECT NO.' : 'PROJECT NR.', 
       render: (row) => (
         <span className="font-mono text-xs font-bold text-primary">
           {row.id}
@@ -456,42 +478,38 @@ export default function Projects() {
       ) 
     },
     { 
-      header: 'Category Division',
-      style: { minWidth: '220px' },
+      header: language === 'EN' ? 'CATEGORY' : 'CATEGORIE',
+      style: { minWidth: '180px' },
       render: (row) => {
-        const projName = (row.name || '').toLowerCase();
-        const cat = row.category || (projName.includes('kliko') || projName.includes('rotterdam') ? 'Kliko-ombouw' : projName.includes('snijplanken') || projName.includes('utrecht') ? 'Snijplanken' : 'Buitenkeukens');
-        const logoSrc = cat.includes('Kliko')
-          ? '/logo_kliko.png'
-          : cat.includes('Snijplanken')
-          ? '/logo_snijplanken.png'
-          : '/logo_buitenkeukens.png';
+        const pType = detectProjectType(row);
         return (
-          <div className="flex items-center gap-2 py-0.5">
-            <img 
-              src={logoSrc} 
-              alt={cat} 
-              className="h-6 max-w-[70px] object-contain mix-blend-multiply flex-shrink-0"
-            />
-            <span className="text-[10px] font-bold text-primary font-body bg-primary/10 px-2 py-0.5 rounded-md whitespace-nowrap">
-              {translateCategory(cat)}
-            </span>
-          </div>
+          <select
+            value={pType}
+            onChange={(e) => handleCategoryTypeChange(row.id, e.target.value)}
+            className="w-full px-2 py-1 bg-white border border-[#D6CFC2] rounded-lg text-[11px] font-bold text-primary focus:outline-none focus:ring-1 focus:ring-primary/40 cursor-pointer shadow-2xs"
+            title="Change Project Type for Customer Portal"
+          >
+            <option value="outdoor_kitchen">Outdoor Kitchens</option>
+            <option value="garden_room">Garden Rooms</option>
+            <option value="poolhouse">Poolhouse</option>
+            <option value="canopy">Canopy / Overkapping</option>
+          </select>
         );
       }
     },
+
     { 
-      header: 'Project Name', 
+      header: language === 'EN' ? 'PROJECT' : 'PROJECT', 
       render: (row) => (
         <span className="font-bold text-primary text-xs flex items-center gap-1">
           {translateProjectName(row.name)}
         </span>
       )
     },
-    { header: 'Customer', accessor: 'customer' },
+    { header: language === 'EN' ? 'CUSTOMER' : 'KLANT', accessor: 'customer' },
     { 
-      header: 'Assigned Partner & Confirmation', 
-      style: { minWidth: '220px' },
+      header: language === 'EN' ? 'PARTNER' : 'PARTNER', 
+      style: { minWidth: '200px' },
       render: (row) => {
         const isConfirmed = row.isPartnerConfirmed || row.partnerStatus === 'Final / Locked';
         return (
@@ -504,15 +522,15 @@ export default function Projects() {
                   className="text-[10px] text-emerald-700 hover:text-emerald-900 underline font-semibold flex-shrink-0 cursor-pointer"
                   title="Unlock partner selection"
                 >
-                  Wijzigen
+                  {language === 'EN' ? 'Edit' : 'Wijzigen'}
                 </button>
               </div>
             ) : (
-              <div className="flex flex-col gap-1.5 w-full min-w-0">
+              <div className="flex flex-col gap-1 w-full min-w-0">
                 <select
-                  value={row.partner}
+                  value={row.partner || 'Unassigned'}
                   onChange={(e) => handleInlinePartnerChange(row.id, e.target.value)}
-                  className="w-full min-w-0 truncate px-2.5 py-1.5 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body font-semibold text-dark/80 focus:outline-none focus:ring-1 focus:ring-primary/40 cursor-pointer"
+                  className="w-full min-w-0 truncate px-2 py-1 bg-white border border-[#D6CFC2] rounded-lg text-xs font-body font-semibold text-dark/80 focus:outline-none focus:ring-1 focus:ring-primary/40 cursor-pointer"
                 >
                   <option value="Unassigned">{language === 'EN' ? 'Unassigned' : 'Niet toegewezen'}</option>
                   {partnersList.map((p, idx) => (
@@ -522,10 +540,10 @@ export default function Projects() {
                 {row.partner && row.partner !== 'Unassigned' && (
                   <button
                     onClick={() => handleConfirmPartnerForGood(row.id)}
-                    className="w-full py-1.5 px-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-[11px] font-bold shadow-xs cursor-pointer flex items-center justify-center gap-1"
+                    className="w-full py-1 px-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-[10px] font-bold shadow-xs cursor-pointer flex items-center justify-center gap-1"
                     title="Confirm Partner for Good & Lock"
                   >
-                    ✓ Bevestig Partner
+                    ✓ {language === 'EN' ? 'Confirm Partner' : 'Bevestig Partner'}
                   </button>
                 )}
               </div>
@@ -535,68 +553,33 @@ export default function Projects() {
       }
     },
     { 
-      header: 'Progress', 
-      style: { minWidth: '160px' },
-      render: (row) => (
-        <div className="flex items-center gap-2">
-          <input
-            type="range"
-            min="0"
-            max="100"
-            step="5"
-            value={row.progress || 0}
-            onChange={(e) => handleProgressUpdate(row.id, e.target.value)}
-            className="w-20 accent-primary cursor-pointer h-1.5 bg-[#EDE8DF] rounded-lg"
-            title="Drag to update progress %"
-          />
-          <span className="text-[10px] font-bold text-primary font-mono w-8">{row.progress || 0}%</span>
-        </div>
-      )
-    },
-    { header: 'Deadline', accessor: 'deadline' },
-    {
-      header: 'Klantenbetalingen',
-      style: { minWidth: '170px' },
+      header: language === 'EN' ? 'STATUS' : 'STATUS', 
       render: (row) => {
-        const orderVal = Number(row.numericAmount || row.amount || row.price || 6990);
-        const settlement = calculateOrderSettlement({ id: row.id, totalAmount: orderVal }, bankTxns);
+        const buildSt = row.buildStatus || (row.status === 'Completed' || row.status === 'Afgerond' ? 'Completed' : row.status === 'In Progress' || row.status === 'In uitvoering' ? 'In production' : 'To confirm');
         return (
-          <div className="font-mono text-xs leading-tight">
-            <p className="text-emerald-700 font-bold">Ontvangen: € {settlement.totalReceived.toLocaleString('nl-NL')}</p>
-            <p className={`font-bold ${settlement.outstanding > 0 ? 'text-amber-800' : 'text-emerald-900'}`}>
-              {settlement.outstanding > 0 ? `Open: € ${settlement.outstanding.toLocaleString('nl-NL')}` : '✓ Betaald / Settled'}
-            </p>
-          </div>
+          <Badge variant={buildSt === 'Completed' || buildSt === 'Afgerond' ? 'success' : buildSt === 'In production' ? 'primary' : buildSt === 'On site' ? 'accent' : 'warning'}>
+            {language === 'EN' 
+              ? (buildSt === 'To confirm' ? 'To confirm' : buildSt === 'In production' ? 'In production' : buildSt === 'On site' ? 'On site' : 'Completed')
+              : (buildSt === 'To confirm' ? 'Nog te bevestigen' : buildSt === 'In production' ? 'In productie' : buildSt === 'On site' ? 'Op locatie' : 'Afgerond')}
+          </Badge>
         );
       }
     },
     {
-      header: 'Inkoop & Project Marge',
-      style: { minWidth: '180px' },
+      header: language === 'EN' ? 'VALUE (INCL. VAT)' : 'WAARDE (INCL. BTW)',
+      style: { minWidth: '150px' },
       render: (row) => {
-        const orderVal = Number(row.numericAmount || row.amount || row.price || 6990);
-        const linkedPurchasing = bankTxns.filter(t => t.category === UNIFIED_PURCHASING_CATEGORY && (t.projectRef === row.id || t.orderId === row.id || t.projectId === row.id || (t.customerName && (row.customer || '').toLowerCase().includes(t.customerName.toLowerCase()))));
-        const marginInfo = calculateProjectMarginWithPurchasing(orderVal, linkedPurchasing);
+        const numericVal = Number(row.numericAmount || row.amount || row.price || 15180);
         return (
-          <div className="text-[11px] leading-tight space-y-1 font-mono">
-            <p className="text-blue-950 font-medium">Inkoop: € {marginInfo.totalPurchasing.toLocaleString('nl-NL')}</p>
-            <span className="inline-block px-2 py-0.5 bg-emerald-100 text-emerald-900 font-bold rounded-md">
-              Marge: € {marginInfo.projectMargin.toLocaleString('nl-NL')} ({marginInfo.marginPercentage}%)
-            </span>
-          </div>
+          <span className="font-mono text-xs font-bold text-primary">
+            € {numericVal.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}
+          </span>
         );
       }
     },
-    { 
-      header: 'Status', 
-      render: (row) => (
-        <Badge variant={row.status === 'Completed' || row.status === 'Afgerond' ? 'success' : row.status === 'In Progress' || row.status === 'In uitvoering' ? 'primary' : 'warning'}>
-          {tValue(row.status, language)}
-        </Badge>
-      )
-    },
+    { header: language === 'EN' ? 'COMPLETION' : 'OPLEVERING', accessor: 'deadline' },
     {
-      header: 'Actions',
+      header: language === 'EN' ? 'ACTIONS' : 'ACTIES',
       render: (row) => (
         <div className="flex items-center gap-1.5 whitespace-nowrap">
           <Button 
@@ -631,140 +614,8 @@ export default function Projects() {
     }
   ];
 
-  const orderColumns = [
-    { 
-      header: 'Order ID', 
-      render: (row) => (
-        <span className="font-mono text-xs font-bold text-primary">
-          {row.id}
-        </span>
-      ) 
-    },
-    { 
-      header: language === 'EN' ? 'Product Division' : 'Product Categorie',
-      style: { minWidth: '180px' },
-      render: (row) => {
-        const nameLower = (row.name || '').toLowerCase();
-        const isKliko = nameLower.includes('kliko') || nameLower.includes('bin');
-        const logoSrc = isKliko ? '/logo_kliko.png' : '/logo_buitenkeukens.png';
-        const label = language === 'EN' ? (isKliko ? 'Bin Storage' : 'Outdoor Kitchens') : (isKliko ? 'Kliko-ombouw' : 'Buitenkeukens');
-        return (
-          <div className="flex items-center gap-2 py-0.5">
-            <img src={logoSrc} alt={label} className="h-6 max-w-[70px] object-contain mix-blend-multiply flex-shrink-0" />
-            <span className="text-[10px] font-bold text-primary font-body bg-primary/10 px-2 py-0.5 rounded-md">{label}</span>
-          </div>
-        );
-      }
-    },
-    { 
-      header: language === 'EN' ? 'Webshop Item' : 'Webshop Artikel', 
-      render: (row) => (
-        <span className="font-bold text-primary text-xs flex items-center gap-1">
-          <span>{translateProjectName(row.name)}</span>
-        </span>
-      )
-    },
-    { header: language === 'EN' ? 'Customer' : 'Klant', accessor: 'customer' },
-    { 
-      header: language === 'EN' ? 'Webshop Status' : 'Webshop Status', 
-      style: { minWidth: '180px' },
-      render: (row) => {
-        const orderSt = row.orderStatus || (row.status === 'Completed' ? 'Afgerond' : row.status === 'In Progress' ? 'Verzonden' : 'Nieuw');
-        return (
-          <select
-            value={orderSt}
-            onChange={(e) => handleOrderStatusChange(row.id, e.target.value)}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold font-body cursor-pointer border ${
-              orderSt === 'Afgerond' ? 'bg-green-100 text-green-800 border-green-300' : orderSt === 'Verzonden' ? 'bg-blue-100 text-blue-800 border-blue-300' : 'bg-amber-100 text-amber-800 border-amber-300'
-            }`}
-          >
-            <option value="Nieuw">🆕 {language === 'EN' ? 'New Order' : 'Nieuw'}</option>
-            <option value="Verzonden">🚚 {language === 'EN' ? 'Shipped' : 'Verzonden'}</option>
-            <option value="Afgerond">✅ {language === 'EN' ? 'Completed' : 'Afgerond'}</option>
-          </select>
-        );
-      }
-    },
-    { header: language === 'EN' ? 'Expected Delivery' : 'Verwachte Levering', accessor: 'deadline' },
-    {
-      header: 'Betalingsstatus',
-      style: { minWidth: '170px' },
-      render: (row) => {
-        const orderVal = Number(row.numericAmount || row.amount || row.price || 6990);
-        const settlement = calculateOrderSettlement({ id: row.id, totalAmount: orderVal }, bankTxns);
-        return (
-          <div className="font-mono text-xs leading-tight">
-            <p className="text-emerald-700 font-bold">Ontvangen: € {settlement.totalReceived.toLocaleString('nl-NL')}</p>
-            <p className={`font-bold ${settlement.outstanding > 0 ? 'text-amber-800' : 'text-emerald-900'}`}>
-              {settlement.outstanding > 0 ? `Open: € ${settlement.outstanding.toLocaleString('nl-NL')}` : '✓ Betaald / Settled'}
-            </p>
-          </div>
-        );
-      }
-    },
-    {
-      header: 'Inkoop & Project Marge',
-      style: { minWidth: '180px' },
-      render: (row) => {
-        const orderVal = Number(row.numericAmount || row.amount || row.price || 6990);
-        const linkedPurchasing = bankTxns.filter(t => t.category === UNIFIED_PURCHASING_CATEGORY && (t.projectRef === row.id || t.orderId === row.id || t.projectId === row.id || (t.customerName && (row.customer || '').toLowerCase().includes(t.customerName.toLowerCase()))));
-        const marginInfo = calculateProjectMarginWithPurchasing(orderVal, linkedPurchasing);
-        return (
-          <div className="text-[11px] leading-tight space-y-1 font-mono">
-            <p className="text-blue-950 font-medium">Inkoop: € {marginInfo.totalPurchasing.toLocaleString('nl-NL')}</p>
-            <span className="inline-block px-2 py-0.5 bg-emerald-100 text-emerald-900 font-bold rounded-md">
-              Marge: € {marginInfo.projectMargin.toLocaleString('nl-NL')} ({marginInfo.marginPercentage}%)
-            </span>
-          </div>
-        );
-      }
-    },
-    {
-      header: language === 'EN' ? 'Actions' : 'Acties',
-      render: (row) => (
-        <div className="flex items-center gap-1.5 whitespace-nowrap">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => setActiveProjectDetail(row)}
-            className="text-primary hover:bg-[#D6CFC2]/40 font-bold"
-            title="Upload Project Photos"
-          >
-            <Camera className="w-3.5 h-3.5 mr-1 text-accent" /> {language === 'EN' ? 'Upload Photos' : 'Foto\'s Uploaden'}
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => setBlueprintModalProject(row)}
-            className="text-primary hover:bg-[#D6CFC2]/40"
-            title="Specs"
-          >
-            <Compass className="w-3.5 h-3.5 mr-1" /> Specs
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => handleOpenEditModal(row)}
-            className="text-dark/70 hover:bg-[#D6CFC2]/40"
-            title="Edit Project"
-          >
-            <Edit2 className="w-3.5 h-3.5" />
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => handleDeleteProject(row.id, row.name)}
-            className="text-red-600 hover:bg-red-50"
-            title="Delete Project"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </Button>
-        </div>
-      )
-    }
-  ];
-
   const columns = mainColumns;
+
   const hasActiveFilters = searchQuery !== '' || statusFilter !== 'All' || sortBy !== 'deadline';
 
   // Real Branded PDF Blueprint Document — direct download via jsPDF (no print dialog)

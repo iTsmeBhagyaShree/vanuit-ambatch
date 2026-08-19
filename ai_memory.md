@@ -7,6 +7,646 @@ This file tracks all modifications, additions, and updates made to the **Vanuit 
 - **Key Features**: Admin Panel, Partner Panel, Role-Based Route Protection, Responsive Layout.
 - **Theme**: Premium Forest Green (`#3E4E36`), Accent Cream/Beige, custom typography.
 
+## 194. Handover & Aftercare Page 14 1-to-1 Implementation (Completed 2026-08-19 5:33:30 PM IST)
+* **Goal**: Implement 1-to-1 Handover & Aftercare screen for Garden Rooms (Page 14 of Brief) in English with a 1-click Testing View Switcher.
+* **Changes**:
+  1. **`GardenRoomHandoverView.jsx` (`src/components/customer/GardenRoomHandoverView.jsx`)**:
+     - Photo Banner Card (`YOUR GARDEN ROOM · 16 OCTOBER 2026`).
+     - Handover Approval Card (`Is everything correct?`, 4 interactive checkboxes, confirm button).
+     - Warranty & Aftercare Card (`Download warranty certificate`, `Request aftercare`).
+     - Seasonal Maintenance Calendar (`Spring`, `Summer`, `Autumn`, `Winter` cards + reminder checkbox).
+     - Bottom Row Cards (`The 3-month check`, Google Review & Instagram, `Complete your outdoor living?` cross-sell).
+  2. **`OutdoorKitchenHandoverView.jsx` (`src/components/customer/OutdoorKitchenHandoverView.jsx`)**:
+     - Tailored implementation for Outdoor Kitchens Screen 9 in English.
+  3. **Router & Switcher (`src/pages/customer/CustomerProject.jsx`)**:
+     - Wired under `/customer/project?tab=handover` with Testing Handover View Switcher bar.
+  4. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 8.13s`).
+
+---
+
+## 193. Garden Rooms Messages & Contact Page 13 1-to-1 Implementation (Completed 2026-08-19 5:27:30 PM IST)
+* **Goal**: Implement 1-to-1 Messages & Contact screen for Garden Rooms (Page 13 of Brief) in English.
+* **Changes**:
+  1. **`GardenRoomContactView.jsx` (`src/components/customer/GardenRoomContactView.jsx`)**:
+     - Chat Thread with Bram (`T&B`) and Sander (`SV`) matching Page 13 1-to-1 in English.
+     - 3 Sidebar Cards: `DIRECT CONTACT`, `WE WORK WITHOUT SHOWROOM` (Douglas samples), `WHO BUILDS YOUR GARDEN ROOM` (`VS` craftsman badge).
+     - FAQ Accordion Section (`Frequently Asked Questions` with 5 expandable items specific to Garden Rooms).
+  2. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.34s`).
+
+---
+
+## 192. English Translation & Left Margin Alignment (Completed 2026-08-19 5:18:30 PM IST)
+* **Goal**: Translate all Dutch text to English and fix large empty left gap beside sidebar.
+* **Changes**:
+  1. **Complete English Translation (`OutdoorKitchenContactView.jsx` & `GardenRoomContactView.jsx`)**:
+     - Translated titles, chat messages, input placeholders, action buttons, sidebar cards, and FAQ accordion items to clean English.
+  2. **Layout Alignment (`CustomerContact.jsx`, `CustomerDocuments.jsx`, `CustomerPhotos.jsx`, `CustomerProject.jsx`)**:
+     - Removed forced `mx-auto` centering to eliminate giant empty space on left of sidebar. Set `max-w-5xl w-full` for balanced layout.
+  3. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.62s`).
+
+---
+
+## 191. Messages & Contact 1-to-1 Implementation (Completed 2026-08-19 5:14:30 PM IST)
+* **Goal**: Implement 1-to-1 Messages & Contact screens for Outdoor Kitchens (Screen 8) and Garden Rooms (Screen 8) with a 1-click Testing View Switcher.
+* **Changes**:
+  1. **`OutdoorKitchenContactView.jsx` (`src/components/customer/OutdoorKitchenContactView.jsx`)**:
+     - Top Tag Bar (`Custom Outdoor Kitchen — project 2026-014`, `Updates 3`, `WhatsApp us`).
+     - Chat Thread with Tim & Bram (`T&B`) and Sander (`SV`), `✓ Alles gelezen` badge, input field with `📎 Foto` attachment and `Versturen` button.
+     - 3 Sidebar Cards: `DIRECT CONTACT`, `WIJ WERKEN ZONDER SHOWROOM` (`Stuur mij houtstalen` warm gold button), `WIE BOUWT JOUW KEUKEN` (`VS` craftsman badge).
+     - FAQ Accordion Section (`Veelgestelde vragen` with 5 expandable items).
+  2. **`GardenRoomContactView.jsx` (`src/components/customer/GardenRoomContactView.jsx`)**:
+     - Adapted for Garden Rooms (`Custom Garden Room — project 2026-021`).
+  3. **Router & Switcher (`src/pages/customer/CustomerContact.jsx`)**:
+     - Rendered under `/customer/contact` with Testing Contact View Switcher bar.
+  4. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 8.68s`).
+
+---
+
+## 190. Cards & Buttons Width Compact Optimization (Completed 2026-08-19 5:05:30 PM IST)
+* **Goal**: Reduce oversized box widths & button widths for 1-to-1 matching with client brief.
+* **Changes**:
+  1. **Compact Max Width (`CustomerProject.jsx`, `CustomerDocuments.jsx`, `CustomerPhotos.jsx`)**:
+     - Updated main container max width to compact `max-w-4xl`.
+  2. **Auto-Width Action Buttons (`OutdoorKitchenPaymentsView.jsx` & `GardenRoomPaymentsView.jsx`)**:
+     - Changed full-width stretched buttons to compact `px-4 py-1.5 rounded-xl inline-block`.
+     - Limited IBAN box width to `max-w-md`.
+  3. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 5.95s`).
+
+---
+
+## 189. Payments Card Proportions & Padding Optimization (Completed 2026-08-19 5:02:30 PM IST)
+* **Goal**: Reduce oversized box heights & padding across Payments screens for clean compact layout.
+* **Changes**:
+  1. **Compact Layout (`OutdoorKitchenPaymentsView.jsx` & `GardenRoomPaymentsView.jsx`)**:
+     - Reduced card padding to `p-4 sm:p-4.5 rounded-2xl`.
+     - Scaled amounts to `text-lg sm:text-xl font-heading font-bold`.
+     - Reduced IBAN box padding to `p-3 rounded-xl`.
+     - Set overall vertical spacing to `space-y-4`.
+  2. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.05s`).
+
+---
+
+## 188. Payments 1-to-1 Implementation (Completed 2026-08-19 4:57:30 PM IST)
+* **Goal**: Implement 1-to-1 Payments screens for Outdoor Kitchens (Screen 7: 2 terms 50/50) and Garden Rooms (Page 12: 3 terms 40/40/20) with a 1-click Testing View Switcher.
+* **Changes**:
+  1. **`OutdoorKitchenPaymentsView.jsx` (`src/components/customer/OutdoorKitchenPaymentsView.jsx`)**:
+     - Top Tag Bar (`Custom Outdoor Kitchen — project 2026-014`, `Updates 3`, `WhatsApp us`).
+     - Payment Summary Card (Total €3,920.00, Paid €1,960.00, Remaining €1,960.00, 50% green progress bar).
+     - 2 Instalment Cards (50% Paid, 50% Upcoming).
+     - IBAN Bank Details Box & Contact Card.
+  2. **`GardenRoomPaymentsView.jsx` (`src/components/customer/GardenRoomPaymentsView.jsx`)**:
+     - Top Tag Bar (`Custom Garden Room — project 2026-021`, `Updates 3`, `WhatsApp us`).
+     - Payment Summary Card (Total €37,950.00, Paid €15,180.00, Remaining €22,770.00, 40% green progress bar).
+     - 3 Instalment Cards (40% Paid, 40% At start of build, 20% Upon delivery).
+     - IBAN Bank Details Box & Contact Card.
+  3. **Router & Switcher (`src/pages/customer/CustomerProject.jsx`)**:
+     - Rendered under `/customer/project?tab=payments` with Testing Payments View Switcher bar.
+  4. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 7.78s`).
+
+---
+
+## 187. Documents 1-to-1 Implementation (Completed 2026-08-19 4:53:30 PM IST)
+* **Goal**: Implement 1-to-1 Documents screens for Garden Rooms (Screen 6) and Outdoor Kitchens (Screen 6) with a 1-click Testing View Switcher.
+* **Changes**:
+  1. **`GardenRoomDocumentsView.jsx` (`src/components/customer/GardenRoomDocumentsView.jsx`)**:
+     - Top Tag Bar (`Custom Garden Room — project 2026-021`, `Updates 3`, `WhatsApp us`).
+     - 11 Document Items matching Screenshot 1 1-to-1 (Offerte, Contract, Vergunningscheck, Werktekening v2, Renderpakket v2, Factuur 1e 40%, Voorbereidingsgids, Voorwaarden, Factuur 2e 40%, Garantiebewijs, Onderhoudsgids Douglas & EPDM).
+  2. **`OutdoorKitchenDocumentsView.jsx` (`src/components/customer/OutdoorKitchenDocumentsView.jsx`)**:
+     - Top Tag Bar (`Custom Outdoor Kitchen — project 2026-014`, `Updates 3`, `WhatsApp us`).
+     - 9 Document Items matching Screenshot 2 1-to-1 (Offerte OF-2026325, Opdrachtbevestiging, Werktekening v2, Factuur 1e 50%, Algemene voorwaarden, Onderhoudsgids hout & bovenblad, Factuur 2e 50%, Garantiebewijs, Opleverbevestiging).
+  3. **Router & Switcher (`src/pages/customer/CustomerDocuments.jsx`)**:
+     - Rendered under `/customer/documents` with Testing Documents View Switcher bar.
+  4. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.32s`).
+
+---
+
+## 186. Photos Switcher Button Clickability & Toggle Fix (Completed 2026-08-19 4:47:30 PM IST)
+* **Goal**: Fix switcher button toggle in `CustomerPhotos.jsx` for instant, smooth 1-click view switching.
+* **Changes**:
+  1. **State & Event Sync (`src/pages/customer/CustomerPhotos.jsx`)**:
+     - Bound `activeType` state directly to `handleSwitchTypeDirectly`.
+     - Derived `isGardenRoom` directly from `activeType === 'garden_room'`, eliminating delays or overrides from project data.
+  2. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.29s`).
+
+---
+
+## 185. Photos & Updates 1-to-1 Implementation (Completed 2026-08-19 4:46:00 PM IST)
+* **Goal**: Implement 1-to-1 Photos screens for Garden Rooms (Page 10) and Outdoor Kitchens (Screen 5) with a 1-click Testing View Switcher.
+* **Changes**:
+  1. **`GardenRoomPhotosView.jsx` (`src/components/customer/GardenRoomPhotosView.jsx`)**:
+     - Top Tag Bar (`Custom Garden Room — project 2026-021`, `Updates 3`, `WhatsApp us`).
+     - Section 1: `WEEK 34 · DESIGN` (Message box from Tim & Bram with `• New` badge + Render Version 2 card).
+     - Section 2: `UPCOMING MILESTONES` (3 cards: Week 39, Week 41, Week 42).
+     - Section 3: Instagram Consent Banner.
+  2. **`OutdoorKitchenPhotosView.jsx` (`src/components/customer/OutdoorKitchenPhotosView.jsx`)**:
+     - Top Tag Bar (`Custom Outdoor Kitchen — project 2026-014`, `Updates 3`, `WhatsApp us`).
+     - Section 1: `IN THE WORKSHOP · AUGUST 2026` (3 photo cards with date badges `17 AUGUST`, `15 AUGUST`, `14 AUGUST`, titles & descriptions).
+     - Section 2: `UPCOMING MILESTONES` (3 cards: Early Sept, 10 Sept, Week 38).
+     - Section 3: Instagram Consent Banner.
+  3. **Router & Switcher (`src/pages/customer/CustomerPhotos.jsx`)**:
+     - Rendered under `/customer/photos` with Testing Photos View Switcher bar.
+  4. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.43s`).
+
+---
+
+## 184. Global Warm Cream Page Background Fix (Completed 2026-08-19 4:38:30 PM IST)
+* **Goal**: Fix dark greyish-green background tint (`#D6CFC2`) and match client mockup warm cream page background (`#FAF7F2`) 1-to-1.
+* **Changes**:
+  1. **Global CSS Variable (`src/index.css`)**: Changed `--background-color` from `#D6CFC2` to `#FAF7F2`.
+  2. **TopNav Header (`src/layouts/TopNav.jsx`)**: Updated header background to `bg-[#FAF7F2] border-b border-[#E6E0D4]`.
+  3. **Testing Switcher Bar (`src/pages/customer/CustomerProject.jsx`)**: Updated bar background to `bg-[#FAF7F2] border border-[#E4DED4]`.
+  4. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 7.23s`).
+
+---
+
+## 183. Planning & Delivery 1-to-1 Visual Alignment Fix (Completed 2026-08-19 4:34:30 PM IST)
+* **Goal**: Fix color and font mismatches between Client Mockup Screenshot 1 & local build Screenshot 2.
+* **Changes**:
+  1. **Color & Styling Polish (`OutdoorKitchenPlanningView.jsx` & `GardenRoomPlanningView.jsx`)**:
+     - Date Highlight Box: Soft sage green `bg-[#EAF0E8] border border-[#BACBB7]` matching Screenshot 1.
+     - Action Button: Warm gold/brown `bg-[#9B7A38] text-white hover:bg-[#8A6B2F]` matching Screenshot 1.
+     - Expected Delivery Pill: Soft muted green `bg-[#E5F0E3] text-[#2D5A27]`.
+     - Status Badge: Warm amber `bg-[#FDF8EE] text-[#9E7B3B] border-[#E8D4B0]`.
+     - Font Sizing & Weights: Scaled up headings (`text-sm sm:text-base`) and body copy (`text-xs sm:text-[13px] font-medium`).
+  2. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.77s`).
+
+---
+
+## 182. Outdoor Kitchen Planning & Delivery Screen 4 Implementation (Completed 2026-08-19 4:27:30 PM IST)
+* **Goal**: Implement 1-to-1 Outdoor Kitchen Planning & Delivery screen matching Client Mockup PDF Screen 4 (`Customer-Portal-Brief-Outdoor-Kitchens-EN_2.pdf`).
+* **Changes**:
+  1. **New Component `OutdoorKitchenPlanningView.jsx` (`src/components/customer/OutdoorKitchenPlanningView.jsx`)**:
+     - Top Tag Bar (`Custom Outdoor Kitchen — project 2026-014`, `Updates 3`, `WhatsApp us`).
+     - Expected Delivery Header Box: `Week 38 · 14 to 18 September 2026`, `✓ On schedule` green badge.
+     - Delivery Proposal Card (`Ons voorstel voor de levering`): `Tuesday 15 September 2026`, `Approve` button, custom date request field.
+     - Detailed Project Timeline (10 steps with active expanded box for "In de werkplaats").
+     - Right Column Cards: How Delivery Works (4 steps) & How You Can Help Us (4 interactive checkboxes).
+  2. **Router & Switcher Integration (`src/pages/customer/CustomerProject.jsx`)**:
+     - Rendered under `/customer/project?tab=planning` with Testing Planning View Switcher bar.
+  3. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.61s`).
+
+---
+
+## 181. Garden Room Planning & Build Page 9 Implementation (Completed 2026-08-19 4:24:30 PM IST)
+* **Goal**: Implement 1-to-1 Garden Room Planning & Build screen matching Client Mockup PDF Page 9 (`Customer-Portal-Brief-Garden-Rooms-EN.pdf`).
+* **Changes**:
+  1. **New Component `GardenRoomPlanningView.jsx` (`src/components/customer/GardenRoomPlanningView.jsx`)**:
+     - Top Tag Bar (`Custom Garden Room — project 2026-021`, `Updates 3`, `WhatsApp us`).
+     - Build Timeline Header Box: `Week 41 & 42 · 5 to 16 October 2026`, `Tentative` badge.
+     - Site Survey Proposal Card (`Ons voorstel voor de schouw`): `Thursday 27 August 2026`, `Approve` button, custom date request field.
+     - Week-by-Week Timeline (6 stages: 33-34, 35, 39, 40, 41-42, +3mnd).
+     - Right Column Cards: Interactive Prep Checklist (5 checkboxes), Courtesy for Neighbours (`Burenbrief` PDF download button), and How the Build Works (4 rules).
+  2. **Router & Switcher Integration (`src/pages/customer/CustomerProject.jsx`)**:
+     - Rendered under `/customer/project?tab=planning` with Testing View Switcher bar.
+  3. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 7.93s`).
+
+---
+
+## 180. Timber Info Card Padding & Typography Fix (Completed 2026-08-19 4:17:00 PM IST)
+* **Goal**: Fix cramped padding and text touching top border in About Timber info cards.
+* **Changes**:
+  1. **Layout & Padding Refinement (`OutdoorKitchenDesignView.jsx` & `GardenRoomDesignView.jsx`)**:
+     - Increased card padding to `p-5 sm:p-5 rounded-2xl`.
+     - Added `pt-0.5` to heading `ABOUT THERMO FRAKÉ` / `ABOUT DOUGLAS TIMBER` to prevent border touching.
+     - Adjusted body text to `text-xs text-dark/70 font-medium leading-relaxed`.
+  2. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 7.07s`).
+
+---
+
+## 179. Full Responsive Mobile, Tablet & Desktop Optimization (Completed 2026-08-19 4:15:30 PM IST)
+* **Goal**: Ensure 100% fluid mobile, tablet, and desktop responsiveness for Design screens.
+* **Changes**:
+  1. **Responsive Grids (`OutdoorKitchenDesignView.jsx` & `GardenRoomDesignView.jsx`)**:
+     - Layout Diagram Bar: `grid grid-cols-2 sm:grid-cols-4 gap-2.5` (2×2 on mobile, 4-in-a-row on desktop).
+     - 2×2 Specs Grid: `grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 gap-3.5` with fluid padding `p-3.5 sm:p-4`.
+  2. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 7.54s`).
+
+---
+
+## 178. Specs Cards Font Size Scaling (Completed 2026-08-19 4:14:30 PM IST)
+* **Goal**: Increase text font sizes across 2×2 specs cards grid & info card for optimal legibility and clarity.
+* **Changes**:
+  1. **Enlarged Fonts (`OutdoorKitchenDesignView.jsx` & `GardenRoomDesignView.jsx`)**:
+     - Top mono labels: Increased from `9px` to `text-[10px] sm:text-[11px] font-mono font-bold tracking-wider text-accent`.
+     - Main values (`240 × 80`, `Thermo Fraké`): Increased to `text-base sm:text-lg font-bold text-primary font-heading`.
+     - Sub-labels: Increased to `text-xs font-medium text-dark/70`.
+     - Body text: Increased to `text-xs sm:text-[13px] text-dark/80 font-medium`.
+  2. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.67s`).
+
+---
+
+## 177. Outdoor Kitchen 1-to-1 Visual Parity Refinement (Completed 2026-08-19 4:12:30 PM IST)
+* **Goal**: Eliminate visual mismatches between our Outdoor Kitchen UI and Client Mockup Screenshot 1 (`Customer-Portal-Brief-Outdoor-Kitchens-EN_2.pdf` Screen 3).
+* **Changes**:
+  1. **Soft Off-White Card Backgrounds (`OutdoorKitchenDesignView.jsx`)**:
+     - Switched card background colors from stark white to soft warm off-white (`bg-[#FAF8F5] border border-[#D8D2C5]`).
+  2. **Alternating 2x2 Specs Card Background Colors**:
+     - Applied soft greige (`bg-[#EDE9E3]`) and pale sage green (`bg-[#E3E8DF]`) backgrounds matching Screenshot 1 1-to-1.
+  3. **Dotted Scale Dimension Line & Viewport Height**:
+     - Added dotted scale dimension line `0 cm` .......... `240 cm`.
+     - Set viewport height to ~240px (`h-52 sm:h-60`) with crisp vertical timber slat lines.
+  4. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 7.05s`).
+
+---
+
+## 176. Testing Design View Switcher Clickability Fix (Completed 2026-08-19 4:09:30 PM IST)
+* **Goal**: Fix clickability issue where clicking the top Testing View Switcher buttons on the Design tab did not switch views.
+* **Changes**:
+  1. **Fixed Function Hoisting & Scope (`src/pages/customer/CustomerProject.jsx`)**:
+     - Moved `handleSwitchTypeDirectly` definition above early return statements so button click event handlers execute correctly.
+     - Updated state handler to update local `activeProject` state instantly and save to `localStorage`.
+  2. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 7.00s`).
+
+---
+
+## 175. Testing Design View Switcher Bar (Completed 2026-08-19 4:07:30 PM IST)
+* **Goal**: Add top testing switcher bar on Design & Renders tab (`/customer/project?tab=design`) to switch between Outdoor Kitchen and Garden Room design views in 1 click.
+* **Changes**:
+  1. **Updated `src/pages/customer/CustomerProject.jsx`**:
+     - Added `Testing Design View Switcher` bar with buttons `[ Outdoor Kitchen (Design & Options) ]` and `[ Garden Room / Poolhouse (Design & Renders) ]`.
+  2. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.76s`).
+
+---
+
+## 174. Outdoor Kitchen Design & Options Screen 3 Implementation (Completed 2026-08-19 4:01:30 PM IST)
+* **Goal**: Implement 1-to-1 Outdoor Kitchen Design & Options screen matching Client Mockup PDF Screen 3 (`Customer-Portal-Brief-Outdoor-Kitchens-EN_2.pdf`).
+* **Changes**:
+  1. **New Component `OutdoorKitchenDesignView.jsx` (`src/components/customer/OutdoorKitchenDesignView.jsx`)**:
+     - Top Tag Bar (`Custom Outdoor Kitchen — project 2026-014`, `Updates 3`, `WhatsApp us`).
+     - Render Card: Full-bleed timber render viewport with vertical wood slat texture lines & `RENDER · YOUR DESIGN` badge.
+     - Module Layout Diagram Scale Bar (0 to 240cm): 2 Drawer Cabinets + 1 Dark Forest Green Big Green Egg Cutout + 1 Open Compartment Cabinet.
+     - 2×2 Specs Grid: `Dimensions` (240×80 cm), `Timber Type` (Thermo Fraké), `Cutout` (Big Green Egg Large), `Delivery Time` (3 to 5 weeks).
+     - About Thermo Fraké timber info card.
+     - Your Selections List: Worktop, Layout & Storage, Water & Cooling, Finishing & Delivery.
+     - **Working Drawing Card (`Werktekening`)**: Drawing preview box with `DRAWING · VERSION 2` badge, `• New` pill, `View drawing` & `Download` buttons, question link.
+  2. **Router Integration (`src/pages/customer/CustomerProject.jsx`)**:
+     - Dynamically renders `<OutdoorKitchenDesignView />` when viewing Outdoor Kitchen projects under `/customer/project?tab=design`.
+  3. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 7.06s`).
+
+---
+
+## 173. Design & Renders Universal Default View Update (Completed 2026-08-19 3:58:00 PM IST)
+* **Goal**: Ensure the newly implemented 1-to-1 Design & Renders screen (`GardenRoomDesignView.jsx`) displays by default when clicking "Design & Renders" in the sidebar.
+* **Changes**:
+  1. **Updated `src/pages/customer/CustomerProject.jsx`**:
+     - Configured tab `activeTab === 'design'` to directly render `<GardenRoomDesignView project={activeProject} />` by default.
+  2. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.56s`).
+
+---
+
+## 172. Night Mode Atmosphere & Warm Lighting Enhancement (Completed 2026-08-19 3:56:00 PM IST)
+* **Goal**: Fix dark pitch-black Night Mode rendering in `GardenRoomDesignView.jsx` by adding warm ambient night illumination and crisp golden wood slat lines.
+* **Changes**:
+  1. **Illuminated Night Gradients & Spotlight Glows**:
+     - Added rich night backdrop gradients (`from-[#2D3A29] via-[#3D4E39] to-[#1E2B1D]`) and warm radial spotlight lighting overlays (`radial-gradient(ellipse at 50% 40%, rgba(255, 220, 160, 0.4) 0%, rgba(0,0,0,0) 70%)`).
+  2. **Crisp Golden Wood Slat Lines in Night Mode**:
+     - Dynamically switched vertical wood plank slat lines to crisp golden-white (`rgba(255, 230, 190, 0.4)`) in Night Mode for high contrast and clear timber texture visibility.
+  3. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.64s`).
+
+---
+
+## 171. Vertical Wood Slat Lines & Render Viewport Height Adjustment (Completed 2026-08-19 3:53:30 PM IST)
+* **Goal**: Add realistic vertical timber slat texture lines across render viewports and reduce main viewport box height to match Client Mockup Screenshot 1 1-to-1.
+* **Changes**:
+  1. **Vertical Wood Slat Plank Texture Pattern**:
+     - Applied repeating linear gradient vertical plank lines (`repeating-linear-gradient(90deg, rgba(0,0,0,0.3) 0px, rgba(0,0,0,0.3) 2px, transparent 2px, transparent 16px)`) over the main viewport, Douglas material card, and all 4 angle thumbnails.
+  2. **Viewport Height Adjustment**:
+     - Reduced viewport box height from `h-80 sm:h-[420px]` to `h-56 sm:h-72` matching Screenshot 1 1-to-1 proportion.
+  3. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.44s`).
+
+---
+
+## 170. Design & Renders 1-to-1 Visual Refinement (Completed 2026-08-19 3:49:30 PM IST)
+* **Goal**: Fix visual mismatches between our UI and Client Mockup Screenshot 1 (`Customer-Portal-Brief-Garden-Rooms-EN.pdf` Page 8).
+* **Changes**:
+  1. **Full-Bleed Render Viewport (`GardenRoomDesignView.jsx`)**:
+     - Removed inner nested box and inner text.
+     - Viewport is now a 100% full-bleed image/texture backdrop (`w-full h-80 sm:h-[420px] rounded-2xl`).
+  2. **Soft Blue Version Pill & Day/Night Switcher**:
+     - Version Pill: soft blue-gray `bg-[#D7E3EC] text-[#2B4B68]` matching mockup 1-to-1.
+     - Day/Night Switcher: dark pill `bg-[#2B3827]` active state.
+  3. **Thumbnail Cards Row**:
+     - Removed text overlay inside image box to prevent text clipping.
+     - Clean text labels (`Front View`, `Side View`, `Interior Poolhouse`, `From the Garden`) placed below image preview.
+     - Thick dark active border (`border-2 border-primary ring-2 ring-primary/20`) on active thumbnail.
+  4. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 7.16s`).
+
+---
+
+## 169. Design & Renders Page 8 Implementation (Completed 2026-08-19 3:44:00 PM IST)
+* **Goal**: Implement 1-to-1 Design & Renders screen for Garden Rooms matching Client Mockup PDF Page 8 (`Customer-Portal-Brief-Garden-Rooms-EN.pdf`).
+* **Changes**:
+  1. **New Component `GardenRoomDesignView.jsx` (`src/components/customer/GardenRoomDesignView.jsx`)**:
+     - Top Tag Bar (`Project ID`, `Updates 3`, `WhatsApp us`).
+     - Render Viewer Card: Day/Night mode toggle, 4 interactive thumbnails (`Front View`, `Side View`, `Interior Poolhouse`, `From the Garden`), active badge (`RENDER · FRONT VIEW · VERSION 2`).
+     - Material & Finishing Details: 3 material cards (`Douglas`, `EPDM roof`, `Ceramic tiles`).
+     - Layout Diagram Bar: poolhouse enclosed 3.00m (37.5%) + lounge covered 5.00m (62.5%) scale bar.
+     - Right Column: 2×2 Specs Grid (`Dimensions`, `Timber Type`, `Roof`, `Build Time`), Your Selections list, About Douglas Timber info card.
+     - Design Versions History Card: Version 2 (Current) & Version 1 with `Submit feedback` button.
+  2. **Router Integration (`src/pages/customer/CustomerProject.jsx`)**:
+     - Integrated `<GardenRoomDesignView />` under tab `tab=design` for Garden Room projects.
+  3. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 7.47s`).
+
+---
+
+## 168. Universal Customer Portal Sidebar Update (Completed 2026-08-19 3:38:00 PM IST)
+* **Goal**: Ensure all 9 customer portal menu items (`Overview`, `My Quote`, `Design & Renders`, `Planning & Build`, `Photos & Updates`, `Documents`, `Payments`, `Messages & Contact`, `Handover & Aftercare`) are permanently active and visible across all project types.
+* **Changes**:
+  1. **Updated `src/layouts/Sidebar.jsx`**:
+     - Set `CUSTOMER_LINKS` to permanently render all 9 menu items for all customer accounts.
+  2. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 8.76s`).
+
+---
+
+## 167. Client PDF Brief 1-to-1 Audit & Parity Verification (Completed 2026-08-19 3:31:30 PM IST)
+* **Goal**: Perform line-by-line audit against official client PDF briefs (`Customer-Portal-Brief-Outdoor-Kitchens-EN_2.pdf` page 13 & `Customer-Portal-Brief-Garden-Rooms-EN.pdf` page 7) to guarantee 100% 1-to-1 visual and structural parity.
+* **Changes**:
+  1. **Line-by-Line Parity Audit**:
+     - Top Tag Bar (`Project ID`, `Updates 3`, `WhatsApp us`).
+     - Main Page Heading (`My quote`) & Subtitle.
+     - Quote Header Card (`Quote ID`, `Product Title`, `Creation Date`, `Approval Badge` with timestamp & approver name).
+     - Section 1: `WHAT YOU GET` (Line items, descriptions, prices & `Included` badge).
+     - Section 1.5: `* Provisional sum` note on Garden Room quote.
+     - Section 2: `INCLUDED IN YOUR INVESTMENT` (5 checkmarked bullets) + `Quote Totals` card (`bg-[#2A3425]`).
+     - Section 3: `Payment Schedule` cards (50/50 for Outdoor Kitchen vs 40/40/20 for Garden Room).
+     - Section 4: `Quote Actions` buttons (`Follow your project`, `Order confirmation PDF`, `Go to payments`) & footer note.
+     - Section 5: `Previous Versions` card.
+  2. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.38s`).
+
+---
+
+## 166. Container Width Optimization & Left Gap Fix (Completed 2026-08-19 3:23:00 PM IST)
+* **Goal**: Fix excessive empty space gap on the left side of the main content cards across all Customer Portal screens.
+* **Changes**:
+  1. **Expanded Layout Max-Width**:
+     - Updated `CustomerQuotes.jsx`, `CustomerProject.jsx`, `OutdoorKitchenQuote.jsx`, `GardenRoomQuote.jsx`, `OutdoorKitchenOverview.jsx`, and `GardenRoomOverview.jsx`.
+     - Replaced narrow `max-w-4xl mx-auto` with responsive `max-w-5xl w-full`.
+     - Main content cards now stretch nicely across the available content area matching the client mockup layout 1-to-1.
+  2. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 7.61s`).
+
+---
+
+## 165. My Quote 1-to-1 Visual Refinement & Header Alignment (Completed 2026-08-19 3:20:15 PM IST)
+* **Goal**: Align `OutdoorKitchenQuote.jsx` and `GardenRoomQuote.jsx` 1-to-1 with the client reference mockup screenshot in layout, header bar, provisional sum note, fonts, colors, and button hierarchy.
+* **Changes**:
+  1. **Top Header Banner Added**:
+     - Added project tag bar above "My Quote" heading: `Custom Outdoor Kitchen / Garden Room — project 2026-014` on left, `Updates 3` pill + `WhatsApp us` button on right matching Client Mockup Screenshot 2.
+  2. **Provisional Sum Note Refinement (`GardenRoomQuote.jsx`)**:
+     - Styled `* Provisional sum` note as clean muted italic text with mono bullet matching client reference mockup instead of a heavy alert box.
+  3. **Typography & Color Alignment**:
+     - Quote ID: font-mono accent brown `#9E7B3B`.
+     - Quote Approval Badge: soft green pill `✓ Quote approved` (`#2E5A27`, `#EAF3E9`, border `#C0D8BD`).
+     - Quote Totals Box: forest green `#2A3425`, bold total amount.
+     - Action Buttons: `Follow your project` (`bg-primary text-cream`), `Order confirmation (PDF)` (`bg-white border-[#D6CFC2] text-dark`), `Go to payments` (`bg-white border-[#D6CFC2] text-dark`).
+  4. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.86s`).
+
+---
+
+## 164. English Copy Standard Enforcement on Quote Titles (Completed 2026-08-19 3:14:45 PM IST)
+* **Goal**: Enforce strict English copy rule on quote product titles, headers, and UI text across both Outdoor Kitchen and Garden Room quote variants.
+* **Changes**:
+  1. **Dynamic Copy Translation (`src/components/customer/OutdoorKitchenQuote.jsx` & `src/components/customer/GardenRoomQuote.jsx`)**:
+     - Added title sanitization helper to convert raw Dutch strings like `Buitenkeuken Thermo Fraké` to `Custom Outdoor Kitchen Thermo Fraké` and `Garden Room Canopy with Poolhouse · Douglas · 8.00 × 4.00 m`.
+     - Ensured all newly added titles, cards, badges, headings, action buttons, and notice notes are 100% in English for development/testing clarity.
+  2. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.09s`).
+
+---
+
+## 163. My Quote — Project-Type Based Implementation (Completed 2026-08-19 3:05:30 PM IST)
+* **Goal**: Implement project-type based "My Quote" screen matching the two client reference screenshots under single route `/customer/quotes` and single sidebar menu item.
+* **Changes**:
+  1. **New Component `OutdoorKitchenQuote.jsx` (`src/components/customer/OutdoorKitchenQuote.jsx`)**:
+     - 1-to-1 implementation of Client Mockup Image 1.
+     - Quote Header with Quote ID (`OF-2026325`), approval status badge (`✓ Quote approved`), dates & approver info.
+     - Line Items section ("WHAT YOU GET": Outdoor Kitchen, Tap & Sink, Delivery Included).
+     - Benefits section ("INCLUDED IN YOUR INVESTMENT": 5 bullet points).
+     - Quote Totals card (Subtotal excl. VAT, VAT 21%, Total in dark green box).
+     - Payment Schedule (**50/50 structure**: 50% upon approval, 50% upon delivery).
+     - Action buttons (Follow your project, Order confirmation PDF, Go to payments).
+     - Previous Quote Versions card (OF-2026311 version 1 history & View button).
+  2. **New Component `GardenRoomQuote.jsx` (`src/components/customer/GardenRoomQuote.jsx`)**:
+     - 1-to-1 implementation of Client Mockup Image 2.
+     - Quote Header with Quote ID (`OF-2026418`), approval status badge (`✓ Quote approved`), dates & approver info.
+     - Line Items section ("WHAT YOU GET": Garden Room, Electrical Package with Provisional Sum `*`, Transport Included).
+     - Provisional Sum Explanation Note (`* Provisional sum: careful estimate to be finalized after site survey`).
+     - Benefits section ("INCLUDED IN YOUR INVESTMENT": 5 bullet points including site survey & 3D renders).
+     - Quote Totals card (Subtotal excl. VAT, VAT 21%, Total in dark green box).
+     - Payment Schedule (**40/40/20 structure**: 40% upon approval, 40% at start of build, 20% upon handover).
+     - Action buttons (Follow your project, Order confirmation PDF, Go to payments).
+  3. **Router & Component Integration (`src/pages/customer/CustomerQuotes.jsx`)**:
+     - Keeps single route `/customer/quotes` and single "My Quote" sidebar menu.
+     - Evaluates `isGardenRoomFamily(activeProject)` to dynamically render `<GardenRoomQuote />` or `<OutdoorKitchenQuote />`.
+     - Integrated top **Testing View Switcher Bar** for 1-click dev testing between `[ Outdoor Kitchen (50/50) ]` and `[ Garden Room / Poolhouse (40/40/20) ]`.
+  4. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 7.17s`).
+
+---
+
+## 162. WeekBar Timeline 1-to-1 Client Mockup Update (Completed 2026-08-19 2:50:45 PM IST)
+* **Goal**: Update `src/components/customer/WeekBar.jsx` to match Client Mockup Image 2 1-to-1 in layout, typography, colors, 3-line card structure, and legend bar.
+* **Changes**:
+  1. **Title & Subtitle**: Set to *"Your planning in weeks"* with subtitle *"At a glance: what happens when. The entire schedule is finalized after the site survey."*
+  2. **3-Line Card Structure**: Each week card displays:
+     - Line 1: Large Week Number (e.g. `34`, `35`, `36`)
+     - Line 2: Date subline (e.g. `this week`, `24-28 Aug`, `--`)
+     - Line 3: ALL-CAPS phase label (e.g. `DESIGN`, `SITE SURVEY`, `PREPARATION`, `MATERIALS`, `THE BUILD`, `BUILD & DELIVERY`)
+  3. **Exact Client Color Palette**:
+     - `Completed` (afgerond): Pale green (`#E9EFE4`, `#3A5231`)
+     - `Active/Now` (nu): Warm amber/tan (`#B4823A`, white text)
+     - `Preparation`: Light mint (`#E4EBE0`, `#34482B`)
+     - `Materials`: Warm beige (`#EAE4D9`, `#4A4235`)
+     - `Build`: Dark forest green (`#3A4B35`, white text)
+  4. **Color Legend Bar**: Integrated legend bar below week blocks matching mockup.
+  5. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 8.34s`).
+
+---
+
+## 161. Real-Time Project Type Synchronization & Testing View Switcher (Completed 2026-08-19 1:19:30 PM IST)
+* **Goal**: Enable real-time reactive sync between Admin Projects category dropdown and Customer Portal Overview, and add a 1-click Testing View Switcher bar directly on the Customer Portal.
+* **Changes**:
+  1. **Reactive Sync (`src/pages/customer/CustomerProject.jsx`)**:
+     - Added `storage` and `app_data_changed` event listeners to `loadCustomerProjectData()`.
+     - Whenever Admin modifies project category/type in `/admin/projects`, the Customer Portal updates `activeProject.projectType` in real-time.
+  2. **Testing View Switcher Bar (`src/pages/customer/CustomerProject.jsx`)**:
+     - Added top banner with buttons: **`Outdoor Kitchen (6-Stage)`** and **`Garden Room / Poolhouse (7-Stage)`**.
+     - Clicking either button instantly switches `projectType` in `localStorage` (`app_projects`), triggering real-time update of sidebar navigation links (7 vs 9 items) and Overview layout (6-stage vs 7-stage).
+  3. **Verification**:
+     - Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.13s`).
+
+---
+
+## 160. Overview UI Implementation — 1-to-1 Project-Type Based Customer Portal (Completed 2026-08-19 12:46:45 PM IST)
+* **Goal**: Implement 1-to-1 Overview UI matching the two client-provided mockups, dynamically driven by `activeProject.projectType` under a single Overview sidebar menu item (`/customer/project`).
+* **Changes**:
+  1. **New Component `OutdoorKitchenOverview.jsx` (`src/components/customer/OutdoorKitchenOverview.jsx`)**:
+     - 1-to-1 implementation of Client Mockup 1.
+     - 6-Stage Progress Timeline (`Request` ➔ `Quote` ➔ `Approval & Design` ➔ `In Workshop` ➔ `Delivery` ➔ `Aftercare`).
+     - Current Phase Status Box ("Where your project stands": What is happening now & What comes next).
+     - Customer Action Box ("What we still need from you": Delivery proposal action & No action needed status).
+     - Latest Workshop Photo Card with date overlay, title, description, and link to photo gallery.
+     - 3 Side Summary Cards: Delivery (Tue 15 Sep), Payment (€ 1,960.00), Documents (6 files, 1 new invoice).
+     - Vertical Project Activity Log ("Your timeline").
+     - Dedicated Contact Person Card (Tim & Bram with WhatsApp & Call 06 82 00 80 25).
+  2. **New Component `GardenRoomOverview.jsx` (`src/components/customer/GardenRoomOverview.jsx`)**:
+     - 1-to-1 implementation of Client Mockups 1 & 2.
+     - 7-Stage Progress Timeline (`Approval & Design` ➔ `Site Survey` ➔ `Preparation` ➔ `Materials` ➔ `The Build` ➔ `Delivery` ➔ `Aftercare`).
+     - Provisional Schedule Badge (`Provisional — Final after site survey`).
+     - Current Phase Status Box ("Where your project stands": Site survey info).
+     - Customer Action Box ("What we still need from you": Site survey proposal approval & Render version 2 review).
+     - Main 3D Render Preview Card ("Your garden room" with render version 2 badge & view renders button).
+     - 3 Side Summary Cards: Site Survey Date (Thu 27 Aug), Build Week (Wk 41-42), Payment (€ 15,180.00).
+     - Horizontal WeekBar Timeline ("Your planning in weeks": Week 34 to 42 with color-coded status badges).
+     - Dedicated Contact Person Card (Tim & Bram with WhatsApp & Call 06 82 00 80 25).
+  3. **Integration & Single Route (`src/pages/customer/CustomerProject.jsx`)**:
+     - Keeps single route `/customer/project` and single Overview sidebar menu item.
+     - Evaluates `isGardenRoomFamily(activeProject)` to dynamically render `<GardenRoomOverview />` or `<OutdoorKitchenOverview />`.
+  4. **English Language Copy**:
+     - Standardized all UI labels, cards, badges, headings, and buttons to English for testing clarity.
+  5. **Verification**:
+     - Verified production build (`npm run build`) completed with 0 errors (`✓ built in 16.45s`).
+
+---
+
+## 159. Step 4 — Customer Portal Language + Navigation/Flow Fix (Completed 2026-08-19)
+* **Goal**: Fix sidebar navigation link highlighting overlap bug, separate screen flows per active tab, and standardize all newly added Step 4 Customer Portal UI strings to English for dev/testing clarity.
+* **Changes**:
+  1. **Fixed Navigation Overlap & Active Highlight (`src/layouts/Sidebar.jsx`)**:
+     - Added `useLocation()` and helper `isLinkActive(linkPath)` that matches route path + query parameters (`?tab=design`, `?tab=planning`, `?tab=payments`, `?tab=handover`).
+     - Fixed bug where "Design & Options" and "Planning & Delivery" highlighted together or overlapped.
+     - Separated `OUTDOOR_KITCHEN_CUSTOMER_LINKS` (7 items) and `GARDEN_ROOM_CUSTOMER_LINKS` (9 items) dynamically driven by `isGardenRoomFamily(activeCustomerProject)`.
+  2. **English Language Standard Across All Step 4 Components**:
+     - `ProvDefBadge.jsx`: `"Provisional — Final after Site Survey"` vs `"Definitive"`.
+     - `RenderViewer.jsx`: `"The renders for your design will appear here."`, `"Day"`, `"Evening"`.
+     - `RenderDetailCards.jsx`: `"Materials & Details"`, `"Wood"`, `"Roof"`, `"Floor"`.
+     - `RenderVersionList.jsx`: `"Render Version History"`, `"What changed:"`, `"Current Version"`.
+     - `SchouwProposalCard.jsx`: `"Site Survey On Location"`, `"Approve — Schedule Site Survey"`, `"Request Another Day"`, `"Download Neighbour Letter"`, `"Download Calendar Invite (.ics)"`.
+     - `WeekBar.jsx` & `WeekCard.jsx`: `"Construction Schedule & Weeks"`, `"Completed"`, `"Currently Active"`, `"Preparation"`, `"Materials"`, `"The Build"`.
+     - `PrepChecklist.jsx`: `"Customer Preparation"`, `"Access to the rear garden at least 1.20 m wide"`, etc.
+  3. **Strict Screen Flow Separation (`src/pages/customer/CustomerProject.jsx`)**:
+     - `overview`: Banner + Photo Updates + Progress Timeline
+     - `design` / `renders`: RenderViewer + DetailCards + VersionList
+     - `planning` / `build`: SchouwCard + WeekBar + PrepChecklist
+     - `payments`: Project Payment Overview card
+     - `handover`: Completion & Warranty card
+  4. **Verification**:
+     - Production build (`npm run build`) completed with 0 errors (`✓ built in 9.72s`).
+
+---
+
+## 158. Step 4 — Garden Room Customer Portal "Planning & bouw" Screen (Completed 2026-08-18)
+* **Goal**: Build the data-driven "Planning & bouw" screen for Garden Room family projects (`garden_room`, `poolhouse`, `canopy`) consisting of ProvDefBadge, WeekBar, WeekCard, SchouwProposalCard, PrepChecklist, and Burenbrief PDF download.
+* **Changes**:
+  1. **New Component `ProvDefBadge.jsx` (`src/components/customer/ProvDefBadge.jsx`)**:
+     - State A (Provisional): `◌ Voorlopig — definitief na de schouw` (Orange/dashed style).
+     - State B (Definitive): `✓ Definitief` (Green success badge style).
+  2. **New Components `WeekBar.jsx` & `WeekCard.jsx` (`src/components/customer/WeekBar.jsx`, `src/components/customer/WeekCard.jsx`)**:
+     - Horizontal week construction timeline (Done, Now, Prep, Materials, Build). Scrollable on mobile.
+  3. **New Component `SchouwProposalCard.jsx` (`src/components/customer/SchouwProposalCard.jsx`)**:
+     - Site survey proposal card ("Schouw op locatie"), primary action ("Akkoord — plan de schouw in"), secondary action ("Andere dag aanvragen" modal interaction), .ics calendar invite download on completion.
+  4. **New Component `PrepChecklist.jsx` (`src/components/customer/PrepChecklist.jsx`)**:
+     - 5 tickable preparation checklist items with project-specific `localStorage` state persistence.
+  5. **Burenbrief PDF (`src/utils/pdfGenerator.js`)**:
+     - Added `generateBurenbriefPdf(project)` function generating a real downloadable PDF neighbour notice letter.
+  6. **Integration (`src/pages/customer/CustomerProject.jsx`)**:
+     - Conditionally renders the "Planning & bouw" screen when `isGardenRoomFamily(activeProject)` is `true` and tab is `planning` or `build`.
+     - Outdoor Kitchen and legacy projects remain 100% untouched.
+  7. **Documentation & Verification**:
+     - Updated `client_requirements.md` and `ai_memory.md`.
+     - Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.35s`).
+
+---
+
+## 157. Step 3 — Garden Room Customer Portal "Ontwerp & renders" Screen (Completed 2026-08-18)
+* **Goal**: Build the data-driven "Ontwerp & renders" screen for Garden Room family projects (`garden_room`, `poolhouse`, `canopy`) consisting of RenderViewer, RenderDetailCards, and RenderVersionList components.
+* **Changes**:
+  1. **New Component `RenderViewer.jsx` (`src/components/customer/RenderViewer.jsx`)**:
+     - 16:7 aspect ratio main render container.
+     - Day / Evening toggle button when evening render exists in data.
+     - 2–6 thumbnail navigation items with active view outline.
+     - Graceful placeholder state: *"De renders van jouw ontwerp volgen hier."* when no renders exist or on image load error.
+  2. **New Component `RenderDetailCards.jsx` (`src/components/customer/RenderDetailCards.jsx`)**:
+     - 3 detail render cards: Hout, Dak, Vloer with thumbnail, title, and description.
+  3. **New Component `RenderVersionList.jsx` (`src/components/customer/RenderVersionList.jsx`)**:
+     - Version history cards (V1, V2) showing version number, date, thumbnail, and mandatory *"Wat is gewijzigd:"* text line. Clean empty state when no eerdere versies exist.
+  4. **Integration (`src/pages/customer/CustomerProject.jsx`)**:
+     - Conditionally renders the "Ontwerp & renders" screen when `isGardenRoomFamily(activeProject)` is `true` and tab is `design` or `renders`.
+     - Outdoor Kitchen and legacy projects remain 100% untouched.
+  5. **Documentation & Verification**:
+     - Updated `client_requirements.md` and `ai_memory.md`.
+     - Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.43s`).
+
+---
+
+## 156. Step 2 — Dynamic Customer Portal Navigation Labels (Completed & Corrected 2026-08-18)
+* **Goal**: Make Customer Portal navigation labels dynamic based on the active customer project's `projectType` using `isGardenRoomFamily(activeCustomerProject)` for ALL THREE specified labels while keeping route paths, icons, order, and styling untouched.
+* **Changes**:
+  1. **Sidebar Component (`src/layouts/Sidebar.jsx`)**:
+     - Dynamically loads active customer project from `localStorage` (`app_projects`) matching logged-in customer user.
+     - Evaluates `isGardenRoomFamily(activeCustomerProject)`.
+     - Switches all 3 dynamic labels for Garden Room family (`garden_room`, `poolhouse`, `canopy`):
+       1. `Ontwerp & opties` ➔ `Ontwerp & renders` (EN: `Design & Options` ➔ `Design & Renders`)
+       2. `Planning & levering` ➔ `Planning & bouw` (EN: `Planning & Delivery` ➔ `Planning & Build`)
+       3. `Foto's uit de werkplaats` ➔ `Foto's & updates` (EN: `Workshop Photos` ➔ `Photos & Updates`)
+     - Outdoor Kitchen and legacy projects retain base labels.
+     - Route paths remain 100% unchanged (`/customer/...`).
+  2. **Documentation & Verification**:
+     - Updated `client_requirements.md` and `ai_memory.md`.
+     - Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.85s`).
+
+---
+
+
+## 155. Step 1 — Project Type Support & Backward-Compatible Identification Utility (Completed 2026-08-18)
+* **Goal**: Implement project type identification and helper utilities (`detectProjectType`, `isGardenRoomFamily`, `normalizeProjectType`) for `outdoor_kitchen`, `garden_room`, `poolhouse`, and `canopy` while preserving existing Outdoor Kitchen behaviour and leaving UI/localStorage untouched.
+* **Changes**:
+  1. **New Utility File (`src/utils/projectType.js`)**:
+     - `PROJECT_TYPES`: `outdoor_kitchen`, `garden_room`, `poolhouse`, `canopy`.
+     - `detectProjectType(projectOrCategory)`: Safely resolves project type; defaults to `outdoor_kitchen` for backward compatibility.
+     - `isGardenRoomFamily(projectOrCategory)`: Returns `true` for `garden_room`, `poolhouse`, `canopy`; `false` for `outdoor_kitchen`.
+     - `normalizeProjectType(rawProject)`: Memory-only normalizer without mutating or destroying `localStorage` keys.
+  2. **Model Integration (`src/utils/gardenRoomDataModel.js`)**:
+     - Integrated `projectType.js` helpers for clean modularity.
+  3. **Documentation & Verification**:
+     - Updated `client_requirements.md` and `ai_memory.md`.
+     - Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.07s`).
+
+---
+
+## 154. Step 1 — Garden Room Data Model & Backward-Compatible Architecture (Completed 2026-08-18)
+* **Goal**: Establish the extended data models, helpers, and normalizer for Garden Rooms, Poolhouses, and Canopies while preserving 100% backward compatibility for base Outdoor Kitchen projects.
+* **Changes**:
+  1. **New Utility File (`src/utils/gardenRoomDataModel.js`)**:
+     - `detectProjectType()`: Differentiates `outdoor_kitchen`, `garden_room`, `poolhouse`, `canopy`.
+     - `getPaymentInstalmentsModel()`: 50/50 for Outdoor Kitchens vs 40/40/20 with handover lock for Garden Rooms.
+     - `getPlanningPhaseModel()`: 5-phase for Outdoor Kitchens vs 7-phase (including Schouw / Site Survey) for Garden Rooms.
+     - Default data model creators for: `renderPackage`, `prepChecklist`, `teamUpdates`, `handoverModel`, `seasonalMaintenance`, and `threeMonthCheck`.
+     - `normalizeProjectData()`: Graceful normalizer ensuring all existing localStorage projects load cleanly without breaking changes.
+  2. **Documentation**:
+     - Updated `client_requirements.md` and `ai_memory.md`.
+
+---
+
+## 153. Admin Projects Screen Alignment with Client Briefing v1.0 Page 8/11 (Completed 2026-08-18)
+* **Goal**: Clean up the Admin Projects page (`/admin/projects`) per client's exact briefing specification (Page 8/11). Remove Kliko webshop order remnants and align table to the exact 7-column schema.
+* **Changes**:
+  1. **Projects Page (`src/pages/admin/Projects.jsx`)**:
+     - Removed redundant webshop `orderColumns` definitions and Kliko webshop order tab references.
+     - Cleaned category dropdown options to remove "Kliko" across filters and modals.
+     - Re-aligned main table columns to match client's exact 7-column layout (Page 8/11):
+       - `PROJECT NO.` (ID e.g. `PRJ-103`)
+       - `CATEGORY` (Canopy, Outdoor kitchen, Poolhouse, etc.)
+       - `PROJECT` (Project Name e.g. `Canopy 8×4 m Douglas`)
+       - `CUSTOMER` (Customer Name e.g. `Mark Davis`)
+       - `PARTNER` (Assigned Partner dropdown / locked badge e.g. `RV Meubels`)
+       - `STATUS` (Client build statuses: `To confirm`, `In production`, `On site`, `Completed`)
+       - `VALUE (INCL. VAT)` (Quote value linked to quote e.g. `€ 37.950,00`)
+       - `COMPLETION` (Target delivery date e.g. `27-09-2026`)
+       - `ACTIONS` (Upload Photos, Edit, Delete)
+     - Added 100% bilingual NL / EN translation support (`language === 'EN' ? ... : ...`).
+  2. **Documentation**:
+     - Updated `client_requirements.md` and `ai_memory.md`.
+
+---
+
 ## 152. Mobile Responsiveness Audit & Multi-Device Layout Optimization (Completed 2026-08-07)
 * **Goal**: Perform comprehensive mobile responsiveness check across Admin, Partner, Customer portals and public 6-page proposal views to ensure 100% clean layouts on 360px-414px mobile viewports.
 * **Changes**:
