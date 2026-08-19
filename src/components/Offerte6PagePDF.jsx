@@ -5,8 +5,14 @@ import heroImg from '/dasbordes images.png';
 import { calculateTotals, calculateInstalments } from '../utils/quoteSchema';
 import { useLanguage } from '../context/LanguageContext';
 
-export default function Offerte6PagePDF({ quote }) {
-  const { language } = useLanguage();
+export default function Offerte6PagePDF({ quote, activePage = null, highlightField = null }) {
+  let language = 'NL';
+  try {
+    const langCtx = useLanguage();
+    if (langCtx && langCtx.language) language = langCtx.language;
+  } catch (e) {
+    language = 'NL';
+  }
   // Extract dynamic customer & header properties
   const custObj = typeof quote?.customer === 'object' ? quote.customer : null;
   const customerName = custObj?.name || quote?.customer || quote?.customerName || 'Bjorn Valk';
@@ -30,9 +36,44 @@ export default function Offerte6PagePDF({ quote }) {
   const deliveryTime = config.deliveryTime || quote?.deliveryTime || (language === 'EN' ? '5 to 10 weeks' : '3 tot 5 weken');
   const woodLifespan = config.woodLifespan || (language === 'EN' ? '20 to 25 years' : '20 tot 25 jaar');
 
+  const optionsObj = config.options || {};
+  const bbqEnabled = optionsObj.bbqCutout?.enabled !== false;
+  const bbqType = optionsObj.bbqCutout?.type || optionsTitle;
+  const fridgeEnabled = optionsObj.fridge?.enabled || false;
+  const sinkEnabled = optionsObj.sink?.enabled || false;
+
+  let tile3Title = language === 'EN' ? 'CUTOUT' : 'UITSPARING';
+  let tile3Value = bbqType;
+  let tile3Subtext = language === 'EN' ? 'Large, right of center' : 'Large, rechts van het midden';
+  let coverOptionStr = bbqType;
+
+  if (!bbqEnabled) {
+    const enabledList = [];
+    const coverList = [];
+    if (fridgeEnabled) {
+      enabledList.push(language === 'EN' ? 'Built-in Fridge' : 'Ingebouwde koelkast');
+      coverList.push(language === 'EN' ? 'Fridge' : 'Koelkast');
+    }
+    if (sinkEnabled) {
+      enabledList.push(language === 'EN' ? 'Sink with Tap' : 'Spoelbak met kraan');
+      coverList.push(language === 'EN' ? 'Sink' : 'Spoelbak');
+    }
+
+    tile3Title = language === 'EN' ? 'OPTIONS' : 'OPTIES';
+    if (enabledList.length > 0) {
+      tile3Value = enabledList.join(', ');
+      tile3Subtext = language === 'EN' ? 'Integrated features' : 'Geïntegreerde keukenelementen';
+      coverOptionStr = coverList.join(' & ');
+    } else {
+      tile3Value = language === 'EN' ? 'No extra options' : 'Geen extra opties';
+      tile3Subtext = language === 'EN' ? 'Standard worktop' : 'Standaard werkblad';
+      coverOptionStr = language === 'EN' ? 'Standard worktop' : 'Standaard werkblad';
+    }
+  }
+
   const subtitleText = cover.subtitleOverrideEnabled && cover.customSubtitle
     ? cover.customSubtitle
-    : `${woodType} · ${cleanDimensions} cm · ${optionsTitle}`;
+    : `${woodType} · ${cleanDimensions} cm · ${coverOptionStr}`;
 
   const coverPhotos = [
     cover.photos?.[0] || '/outdoor_project_card.png',
@@ -64,7 +105,7 @@ export default function Offerte6PagePDF({ quote }) {
   // Calculate delivery price and GRATIS logic
   const deliveryItem = items.find(i => (i.title || i.description || '').toLowerCase().includes('bezorging') || (i.title || i.description || '').toLowerCase().includes('delivery'));
   const deliveryPrice = deliveryItem ? Number(deliveryItem.priceInclVat || deliveryItem.unitPrice || 0) : 0;
-  const isFreeDelivery = deliveryPrice === 0;
+  const isFreeDelivery = deliveryPrice === 0 && (deliveryItem ? deliveryItem.isIncluded !== false : true);
 
   const totals = calculateTotals(items);
   const totalIncl = totals.totalInclVat ?? 0;
@@ -146,8 +187,8 @@ export default function Offerte6PagePDF({ quote }) {
     <div className="offerte-pdf-container space-y-8 print:space-y-0 text-dark font-body select-text">
 
       {/* ========================================================= */}
-      {/* PAGE 1 OF 6: COVER PAGE                                   */}
-      {/* ========================================================= */}
+      {/* PAGE 1 OF 6: COVER PAGE */}
+      {(!activePage || activePage === 'all' || Number(activePage) === 1) && (
       <div className="offerte-pdf-page bg-[#33422C] text-[#FDFBF7] p-6 sm:p-8 space-y-4 relative rounded-xl shadow-2xl print:rounded-none print:shadow-none h-[1050px] flex flex-col justify-between overflow-hidden">
         
         {/* Background Watermark Double V/A Monogram */}
@@ -170,18 +211,18 @@ export default function Offerte6PagePDF({ quote }) {
           {/* Subtitle & Main Title */}
           <div className="space-y-3 pt-12 sm:pt-16">
             <div className="space-y-1.5">
-              <span className="text-xs font-mono text-[#D6CFC2] tracking-wider uppercase block font-semibold">
+              <div className="text-xs font-mono text-[#D6CFC2] tracking-wider uppercase block font-semibold">
                 {language === 'EN' ? 'CUSTOM PROPOSAL' : 'VOORSTEL OP MAAT'} &nbsp;·&nbsp; <span className="text-[#D97706] font-bold">{quoteId}</span>
-              </span>
+              </div>
               <div className="w-16 h-[2px] bg-[#8A7966]"></div>
             </div>
 
-            <h2 className="text-4xl sm:text-5xl text-[#FDFBF7] leading-[1.12] pt-2 font-normal" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 400 }}>
+            <h2 className={`text-4xl sm:text-5xl text-[#FDFBF7] leading-[1.12] pt-2 font-normal transition-all duration-300 ${highlightField === 'title' ? 'bg-amber-300/80 text-dark px-2 rounded ring-2 ring-amber-400' : ''}`} style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 400 }}>
               {titleLine1}<br />
               <span className="italic" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 400 }}>{titleLine2}</span>
             </h2>
 
-            <p className="text-xs sm:text-sm font-mono pt-3">
+            <p className={`text-xs sm:text-sm font-mono pt-3 transition-all duration-300 ${highlightField === 'wood' || highlightField === 'title' ? 'bg-amber-300/80 text-dark px-2 py-0.5 rounded ring-2 ring-amber-400 font-extrabold' : ''}`}>
               <span className="text-[#D97706] font-bold">{subtitleText}</span>
             </p>
           </div>
@@ -190,19 +231,19 @@ export default function Offerte6PagePDF({ quote }) {
         {/* Customer & Quote Metadata */}
         <div className="space-y-4 relative z-10">
           <div className="pt-4 border-t border-[#4E5E45]/80 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono">
-            <div>
+            <div className={`transition-all duration-300 p-1 rounded ${highlightField === 'customer' ? 'bg-amber-300/80 text-dark ring-2 ring-amber-400' : ''}`}>
               <span className="text-[10px] text-[#A19888] uppercase block tracking-wider font-bold">{language === 'EN' ? 'PREPARED FOR' : 'OPGESTELD VOOR'}</span>
               <span className="font-bold text-[#D97706] text-xs sm:text-sm block mt-0.5">{customerName}</span>
             </div>
-            <div>
+            <div className={`transition-all duration-300 p-1 rounded ${highlightField === 'date' ? 'bg-amber-300/80 text-dark ring-2 ring-amber-400' : ''}`}>
               <span className="text-[10px] text-[#A19888] uppercase block tracking-wider font-bold">{language === 'EN' ? 'PROPOSAL NUMBER' : 'OFFERTENUMMER'}</span>
               <span className="font-bold text-[#D97706] text-xs sm:text-sm block mt-0.5">{quoteId}</span>
             </div>
-            <div>
+            <div className={`transition-all duration-300 p-1 rounded ${highlightField === 'date' ? 'bg-amber-300/80 text-dark ring-2 ring-amber-400' : ''}`}>
               <span className="text-[10px] text-[#A19888] uppercase block tracking-wider font-bold">{language === 'EN' ? 'DATE' : 'DATUM'}</span>
               <span className="font-bold text-[#D97706] text-xs sm:text-sm block mt-0.5">{quoteDate}</span>
             </div>
-            <div>
+            <div className={`transition-all duration-300 p-1 rounded ${highlightField === 'date' ? 'bg-amber-300/80 text-dark ring-2 ring-amber-400' : ''}`}>
               <span className="text-[10px] text-[#A19888] uppercase block tracking-wider font-bold">{language === 'EN' ? 'VALID UNTIL' : 'GELDIG T/M'}</span>
               <span className="font-bold text-[#D97706] text-xs sm:text-sm block mt-0.5">{validUntil}</span>
             </div>
@@ -235,10 +276,10 @@ export default function Offerte6PagePDF({ quote }) {
           </div>
         </div>
       </div>
+      )}
 
-      {/* ========================================================= */}
-      {/* PAGE 2 OF 6: PERSOONLIJK WOORD                            */}
-      {/* ========================================================= */}
+      {/* PAGE 2 OF 6: PERSOONLIJK WOORD */}
+      {(!activePage || activePage === 'all' || Number(activePage) === 2) && (
       <div className="offerte-pdf-page bg-[#FDFBF7] text-dark p-6 sm:p-8 space-y-4 rounded-xl shadow-xl print:rounded-none print:shadow-none h-[1050px] flex flex-col justify-between border border-[#C4BEB3]">
         <div className="space-y-4">
           <div className="flex justify-between items-center border-b border-[#C4BEB3]/70 pb-3 text-xs font-mono">
@@ -328,10 +369,10 @@ export default function Offerte6PagePDF({ quote }) {
           <span className="font-bold">2 / 6</span>
         </div>
       </div>
+      )}
 
-      {/* ========================================================= */}
-      {/* PAGE 3 OF 6: UW CONFIGURATIE                              */}
-      {/* ========================================================= */}
+      {/* PAGE 3 OF 6: UW CONFIGURATIE */}
+      {(!activePage || activePage === 'all' || Number(activePage) === 3) && (
       <div className="offerte-pdf-page bg-[#FDFBF7] text-dark p-6 sm:p-8 space-y-4 rounded-xl shadow-xl print:rounded-none print:shadow-none h-[1050px] flex flex-col justify-between border border-[#C4BEB3]">
         <div className="space-y-4">
           <div className="flex justify-between items-center border-b border-[#C4BEB3]/70 pb-3 text-xs font-mono">
@@ -373,11 +414,11 @@ export default function Offerte6PagePDF({ quote }) {
 
             <div className="bg-[#35442E] p-3.5 rounded-2xl text-center space-y-1 shadow-sm border border-[#43543A]">
               <span className="text-[9px] uppercase font-mono tracking-widest text-[#D97706] block font-bold">
-                {language === 'EN' ? 'CUTOUT / OPTIONS' : 'UITSPARING / OPTIES'}
+                {tile3Title}
               </span>
-              <p className="text-lg sm:text-xl font-serif text-[#D97706] leading-tight font-normal truncate" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>{optionsTitle}</p>
+              <p className="text-lg sm:text-xl font-serif text-[#D97706] leading-tight font-normal truncate" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>{tile3Value}</p>
               <span className="text-[9px] text-[#E5DFD5] block font-body pt-0.5">
-                {config.optionsSubtext || (language === 'EN' ? 'right of center' : 'rechts van het midden')}
+                {tile3Subtext}
               </span>
             </div>
 
@@ -414,7 +455,9 @@ export default function Offerte6PagePDF({ quote }) {
 
             {/* Photo & Diagram */}
             <div className="space-y-3">
-              <div className="relative rounded-2xl overflow-hidden border border-[#D6CFC2] shadow-xs bg-[#F4EFE6] h-44 sm:h-48 flex items-center justify-center p-1.5">
+              <div className={`relative rounded-2xl overflow-hidden border border-[#D6CFC2] shadow-xs bg-[#F4EFE6] flex items-center justify-center p-1.5 transition-all ${
+                diagram.show ? 'h-44 sm:h-48' : 'h-64 sm:h-72'
+              }`}>
                 <img
                   src={config.configPhoto || projectImg}
                   alt="Configuration"
@@ -475,10 +518,10 @@ export default function Offerte6PagePDF({ quote }) {
           <span className="font-bold">3 / 6</span>
         </div>
       </div>
+      )}
 
-      {/* ========================================================= */}
-      {/* PAGE 4 OF 6: INVESTERING                                  */}
-      {/* ========================================================= */}
+      {/* PAGE 4 OF 6: INVESTERING */}
+      {(!activePage || activePage === 'all' || Number(activePage) === 4) && (
       <div className="offerte-pdf-page bg-[#FDFBF7] text-dark p-6 sm:p-8 space-y-4 rounded-xl shadow-xl print:rounded-none print:shadow-none h-[1050px] flex flex-col justify-between border border-[#C4BEB3]">
         <div className="space-y-6">
           <div className="flex justify-between items-center border-b border-[#C4BEB3]/70 pb-3 text-xs font-mono">
@@ -596,10 +639,10 @@ export default function Offerte6PagePDF({ quote }) {
           <span className="font-bold">4 / 6</span>
         </div>
       </div>
+      )}
 
-      {/* ========================================================= */}
-      {/* PAGE 5 OF 6: AKKOORD & SIGNATURES                         */}
-      {/* ========================================================= */}
+      {/* PAGE 5 OF 6: AKKOORD & SIGNATURES */}
+      {(!activePage || activePage === 'all' || Number(activePage) === 5) && (
       <div className="offerte-pdf-page bg-[#FDFBF7] text-dark p-6 sm:p-8 space-y-4 rounded-xl shadow-xl print:rounded-none print:shadow-none h-[1050px] flex flex-col justify-between border border-[#C4BEB3]">
         <div className="space-y-6">
           <div className="flex justify-between items-center border-b border-[#C4BEB3]/70 pb-3 text-xs font-mono">
@@ -701,10 +744,10 @@ export default function Offerte6PagePDF({ quote }) {
           <span className="font-bold">5 / 6</span>
         </div>
       </div>
+      )}
 
-      {/* ========================================================= */}
-      {/* PAGE 6 OF 6: VAN AKKOORD TOT ACHTERTUIN                   */}
-      {/* ========================================================= */}
+      {/* PAGE 6 OF 6: VAN AKKOORD TOT ACHTERTUIN */}
+      {(!activePage || activePage === 'all' || Number(activePage) === 6) && (
       <div className="offerte-pdf-page bg-[#FDFBF7] text-dark p-6 sm:p-8 space-y-4 rounded-xl shadow-xl print:rounded-none print:shadow-none h-[1050px] flex flex-col justify-between border border-[#C4BEB3]">
         <div className="space-y-6">
           <div className="flex justify-between items-center border-b border-[#C4BEB3]/70 pb-3 text-xs font-mono">
@@ -774,6 +817,7 @@ export default function Offerte6PagePDF({ quote }) {
           <span className="font-bold">6 / 6</span>
         </div>
       </div>
+      )}
 
     </div>
   );

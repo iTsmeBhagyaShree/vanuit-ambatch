@@ -23,6 +23,30 @@ export const WOOD_LIBRARY = [
   }
 ];
 
+export function getWoodTypeDefaults(woodName, language = 'NL') {
+  const match = WOOD_LIBRARY.find(w => w.name.toLowerCase() === (woodName || '').toLowerCase());
+  if (match) {
+    return {
+      name: match.name,
+      lifespan: language === 'EN' ? match.lifespan : (match.name === 'Douglas' ? '10 tot 15 jaar' : '20 tot 25 jaar'),
+      infoboxTitle: language === 'EN' ? match.infoboxTitle : `Over ${match.name}`,
+      infoboxText: language === 'EN' ? match.infoboxText : (
+        match.name === 'Thermo Fraké'
+          ? 'Thermisch behandeld Fraké: vormstabiel, duurzaam en met een warme, diepe kleur. Gaat 20 tot 25 jaar mee en veroudert prachtig grijs.'
+          : match.name === 'Padouk'
+          ? 'Padouk is een van de meest stabiele houtsoorten ter wereld. Koraalrood bij verwerking, snel vergrijzend naar warm zilvergrijs.'
+          : 'Douglas hout biedt een warme en authentieke uitstraling, idealiter geschikt voor beschutte buitenopstellingen.'
+      )
+    };
+  }
+  return {
+    name: woodName || 'Overig hout',
+    lifespan: '15 tot 20 jaar',
+    infoboxTitle: `Over ${woodName || 'Houtsoort'}`,
+    infoboxText: `${woodName || 'Deze houtsoort'} is duurzaam en vormstabiel, geschikt voor hoogwaardige buitenkeukens.`
+  };
+}
+
 // Product Library items per Reference B
 export const PRESET_PRODUCT_LIBRARY = [
   {

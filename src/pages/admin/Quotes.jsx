@@ -69,16 +69,16 @@ const PRESET_PRODUCT_LIBRARY = [
   { id: 'p8', description: 'Bezorging & Professionele Inhuizen', unitPrice: 0 }
 ];
 
-// Sequential Quote Number Generator: OF-{year}-{sequence}
+// Sequential Quote Number Generator: OF-{year}{sequence} (e.g. OF-2026331)
 const generateNextQuoteId = (quotesList) => {
   const year = new Date().getFullYear();
-  const prefix = `OF-${year}-`;
-  let maxSeq = 0;
+  const prefix = `OF-${year}`;
+  let maxSeq = 330; // base sequence starts before 331
 
   if (Array.isArray(quotesList)) {
     quotesList.forEach((q) => {
       if (q && q.id && typeof q.id === 'string') {
-        const match = q.id.match(/OF-\d{4}-(\d+)/i) || q.id.match(/OF-(\d+)/i) || q.id.match(/Q-(\d+)/i);
+        const match = q.id.match(/OF-\d{4}(\d+)/i) || q.id.match(/OF-\d{4}-(\d+)/i) || q.id.match(/OF-(\d+)/i);
         if (match && match[1]) {
           const num = parseInt(match[1], 10);
           if (!isNaN(num) && num > maxSeq) {
@@ -89,7 +89,7 @@ const generateNextQuoteId = (quotesList) => {
     });
   }
 
-  const nextSeq = String(maxSeq + 1).padStart(3, '0');
+  const nextSeq = maxSeq + 1;
   return `${prefix}${nextSeq}`;
 };
 
@@ -713,14 +713,12 @@ export default function Quotes() {
 
   if (activeEditorQuote) {
     return (
-      <div className="space-y-6">
-        <QuoteEditor
-          quoteData={activeEditorQuote}
-          leadsList={leadsList}
-          onClose={() => setActiveEditorQuote(null)}
-          onSaveQuote={(updated, showToastFlag) => handleSaveEditorQuote(updated, showToastFlag)}
-        />
-      </div>
+      <QuoteEditor
+        quoteData={activeEditorQuote}
+        leadsList={leadsList}
+        onClose={() => setActiveEditorQuote(null)}
+        onSaveQuote={(updated, showToastFlag) => handleSaveEditorQuote(updated, showToastFlag)}
+      />
     );
   }
 

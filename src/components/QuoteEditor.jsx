@@ -15,7 +15,7 @@ import { calculateTotals, calculateInstalments, validateQuoteForSend } from '../
 import { useLanguage } from '../context/LanguageContext';
 import projectImg from '../assets/outdoor_project_card.png';
 import heroImg from '/dasbordes images.png';
-import { downloadQuotePdf } from '../utils/pdfGenerator';
+import { downloadQuotePdf, generateFull6PagePdf } from '../utils/pdfGenerator';
 
 const STEPS = [
   { id: 1, number: '1', title: 'Customer & details', desc: 'Bjorn Valk · Dongen' },
@@ -25,6 +25,56 @@ const STEPS = [
   { id: 5, number: '5', title: 'Letter & process', desc: 'default texts' },
   { id: 6, number: '6', title: 'Review & send', desc: 'preview · PDF · approval link' }
 ];
+
+// Dynamic Responsive PDF Preview Scaler that fits 100% full-width in Zone 3 card
+function ScaledPDFPreview({ quote, activePage, highlightField }) {
+  const containerRef = React.useRef(null);
+  const [scale, setScale] = useState(0.40);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const updateScale = () => {
+      if (containerRef.current) {
+        const totalWidth = containerRef.current.clientWidth;
+        const availableWidth = Math.max(100, totalWidth - 12);
+        if (availableWidth > 0) {
+          setScale(availableWidth / 794);
+        }
+      }
+    };
+    updateScale();
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  // Fit inside right card cleanly without pushing page height
+  const scaledHeight = 1050 * scale;
+
+  return (
+    <div 
+      ref={containerRef} 
+      className="w-full bg-[#EDE8DF] p-1.5 rounded-xl border border-[#D6CFC2]/70 overflow-hidden shadow-inner relative"
+      style={{ height: `${Math.min(490, scaledHeight + 12)}px` }}
+    >
+      <div 
+        style={{ 
+          width: '794px', 
+          height: '1050px',
+          transform: `scale(${scale})`, 
+          transformOrigin: 'top center',
+          position: 'absolute',
+          top: '6px',
+          left: '50%',
+          marginLeft: '-397px'
+        }}
+        className="shadow-md rounded-lg overflow-hidden bg-white"
+      >
+        <Offerte6PagePDF quote={quote} activePage={activePage} highlightField={highlightField} />
+      </div>
+    </div>
+  );
+}
 
 export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList = [] }) {
   const { language } = useLanguage();
@@ -36,6 +86,24 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
   const [letterExpanded, setLetterExpanded] = useState(false);
   const [uspExpanded, setUspExpanded] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
+  const [previewPage, setPreviewPage] = useState(1);
+  const [mobileTab, setMobileTab] = useState('editor');
+  const [highlightField, setHighlightField] = useState(null);
+  const [showFieldLabels, setShowFieldLabels] = useState(true);
+  const [photoWarnings, setPhotoWarnings] = useState({});
+
+  // Auto-sync preview page to active step
+  useEffect(() => {
+    switch (activeStep) {
+      case 1: setPreviewPage(1); break;
+      case 2: setPreviewPage(1); break;
+      case 3: setPreviewPage(3); break;
+      case 4: setPreviewPage(4); break;
+      case 5: setPreviewPage(2); break;
+      case 6: setPreviewPage(6); break;
+      default: setPreviewPage(1); break;
+    }
+  }, [activeStep]);
 
   // Auto-save effect whenever quote state updates
   useEffect(() => {
@@ -74,10 +142,31 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
 
   const updateConfigField = (field, val) => {
     if (isApproved) return;
-    setQuote(prev => ({
-      ...prev,
-      configuration: { ...prev.configuration, [field]: val }
-    }));
+    setQuote(prev => {
+      const nextConfig = { ...prev.configuration, [field]: val };
+      const nextInvestment = { ...(prev.investment || {}) };
+      const lineItems = [...(nextInvestment.lineItems || [])];
+
+      if ((field === 'dimensions' || field === 'woodType') && lineItems.length > 0) {
+        const item1 = lineItems[0];
+        if (!item1.isCustomTitle && (item1.title.startsWith('Buitenkeuken') || item1.title.startsWith('Outdoor Kitchen'))) {
+          const wood = field === 'woodType' ? val : (nextConfig.woodType || 'Thermo Fraké');
+          const dim = field === 'dimensions' ? val : (nextConfig.dimensions || '240 × 80');
+          const cleanDim = String(dim).replace(/\s*cm$/i, '').trim();
+          lineItems[0] = {
+            ...item1,
+            title: `Buitenkeuken ${wood} · ${cleanDim} cm`
+          };
+          nextInvestment.lineItems = lineItems;
+        }
+      }
+
+      return {
+        ...prev,
+        configuration: nextConfig,
+        investment: nextInvestment
+      };
+    });
   };
 
   const updateInvestmentField = (field, val) => {
@@ -335,7 +424,7 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
   };
 
   return (
-    <div className="w-full space-y-5 font-body text-[#4A4A43]">
+    <div className="w-full h-[calc(100vh-125px)] max-h-[calc(100vh-125px)] flex flex-col justify-between font-body text-[#4A4A43] overflow-hidden">
       {/* Toast Notification */}
       <AnimatePresence>
         {toastMsg && (
@@ -347,7 +436,7 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
       </AnimatePresence>
 
       {/* TOP EDITOR NAVIGATION / STATUS BAR */}
-      <div className="bg-white p-3.5 rounded-2xl border border-[#D6CFC2] shadow-xs flex flex-wrap items-center justify-between gap-3">
+      <div className="flex-shrink-0 bg-white p-3 rounded-2xl border border-[#D6CFC2] shadow-xs flex flex-wrap items-center justify-between gap-3 mb-2.5">
         <div className="flex items-center gap-3">
           <button
             onClick={onClose}
@@ -375,17 +464,39 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
         </div>
       </div>
 
-      {/* TWO OR THREE COLUMN EDITOR LAYOUT MATCHING SCREENSHOT 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+
+      {/* MOBILE / TABLET TAB SWITCHER (< lg) */}
+      <div className="flex lg:hidden bg-white p-1.5 rounded-xl border border-[#D6CFC2] gap-1 shadow-xs">
+        <button
+          onClick={() => setMobileTab('editor')}
+          className={`flex-1 py-2 text-xs font-bold font-mono rounded-lg transition-all cursor-pointer ${
+            mobileTab === 'editor' ? 'bg-[#33422C] text-white shadow-xs' : 'text-dark/70 hover:bg-[#F8F7F4]'
+          }`}
+        >
+          📝 Form Editor
+        </button>
+        <button
+          onClick={() => setMobileTab('preview')}
+          className={`flex-1 py-2 text-xs font-bold font-mono rounded-lg transition-all cursor-pointer ${
+            mobileTab === 'preview' ? 'bg-[#33422C] text-white shadow-xs' : 'text-dark/70 hover:bg-[#F8F7F4]'
+          }`}
+        >
+          👁️ Live Preview (Page {previewPage}/6)
+        </button>
+      </div>
+
+      {/* THREE-ZONE MAIN GRID LAYOUT */}
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 items-start min-h-0 overflow-hidden">
         
         {/* ========================================================= */}
-        {/* LEFT COLUMN: STEP LIST CARD MATCHING SCREENSHOT 2 (3 Cols) */}
+        {/* ZONE 1: LEFT COLUMN - STEP NAVIGATION (3 Cols)            */}
         {/* ========================================================= */}
-        <div className="lg:col-span-3 space-y-4">
-          <div className="bg-white rounded-2xl p-4 sm:p-5 border border-[#D6CFC2] shadow-xs space-y-4">
-            <h3 className="font-serif font-bold text-xl text-primary">Quote {quote.id}</h3>
+        <div className={`lg:col-span-3 space-y-3 ${mobileTab === 'preview' ? 'hidden lg:block' : 'block'}`}>
+          <div className="bg-white rounded-2xl p-3.5 border border-[#D6CFC2] shadow-xs space-y-2.5">
+            <h3 className="font-serif font-bold text-lg text-primary whitespace-nowrap">Quote {quote.id}</h3>
 
-            <nav className="space-y-2">
+            <nav className="space-y-1.5">
               {STEPS.map((step) => {
                 const isActive = activeStep === step.id;
                 const isCompleted = activeStep > step.id;
@@ -394,14 +505,17 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                 return (
                   <button
                     key={step.id}
-                    onClick={() => setActiveStep(step.id)}
-                    className={`w-full text-left p-3 rounded-xl transition-all flex items-start gap-3 ${
+                    onClick={() => {
+                      setActiveStep(step.id);
+                      setMobileTab('editor');
+                    }}
+                    className={`w-full text-left py-2 px-2.5 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer ${
                       isActive
                         ? 'bg-[#33422C] text-[#FDFBF7] shadow-sm font-bold'
                         : 'hover:bg-[#F8F7F4] text-dark border border-transparent'
                     }`}
                   >
-                    <span className={`w-6 h-6 rounded-full text-xs font-mono font-bold flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                    <span className={`w-5 h-5 rounded-full text-[11px] font-mono font-bold flex items-center justify-center flex-shrink-0 ${
                       isActive 
                         ? 'bg-white text-[#33422C]' 
                         : isCompleted 
@@ -411,7 +525,7 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                       {isCompleted ? '✓' : step.number}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className={`text-xs font-bold leading-tight truncate ${isActive ? 'text-white' : 'text-dark'}`}>{step.title}</p>
+                      <p className={`text-xs font-bold leading-tight whitespace-nowrap ${isActive ? 'text-white' : 'text-dark'}`}>{step.title}</p>
                       <p className={`text-[10px] truncate mt-0.5 ${isActive ? 'text-white/80' : 'text-dark/50'}`}>{dynamicSub}</p>
                     </div>
                   </button>
@@ -419,17 +533,17 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
               })}
             </nav>
 
-            <div className="pt-3 border-t border-[#D6CFC2]/60 text-[11px] font-mono text-dark/60 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <div className="pt-2 border-t border-[#D6CFC2]/60 text-[10px] font-mono text-dark/60 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
               <span>Auto-saved as draft · {lastSavedTime}</span>
             </div>
           </div>
         </div>
 
         {/* ========================================================= */}
-        {/* CENTER COLUMN: MAIN FORM CARDS MATCHING SCREENSHOT 2 (9 Cols) */}
+        {/* ZONE 2: MIDDLE COLUMN - ACTIVE STEP FORM (6 Cols)          */}
         {/* ========================================================= */}
-        <div className="lg:col-span-9 space-y-5">
+        <div className={`lg:col-span-6 space-y-4 overflow-y-auto max-h-[calc(100vh-200px)] pr-1.5 ${mobileTab === 'preview' ? 'hidden lg:block' : 'block'}`}>
           
           {/* Main Title & Subtitle */}
           <div className="space-y-1">
@@ -462,6 +576,8 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                   </div>
                   <select
                     value={quote.customer?.name || 'Bjorn Valk'}
+                    onFocus={() => setHighlightField('customer')}
+                    onBlur={() => setHighlightField(null)}
                     onChange={(e) => {
                       const selectedName = e.target.value;
                       const leadObj = leadsList.find(l => l.name === selectedName);
@@ -513,7 +629,7 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                 {/* Grey Customer Card Summary */}
                 <div className="p-4 bg-[#EFECE6] rounded-xl border border-[#D6CFC2]/70 space-y-1.5 text-xs text-dark/80 font-body">
                   <p className="font-semibold text-dark">
-                    {quote.customer?.name || 'Bjorn Valk'} · {quote.customer?.address || 'Dongeheuvel 3, 5101 WE Dongen'} · {quote.customer?.phone || '+31 6 53562542'} · {quote.customer?.email || 'bjorn@mail.nl'}
+                    {quote.customer?.name || 'Bjorn Valk'} · {quote.customer?.address || 'Dongeheuvel 3'}, <strong className="font-bold text-primary">{quote.customer?.city || 'Dongen'}</strong> · {quote.customer?.phone || '+31 6 53562542'} · {quote.customer?.email || 'bjorn@mail.nl'}
                   </p>
                   <div className="flex justify-between items-center text-[11px] pt-0.5">
                     <span className="text-emerald-700 font-bold flex items-center gap-1">
@@ -569,6 +685,8 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                     <input
                       type="date"
                       value={quote.date}
+                      onFocus={() => setHighlightField('date')}
+                      onBlur={() => setHighlightField(null)}
                       onChange={(e) => setQuote(prev => ({ ...prev, date: e.target.value }))}
                       className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-xl font-bold text-dark"
                     />
@@ -583,6 +701,8 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                     <input
                       type="date"
                       value={quote.validUntil}
+                      onFocus={() => setHighlightField('date')}
+                      onBlur={() => setHighlightField(null)}
                       onChange={(e) => setQuote(prev => ({ ...prev, validUntil: e.target.value }))}
                       className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-xl font-bold text-dark"
                     />
@@ -596,6 +716,8 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                     </div>
                     <select
                       value={quote.productType || 'Outdoor kitchen'}
+                      onFocus={() => setHighlightField('wood')}
+                      onBlur={() => setHighlightField(null)}
                       onChange={(e) => handleProductTypeChange(e.target.value)}
                       className="w-full px-3 py-2 bg-white border border-[#D6CFC2] rounded-xl font-bold text-dark"
                     >
@@ -609,7 +731,6 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                 </div>
 
               </div>
-
             </div>
           )}
 
@@ -619,98 +740,181 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
               
               {/* CARD 1: TITLE & SUBTITLE */}
               <div className="bg-white rounded-2xl p-5 border border-[#D6CFC2] shadow-2xs space-y-4">
-                <span className="text-xs font-bold uppercase tracking-wider text-dark/80 font-mono block">TITLE</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-bold uppercase tracking-wider text-dark/80 font-mono block">COVER TITLES & SUBTITLE</span>
+                  <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded font-mono uppercase">PAGE 1 COVER</span>
+                </div>
 
                 {/* Title Line 1 & Title Line 2 */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <label className="text-[10px] font-bold uppercase tracking-wider text-dark/60 font-mono">TITLE LINE 1</label>
-                      <span className="bg-gray-200 text-gray-700 text-[9px] font-bold px-2 py-0.5 rounded font-mono uppercase">DEFAULT</span>
+                      <span className="bg-blue-100 text-blue-800 text-[9px] font-bold px-1.5 py-0.2 rounded font-mono">EDITABLE</span>
                     </div>
                     <input
                       type="text"
-                      value={quote.cover?.titleLine1 || 'Uw buitenkeuken,'}
+                      value={quote.cover?.titleLine1 !== undefined ? quote.cover.titleLine1 : 'Uw buitenkeuken,'}
+                      onFocus={() => setHighlightField('title')}
+                      onBlur={() => setHighlightField(null)}
                       onChange={(e) => updateCoverField('titleLine1', e.target.value)}
                       className="w-full px-3.5 py-2.5 bg-white border border-[#D6CFC2] rounded-xl font-bold text-dark text-xs focus:outline-none focus:border-primary"
+                      placeholder="Uw buitenkeuken,"
                     />
+                    <p className="text-[10px] text-dark/50 mt-1 font-body">Main cover title (top line)</p>
                   </div>
 
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <label className="text-[10px] font-bold uppercase tracking-wider text-dark/60 font-mono">TITLE LINE 2</label>
-                      <span className="bg-gray-200 text-gray-700 text-[9px] font-bold px-2 py-0.5 rounded font-mono uppercase">DEFAULT</span>
+                      <span className="bg-blue-100 text-blue-800 text-[9px] font-bold px-1.5 py-0.2 rounded font-mono">EDITABLE</span>
                     </div>
                     <input
                       type="text"
-                      value={quote.cover?.titleLine2 || 'op maat gemaakt.'}
+                      value={quote.cover?.titleLine2 !== undefined ? quote.cover.titleLine2 : 'op maat gemaakt.'}
+                      onFocus={() => setHighlightField('title')}
+                      onBlur={() => setHighlightField(null)}
                       onChange={(e) => updateCoverField('titleLine2', e.target.value)}
                       className="w-full px-3.5 py-2.5 bg-white border border-[#D6CFC2] rounded-xl font-bold text-dark text-xs focus:outline-none focus:border-primary"
+                      placeholder="op maat gemaakt."
                     />
+                    <p className="text-[10px] text-dark/50 mt-1 font-body">Main cover title (italic bottom line)</p>
                   </div>
                 </div>
 
                 {/* Subtitle Section */}
-                <div className="space-y-2 pt-1">
-                  <div className="flex items-center gap-2">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-dark/60 font-mono">SUBTITLE</label>
-                    <span className="bg-emerald-100 text-emerald-800 text-[9px] font-bold px-2 py-0.5 rounded font-mono uppercase">CALCULATED</span>
-                  </div>
+                {(() => {
+                  const woodVal = quote.configuration?.woodType || 'Thermo Fraké';
+                  const dimVal = (quote.configuration?.dimensions || '240 × 80').replace(/\s*cm$/i, '').trim();
+                  const cutoutVal = quote.configuration?.optionsTitle || 'Big Green Egg Large';
+                  const autoSubString = `${woodVal} · ${dimVal} cm · ${cutoutVal}`;
+                  const isOverride = quote.cover?.subtitleOverrideEnabled || false;
 
-                  {quote.cover?.subtitleOverrideEnabled ? (
-                    <input
-                      type="text"
-                      value={quote.cover?.customSubtitle || ''}
-                      onChange={(e) => updateCoverField('customSubtitle', e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-white border border-[#D6CFC2] rounded-xl font-bold text-dark text-xs"
-                    />
-                  ) : (
-                    <div className="p-3.5 bg-[#EFECE6] rounded-xl border border-[#D6CFC2]/70 font-semibold text-xs text-dark">
-                      {quote.configuration?.woodType || 'Thermo Fraké'} · {quote.configuration?.dimensions || '240 × 80 cm'} · {quote.configuration?.optionsTitle || 'uitsparing Big Green Egg'}
+                  return (
+                    <div className="space-y-2 pt-2 border-t border-[#D6CFC2]/60">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-dark/60 font-mono">SUBTITLE</label>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded font-mono uppercase ${
+                            isOverride ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-800'
+                          }`}>
+                            {isOverride ? 'CUSTOM OVERRIDE' : 'AUTOMATIC (STEP 3)'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {isOverride ? (
+                        <div>
+                          <input
+                            type="text"
+                            value={quote.cover?.customSubtitle || ''}
+                            onFocus={() => setHighlightField('wood')}
+                            onBlur={() => setHighlightField(null)}
+                            onChange={(e) => updateCoverField('customSubtitle', e.target.value)}
+                            className="w-full px-3.5 py-2.5 bg-white border border-amber-400 rounded-xl font-bold text-dark text-xs focus:outline-none focus:ring-2 focus:ring-amber-300"
+                            placeholder={autoSubString}
+                          />
+                          <p className="text-[10px] text-amber-800 mt-1 font-body">Custom override active — replaces automatic configuration string in preview & PDF</p>
+                        </div>
+                      ) : (
+                        <div className="p-3.5 bg-[#EFECE6] rounded-xl border border-[#D6CFC2]/70 font-semibold text-xs text-dark flex items-center justify-between">
+                          <span className="font-mono text-xs">{autoSubString}</span>
+                          <span className="text-[10px] text-dark/50 italic font-body">Follows Step 3</span>
+                        </div>
+                      )}
+
+                      <label className="flex items-center gap-2 cursor-pointer text-[11px] text-dark/70 pt-1">
+                        <input
+                          type="checkbox"
+                          checked={isOverride}
+                          onChange={(e) => updateCoverField('subtitleOverrideEnabled', e.target.checked)}
+                          className="w-4 h-4 rounded text-primary border-[#D6CFC2] focus:ring-primary/20 cursor-pointer"
+                        />
+                        <span className="font-medium">Enable Custom Subtitle Override (manual text entry)</span>
+                      </label>
                     </div>
-                  )}
-
-                  <label className="flex items-center gap-2 cursor-pointer text-[11px] text-dark/60 pt-0.5">
-                    <input
-                      type="checkbox"
-                      checked={quote.cover?.subtitleOverrideEnabled || false}
-                      onChange={(e) => updateCoverField('subtitleOverrideEnabled', e.target.checked)}
-                      className="w-3.5 h-3.5 rounded text-primary border-[#D6CFC2]"
-                    />
-                    <span>edit manually — currently automatic: (wood type) · (dimensions) cm · (options)</span>
-                  </label>
-                </div>
+                  );
+                })()}
               </div>
 
-              {/* CARD 2: COVER PHOTOS */}
+              {/* CARD 2: COVER PHOTOS (3 SLOTS) */}
               <div className="bg-white rounded-2xl p-5 border border-[#D6CFC2] shadow-2xs space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold uppercase tracking-wider text-dark/80 font-mono">COVER PHOTOS</span>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-wider text-dark/80 font-mono block">COVER PHOTOS (3 SLOTS)</span>
+                    <p className="text-[11px] text-dark/50 font-body">Select or upload 3 high-resolution photos for the Cover Page footer strip</p>
+                  </div>
                   <button
                     type="button"
                     onClick={() => {
-                      updateCoverField('photos', ['/cover_img1.png', '/cover_img2.png', '/cover_img3.png']);
+                      updateCoverField('photos', ['/outdoor_project_card.png', '/dasbordes images.png', '/outdoor_project_card.png']);
                       updateCoverField('titleLine1', 'Uw buitenkeuken,');
                       updateCoverField('titleLine2', 'op maat gemaakt.');
-                      showToast('Cover defaults restored!');
+                      updateCoverField('subtitleOverrideEnabled', false);
+                      updateCoverField('customSubtitle', '');
+                      setPhotoWarnings({});
+                      showToast('✓ Cover defaults restored!');
                     }}
-                    className="px-3 py-1 bg-white border border-[#D6CFC2] text-dark/70 hover:text-dark font-mono text-[10px] font-bold rounded-lg transition-colors cursor-pointer"
+                    className="px-3 py-1.5 bg-[#EFECE6] hover:bg-[#E5DFD5] border border-[#D6CFC2] text-dark/80 font-mono text-[10px] font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-1"
                   >
-                    restore defaults
+                    <span>↺ Restore Cover Defaults</span>
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {[0, 1, 2].map((pIdx) => {
-                    const photosArr = quote.cover?.photos || ['/cover_img1.png', '/cover_img2.png', '/cover_img3.png'];
-                    const currentPhoto = photosArr[pIdx];
-                    const defaultRes = pIdx === 0 ? '1620×1080 ✓' : pIdx === 1 ? '2400×1600 ✓' : '1920×1080 ✓';
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {[
+                    { slot: 0, label: 'Hero Photo (Left)', defaultImg: '/outdoor_project_card.png' },
+                    { slot: 1, label: 'Project Photo (Center)', defaultImg: '/dasbordes images.png' },
+                    { slot: 2, label: 'Detail Photo (Right)', defaultImg: '/outdoor_project_card.png' }
+                  ].map(({ slot, label, defaultImg }) => {
+                    const photosArr = quote.cover?.photos || ['/outdoor_project_card.png', '/dasbordes images.png', '/outdoor_project_card.png'];
+                    const currentPhoto = photosArr[slot] || defaultImg;
+                    const warning = photoWarnings[slot];
 
                     return (
-                      <div key={pIdx} className="relative">
+                      <div 
+                        key={slot} 
+                        className="bg-[#F8F7F4] border border-[#D6CFC2] rounded-xl p-3 space-y-2 relative"
+                        onMouseEnter={() => setHighlightField('photos')}
+                        onMouseLeave={() => setHighlightField(null)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-dark/70 font-mono">{label}</span>
+                          <span className="text-[9px] font-bold font-mono px-1.5 py-0.2 bg-[#EDE8DF] text-dark/60 rounded">SLOT {slot + 1}</span>
+                        </div>
+
+                        {/* Image Preview Box */}
+                        <div className="h-28 w-full rounded-lg overflow-hidden border border-[#D6CFC2] bg-white relative group">
+                          <img
+                            src={currentPhoto}
+                            alt={label}
+                            className="w-full h-full object-cover object-center"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = defaultImg;
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-2">
+                            <label
+                              htmlFor={`cover-photo-input-${slot}`}
+                              className="px-2.5 py-1 bg-white text-dark text-[10px] font-bold font-mono rounded shadow-xs cursor-pointer hover:bg-cream"
+                            >
+                              Replace
+                            </label>
+                          </div>
+                        </div>
+
+                        {/* Low Resolution Warning Badge if uploaded image < 600px */}
+                        {warning && (
+                          <div className="bg-amber-50 border border-amber-300 text-amber-900 p-1.5 rounded-md text-[10px] font-body flex items-center gap-1">
+                            <span className="text-amber-600 font-bold">⚠️</span>
+                            <span>Low resolution ({warning.width}×{warning.height}px)</span>
+                          </div>
+                        )}
+
                         <input
                           type="file"
-                          id={`cover-photo-input-${pIdx}`}
+                          id={`cover-photo-input-${slot}`}
                           accept="image/*"
                           className="hidden"
                           onChange={(e) => {
@@ -718,42 +922,58 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                             if (file) {
                               const reader = new FileReader();
                               reader.onload = (evt) => {
-                                const newPhotos = [...(quote.cover?.photos || ['/cover_img1.png', '/cover_img2.png', '/cover_img3.png'])];
-                                newPhotos[pIdx] = evt.target.result;
-                                updateCoverField('photos', newPhotos);
-                                showToast(`Photo ${pIdx + 1} updated successfully!`);
+                                const dataUrl = evt.target.result;
+                                const imgObj = new Image();
+                                imgObj.onload = () => {
+                                  const isLow = imgObj.width < 600 || imgObj.height < 600;
+                                  if (isLow) {
+                                    setPhotoWarnings(prev => ({ ...prev, [slot]: { width: imgObj.width, height: imgObj.height } }));
+                                    showToast(`⚠️ Photo ${slot + 1} updated (${imgObj.width}×${imgObj.height}px) - low resolution warning`);
+                                  } else {
+                                    setPhotoWarnings(prev => {
+                                      const next = { ...prev };
+                                      delete next[slot];
+                                      return next;
+                                    });
+                                    showToast(`✓ Photo ${slot + 1} updated (${imgObj.width}×${imgObj.height}px)!`);
+                                  }
+                                  const newPhotos = [...(quote.cover?.photos || ['/outdoor_project_card.png', '/dasbordes images.png', '/outdoor_project_card.png'])];
+                                  newPhotos[slot] = dataUrl;
+                                  updateCoverField('photos', newPhotos);
+                                };
+                                imgObj.src = dataUrl;
                               };
                               reader.readAsDataURL(file);
                             }
                           }}
                         />
 
-                        {currentPhoto ? (
-                          <div className="bg-[#B5ADA1] text-white p-3 rounded-xl shadow-2xs relative text-center space-y-1 overflow-hidden min-h-[92px] flex flex-col justify-center">
-                            <p className="font-bold text-xs truncate">cover-{pIdx + 1}.jpg</p>
-                            <p className="text-[10px] text-white/80">{defaultRes}</p>
-                            <label htmlFor={`cover-photo-input-${pIdx}`} className="underline text-[10px] block mx-auto text-white hover:text-cream cursor-pointer">
-                              replace
-                            </label>
-                          </div>
-                        ) : (
-                          <label
-                            htmlFor={`cover-photo-input-${pIdx}`}
-                            className="bg-white border-2 border-dashed border-[#D6CFC2] rounded-xl p-4 text-center text-dark/50 text-xs space-y-1 cursor-pointer hover:border-primary/50 transition-colors flex flex-col items-center justify-center min-h-[92px] w-full"
-                          >
-                            <span className="text-sm font-bold">+</span>
-                            <p className="text-[11px] font-semibold text-dark/70">Drag photo {pIdx + 1} or click</p>
-                            <p className="text-[9px] font-mono text-dark/40">≥ 1000 × 750 px</p>
+                        <div className="flex items-center justify-between text-[10px] pt-0.5">
+                          <label htmlFor={`cover-photo-input-${slot}`} className="text-primary font-bold hover:underline cursor-pointer">
+                            📁 Upload Photo
                           </label>
-                        )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newPhotos = [...(quote.cover?.photos || ['/outdoor_project_card.png', '/dasbordes images.png', '/outdoor_project_card.png'])];
+                              newPhotos[slot] = defaultImg;
+                              updateCoverField('photos', newPhotos);
+                              setPhotoWarnings(prev => {
+                                const next = { ...prev };
+                                delete next[slot];
+                                return next;
+                              });
+                              showToast(`Photo ${slot + 1} reset to default`);
+                            }}
+                            className="text-dark/50 hover:text-dark underline"
+                          >
+                            Reset
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
                 </div>
-
-                <p className="text-[11px] text-dark/60 font-body">
-                  Every photo is automatically cropped to fit its frame (± 69.5 × 52 mm). Photo too small? A warning, not a block.
-                </p>
               </div>
 
             </div>
@@ -869,7 +1089,7 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                 </div>
 
                 <div className="space-y-2.5 text-xs">
-                  {/* Option 1: BBQ cutout */}
+                  {/* Option 1: BBQ Cutout (with brand dropdown & detail subtext) */}
                   <div className="p-3 bg-[#F8F7F4] rounded-xl border border-[#D6CFC2]/70 flex flex-wrap items-center justify-between gap-2">
                     <label className="flex items-center gap-2 font-bold text-dark cursor-pointer">
                       <input
@@ -878,7 +1098,7 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                         onChange={(e) => handleOptionToggle('bbqCutout', e.target.checked)}
                         className="w-4 h-4 text-primary rounded border-[#D6CFC2]"
                       />
-                      <span>BBQ cutout</span>
+                      <span>BBQ Cutout</span>
                     </label>
                     <div className="flex items-center gap-2">
                       <select
@@ -921,33 +1141,24 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                     </div>
                   </div>
 
-                  {/* Option 2: Fridge */}
-                  <div className="p-3 bg-[#F8F7F4] rounded-xl border border-[#D6CFC2]/70 flex flex-wrap items-center justify-between gap-2">
-                    <label className="flex items-center gap-2 font-bold text-dark cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={quote.configuration?.options?.fridge?.enabled || false}
-                        onChange={(e) => handleOptionToggle('fridge', e.target.checked)}
-                        className="w-4 h-4 text-primary rounded border-[#D6CFC2]"
-                      />
-                      <span>Fridge (built-in)</span>
-                    </label>
-                    <span className="text-[11px] font-mono text-dark/50">→ specification line + optional line item + diagram segment</span>
-                  </div>
-
-                  {/* Option 3: Sink with tap */}
-                  <div className="p-3 bg-[#F8F7F4] rounded-xl border border-[#D6CFC2]/70 flex flex-wrap items-center justify-between gap-2">
-                    <label className="flex items-center gap-2 font-bold text-dark cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={quote.configuration?.options?.sink?.enabled || false}
-                        onChange={(e) => handleOptionToggle('sink', e.target.checked)}
-                        className="w-4 h-4 text-primary rounded border-[#D6CFC2]"
-                      />
-                      <span>Sink with tap</span>
-                    </label>
-                    <span className="text-[11px] font-mono text-dark/50">→ specification line + optional line item + diagram segment</span>
-                  </div>
+                  {/* Additional Data-Driven Options */}
+                  {[
+                    { key: 'fridge', label: 'Fridge (built-in)', hint: '→ specification line + optional line item + diagram segment' },
+                    { key: 'sink', label: 'Sink with tap', hint: '→ specification line + optional line item + diagram segment' }
+                  ].map((optItem) => (
+                    <div key={optItem.key} className="p-3 bg-[#F8F7F4] rounded-xl border border-[#D6CFC2]/70 flex flex-wrap items-center justify-between gap-2">
+                      <label className="flex items-center gap-2 font-bold text-dark cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={quote.configuration?.options?.[optItem.key]?.enabled || false}
+                          onChange={(e) => handleOptionToggle(optItem.key, e.target.checked)}
+                          className="w-4 h-4 text-primary rounded border-[#D6CFC2]"
+                        />
+                        <span>{optItem.label}</span>
+                      </label>
+                      <span className="text-[11px] font-mono text-dark/50">{optItem.hint}</span>
+                    </div>
+                  ))}
                 </div>
 
                 <p className="text-[11px] text-dark/60 font-body">
@@ -960,8 +1171,10 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-bold uppercase tracking-wider text-dark/80 font-mono">SPECIFICATIONS</span>
                   <div className="flex items-center gap-2.5">
-                    <span className="text-[10px] font-mono font-bold text-dark/50 tracking-wider uppercase">
-                      {totalSpecLines} / 12 LINES
+                    <span className={`text-[10px] font-mono font-bold tracking-wider uppercase px-2 py-0.5 rounded ${
+                      totalSpecLines > 12 ? 'bg-red-100 text-red-800 border border-red-300' : 'text-dark/50'
+                    }`}>
+                      {totalSpecLines} / 12 LINES {totalSpecLines > 12 ? '⚠️ OVERFLOW' : ''}
                     </span>
                     <button
                       type="button"
@@ -991,6 +1204,13 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                     </button>
                   </div>
                 </div>
+
+                {totalSpecLines > 12 && (
+                  <div className="bg-amber-50 border border-amber-300 text-amber-900 p-2.5 rounded-xl text-xs flex items-center gap-2 font-body font-medium">
+                    <span className="text-amber-600 font-bold text-sm">⚠️</span>
+                    <span>Warning: {totalSpecLines} lines configured. Page 3 proposal template fits max 12 lines — content will overflow!</span>
+                  </div>
+                )}
 
                 <div className="space-y-4">
                   {(quote.configuration?.specifications || []).map((sec, secIdx) => (
@@ -1285,14 +1505,21 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                         </button>
                       </div>
 
-                      {/* Row 2: Description */}
-                      <input
-                        type="text"
-                        value={item.description || ''}
-                        onChange={(e) => handleLineItemChange(idx, 'description', e.target.value)}
-                        placeholder="Description text"
-                        className="w-full px-3.5 py-2 bg-white border border-[#D6CFC2] rounded-xl text-xs text-dark/80 focus:outline-none font-body"
-                      />
+                      {/* Row 2: Description with live char counter */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-center text-[10px] text-dark/50 font-mono">
+                          <span>DESCRIPTION</span>
+                          <span>{(item.description || '').length} / 220 chars</span>
+                        </div>
+                        <input
+                          type="text"
+                          maxLength={220}
+                          value={item.description || ''}
+                          onChange={(e) => handleLineItemChange(idx, 'description', e.target.value)}
+                          placeholder="Description text"
+                          className="w-full px-3.5 py-2 bg-white border border-[#D6CFC2] rounded-xl text-xs text-dark/80 focus:outline-none font-body"
+                        />
+                      </div>
 
                       {(item.isIncluded || item.priceInclVat === 0) && (
                         <div className="space-y-1 pt-1">
@@ -1693,7 +1920,6 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                       <span className="text-[10px] font-mono text-dark/50">badge only when the delivery price is € 0</span>
                     </div>
                   </div>
-
                   {/* Step 5 */}
                   <div className="bg-white border border-[#D6CFC2] rounded-xl p-3.5 flex items-center justify-between text-xs shadow-2xs">
                     <div className="flex items-center gap-3 font-bold text-dark">
@@ -1712,65 +1938,156 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
           {activeStep === 6 && (
             <div className="space-y-4 font-body">
               
-              {/* CARD 1: VALIDATION */}
-              <div className="bg-white rounded-2xl p-5 border border-[#D6CFC2] shadow-2xs space-y-3.5">
-                <span className="text-xs font-bold uppercase tracking-wider text-dark/80 font-mono block">VALIDATION</span>
+              {/* SUMMARY REVIEW CARDS */}
+              <div className="bg-white rounded-2xl p-5 border border-[#D6CFC2] shadow-2xs space-y-4">
+                <div className="flex justify-between items-center border-b border-[#D6CFC2]/60 pb-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-dark/80 font-mono">QUOTE OVERVIEW & SUMMARY</span>
+                  <span className="bg-[#EFECE6] text-dark/70 text-[9px] font-bold px-2 py-0.5 rounded font-mono uppercase">FINAL REVIEW</span>
+                </div>
 
-                <div className="space-y-2 text-xs">
-                  {/* Line 1: Customer complete */}
-                  <div className="p-3.5 bg-white border border-[#D6CFC2] rounded-xl flex items-center gap-2.5 shadow-2xs">
-                    <span className="text-[#33422C] font-bold font-mono">✓</span>
-                    <span className="font-medium text-dark">Customer complete, incl. email address for the approval link</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  {/* Customer Card */}
+                  <div className="p-3 bg-[#F8F7F4] rounded-xl border border-[#D6CFC2]/70 space-y-1">
+                    <span className="text-[10px] font-mono font-bold text-dark/50 uppercase">CUSTOMER</span>
+                    <p className="font-bold text-dark">{quote.customer?.name || '—'}</p>
+                    <p className="text-dark/70">{quote.customer?.address || '—'}, {quote.customer?.city || '—'}</p>
+                    <p className="text-dark/70 font-mono">{quote.customer?.email || '—'} · {quote.customer?.phone || '—'}</p>
                   </div>
 
-                  {/* Line 2: At least 1 line item */}
-                  <div className="p-3.5 bg-white border border-[#D6CFC2] rounded-xl flex items-center gap-2.5 shadow-2xs">
-                    <span className="text-[#33422C] font-bold font-mono">✓</span>
-                    <span className="font-medium text-dark">At least 1 line item · totals are correct</span>
+                  {/* Quote Metadata */}
+                  <div className="p-3 bg-[#F8F7F4] rounded-xl border border-[#D6CFC2]/70 space-y-1">
+                    <span className="text-[10px] font-mono font-bold text-dark/50 uppercase">QUOTE DETAILS</span>
+                    <p className="font-bold text-primary font-mono">{quote.id} · {quote.productType || 'Outdoor kitchen'}</p>
+                    <p className="text-dark/70">Date: {quote.date} · Valid: {quote.validUntil}</p>
+                    <p className="text-dark/70 font-mono">Status: <strong className="text-[#D97706] uppercase">{quote.status || 'Draft'}</strong></p>
                   </div>
 
-                  {/* Line 3: Payment instalments add up to 100% */}
-                  <div className="p-3.5 bg-white border border-[#D6CFC2] rounded-xl flex items-center gap-2.5 shadow-2xs">
-                    <span className="text-[#33422C] font-bold font-mono">✓</span>
-                    <span className="font-medium text-dark">Payment instalments add up to 100%</span>
+                  {/* Configuration Summary */}
+                  <div className="p-3 bg-[#F8F7F4] rounded-xl border border-[#D6CFC2]/70 space-y-1">
+                    <span className="text-[10px] font-mono font-bold text-dark/50 uppercase">CONFIGURATION</span>
+                    <p className="font-bold text-dark">{quote.configuration?.woodType || 'Thermo Fraké'} · {quote.configuration?.dimensions || '240 × 80'} cm</p>
+                    <p className="text-dark/70">Cutout: {quote.configuration?.optionsTitle || 'Big Green Egg Large'}</p>
+                    <p className="text-dark/70 font-mono">Delivery Time: {quote.configuration?.deliveryTime || '3 tot 5 weken'}</p>
                   </div>
 
-                  {/* Line 4: Specifications */}
-                  <div className="p-3.5 bg-white border border-[#D6CFC2] rounded-xl flex items-center gap-2.5 shadow-2xs">
-                    <span className="text-[#33422C] font-bold font-mono">✓</span>
-                    <span className="font-medium text-dark">Specifications: {totalSpecLines} of max 12 lines — fits on page 3</span>
+                  {/* Investment Summary */}
+                  <div className="p-3 bg-[#F8F7F4] rounded-xl border border-[#D6CFC2]/70 space-y-1">
+                    <span className="text-[10px] font-mono font-bold text-dark/50 uppercase">INVESTMENT</span>
+                    <p className="font-bold text-primary text-sm font-mono">€ {totals.totalInclVat.toLocaleString('nl-NL', { minimumFractionDigits: 2 })} (incl. VAT)</p>
+                    <p className="text-dark/70 font-mono">Excl. VAT: € {totals.subtotalExclVat.toLocaleString('nl-NL', { minimumFractionDigits: 2 })} · VAT: € {totals.vatAmount.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}</p>
+                    <p className="text-dark/70 font-mono">Installments: {quote.investment?.instalments?.count || 2} termijnen ({(quote.investment?.instalments?.percentages || [50, 50]).join('/')}%)</p>
                   </div>
                 </div>
               </div>
 
-              {/* CARD 2: SEND */}
+              {/* CARD 2: COMPLETENESS VALIDATION CHECKLIST */}
+              <div className="bg-white rounded-2xl p-5 border border-[#D6CFC2] shadow-2xs space-y-3.5">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-bold uppercase tracking-wider text-dark/80 font-mono">COMPLETENESS & VALIDATION CHECKLIST</span>
+                  <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded uppercase ${
+                    validation.errors.length === 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {validation.errors.length === 0 ? '✓ Ready to Send' : '⚠️ Validation Warnings'}
+                  </span>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  {/* Check 1: Customer Name & City */}
+                  <div className="p-3 bg-white border border-[#D6CFC2] rounded-xl flex items-center justify-between shadow-2xs">
+                    <div className="flex items-center gap-2.5">
+                      <span className={`font-bold font-mono ${quote.customer?.name && quote.customer?.city ? 'text-[#33422C]' : 'text-amber-600'}`}>
+                        {quote.customer?.name && quote.customer?.city ? '✓' : '⚠️'}
+                      </span>
+                      <span className="font-medium text-dark">Customer name and city defined</span>
+                    </div>
+                    <span className="font-mono text-dark/50">{quote.customer?.name} ({quote.customer?.city})</span>
+                  </div>
+
+                  {/* Check 2: Customer Email */}
+                  <div className="p-3 bg-white border border-[#D6CFC2] rounded-xl flex items-center justify-between shadow-2xs">
+                    <div className="flex items-center gap-2.5">
+                      <span className={`font-bold font-mono ${quote.customer?.email ? 'text-[#33422C]' : 'text-red-600'}`}>
+                        {quote.customer?.email ? '✓' : '✗'}
+                      </span>
+                      <span className="font-medium text-dark">Customer email address for approval link</span>
+                    </div>
+                    <span className="font-mono text-dark/50">{quote.customer?.email || 'Missing email!'}</span>
+                  </div>
+
+                  {/* Check 3: Line Items */}
+                  <div className="p-3 bg-white border border-[#D6CFC2] rounded-xl flex items-center justify-between shadow-2xs">
+                    <div className="flex items-center gap-2.5">
+                      <span className={`font-bold font-mono ${(quote.investment?.lineItems || []).length > 0 ? 'text-[#33422C]' : 'text-red-600'}`}>
+                        {(quote.investment?.lineItems || []).length > 0 ? '✓' : '✗'}
+                      </span>
+                      <span className="font-medium text-dark">Investment line items & calculations</span>
+                    </div>
+                    <span className="font-mono text-dark/50">{(quote.investment?.lineItems || []).length} items</span>
+                  </div>
+
+                  {/* Check 4: Installments Sum */}
+                  {(() => {
+                    const instCount = quote.investment?.instalments?.count || 2;
+                    const instP = quote.investment?.instalments?.percentages || [50, 50];
+                    const instSum = instP.reduce((a, b) => a + Number(b || 0), 0);
+                    const isSum100 = instSum === 100;
+                    return (
+                      <div className="p-3 bg-white border border-[#D6CFC2] rounded-xl flex items-center justify-between shadow-2xs">
+                        <div className="flex items-center gap-2.5">
+                          <span className={`font-bold font-mono ${isSum100 ? 'text-[#33422C]' : 'text-red-600'}`}>
+                            {isSum100 ? '✓' : '✗'}
+                          </span>
+                          <span className="font-medium text-dark">Payment installments sum equals 100%</span>
+                        </div>
+                        <span className={`font-mono font-bold ${isSum100 ? 'text-emerald-800' : 'text-red-800'}`}>{instSum}%</span>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Check 5: Specifications Height */}
+                  <div className="p-3 bg-white border border-[#D6CFC2] rounded-xl flex items-center justify-between shadow-2xs">
+                    <div className="flex items-center gap-2.5">
+                      <span className={`font-bold font-mono ${totalSpecLines <= 12 ? 'text-[#33422C]' : 'text-amber-600'}`}>
+                        {totalSpecLines <= 12 ? '✓' : '⚠️'}
+                      </span>
+                      <span className="font-medium text-dark">Specifications fit Page 3 (max 12 lines)</span>
+                    </div>
+                    <span className="font-mono text-dark/50">{totalSpecLines} / 12 lines</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* CARD 3: SEND & EXPORT ACTIONS */}
               <div className="bg-white rounded-2xl p-5 border border-[#D6CFC2] shadow-2xs space-y-4">
-                <span className="text-xs font-bold uppercase tracking-wider text-dark/80 font-mono block">SEND</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-dark/80 font-mono block">SEND & EXPORT ACTIONS</span>
 
                 {/* Row 1: Action buttons */}
                 <div className="flex flex-wrap items-center gap-3">
                   <button
                     type="button"
-                    onClick={() => {
-                      const fileName = downloadQuotePdf(quote);
-                      showToast(`✅ PDF gedownload: ${fileName}`);
+                    onClick={async () => {
+                      showToast(language === 'EN' ? '⏳ Generating 6-page PDF proposal...' : '⏳ 6-pagina offerte PDF wordt gegenereerd...');
+                      const fileName = await generateFull6PagePdf(quote);
+                      showToast(language === 'EN' ? `✅ PDF downloaded: ${fileName}` : `✅ PDF gedownload: ${fileName}`);
                     }}
                     className="px-4 py-2.5 bg-[#33422C] text-[#FDFBF7] font-bold text-xs rounded-xl shadow-xs hover:bg-[#283523] transition-all cursor-pointer font-mono flex items-center gap-2"
                   >
-                    <span>↓ Download PDF</span>
+                    <span>↓ Download PDF Proposal</span>
                   </button>
 
                   <button
                     type="button"
-                    disabled={quote?.status === 'Verzonden' || quote?.status === 'Approved' || quote?.status === 'Geaccepteerd'}
+                    disabled={validation.errors.length > 0 || quote?.status === 'Verzonden' || quote?.status === 'Approved' || quote?.status === 'Geaccepteerd'}
                     onClick={() => setShowSendModal(true)}
                     className={`px-4 py-2.5 font-bold text-xs rounded-xl shadow-xs transition-all font-mono flex items-center gap-2 ${
                       quote?.status === 'Verzonden' || quote?.status === 'Approved' || quote?.status === 'Geaccepteerd'
                         ? 'bg-emerald-700 text-white cursor-not-allowed opacity-80'
+                        : validation.errors.length > 0
+                        ? 'bg-gray-300 text-gray-600 cursor-not-allowed border border-gray-400'
                         : 'bg-[#33422C] text-[#FDFBF7] hover:bg-[#283523] cursor-pointer'
                     }`}
                   >
-                    <span>{quote?.status === 'Verzonden' ? '✅ Sent' : quote?.status === 'Approved' || quote?.status === 'Geaccepteerd' ? '✅ Approved' : '✈ Send → status "Sent"'}</span>
+                    <span>{quote?.status === 'Verzonden' ? '✅ Sent' : quote?.status === 'Approved' || quote?.status === 'Geaccepteerd' ? '✅ Approved' : '✈ Confirm & Send Quote'}</span>
                   </button>
 
                   <button
@@ -1786,6 +2103,17 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                     <span>Copy approval link</span>
                   </button>
                 </div>
+
+                {validation.errors.length > 0 && (
+                  <div className="p-3 bg-red-50 border border-red-300 text-red-800 rounded-xl text-xs space-y-1 font-body">
+                    <p className="font-bold font-mono uppercase text-[10px]">⚠️ Cannot Send Quote Yet:</p>
+                    <ul className="list-disc list-inside space-y-0.5">
+                      {validation.errors.map((err, errIdx) => (
+                        <li key={errIdx}>{err}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {/* Row 2: Duplicate button */}
                 <div>
@@ -1810,17 +2138,15 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                     className="px-4 py-2 bg-white border border-[#D6CFC2] text-dark font-bold text-xs rounded-xl shadow-xs hover:bg-[#EDE8DF] transition-all cursor-pointer font-mono flex items-center gap-2"
                   >
                     <span className="text-dark/70">❐</span>
-                    <span>Duplicate</span>
+                    <span>Duplicate Quote</span>
                   </button>
                 </div>
 
-                {/* Filename & locked notice */}
+                {/* Filename & notice */}
                 <p className="text-xs text-dark/70 font-body pt-1">
-                  Filename: <strong className="font-bold text-dark">Offerte-{quote.id}-{(quote.customer?.name || 'Bjorn Valk').replace(/\s+/g, '-')}.pdf</strong> · after customer approval the quote is locked
+                  Filename: <strong className="font-bold text-dark">Offerte-{quote.id}-{(quote.customer?.name || 'Bjorn Valk').replace(/\s+/g, '-')}.pdf</strong> · draft saving is non-blocking
                 </p>
-
               </div>
-
             </div>
           )}
 
@@ -1845,6 +2171,24 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
             )}
           </div>
 
+        </div>
+
+        {/* ========================================================= */}
+        {/* ZONE 3: RIGHT COLUMN - MANDATORY LIVE PREVIEW (3 Cols)    */}
+        {/* ========================================================= */}
+        <div className={`lg:col-span-3 ${mobileTab === 'editor' ? 'hidden lg:block' : 'block'}`}>
+          <div className="bg-white rounded-2xl p-3 border border-[#D6CFC2] shadow-xs space-y-2 font-body sticky top-4">
+            {/* Live Preview Header */}
+            <div className="flex justify-between items-center border-b border-[#D6CFC2]/80 pb-2.5">
+              <span className="text-xs font-mono font-bold tracking-wider text-dark/80 uppercase">LIVE PREVIEW</span>
+              <div className="text-xs font-mono font-bold text-dark/70 bg-[#F8F7F4] px-2.5 py-1 rounded-md border border-[#E2DDD3]">
+                PAGE <span className="text-[#33422C] font-extrabold">{previewPage}</span> / 6
+              </div>
+            </div>
+
+            {/* Scaled Full-Width Responsive PDF Preview */}
+            <ScaledPDFPreview quote={quote} activePage={previewPage} highlightField={highlightField} />
+          </div>
         </div>
 
       </div>

@@ -43,7 +43,10 @@ export function createDefaultQuote(customerData = null, existingQuote = null) {
     }
   ];
 
+  const baseQuote = existingQuote && typeof existingQuote === 'object' ? existingQuote : {};
+
   return {
+    ...baseQuote,
     id: existingQuote?.id || `OF-${new Date().getFullYear()}331`,
     date: existingQuote?.date || today,
     validUntil: existingQuote?.validUntil || validUntilDate,

@@ -1,4 +1,8 @@
 import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import Offerte6PagePDF from '../components/Offerte6PagePDF';
 
 // ─────────────────────────────────────────────────────────────────
 // VANUIT AMBACHT — Unified Real PDF Generator
@@ -104,12 +108,88 @@ function slugify(name) {
     .replace(/^-|-$/g, '');
 }
 
+/**
+ * Renders all 6 pages of the Offerte proposal template and exports them
+ * into a single high-resolution 6-page A4 PDF file matching the Live Preview 100%.
+ */
+export async function generateFull6PagePdf(quoteData) {
+  const quote = quoteData?.quote || quoteData || {};
+  const quoteId = quote.id || quote.quoteId || 'OF-2026331';
+
+  const custObj = typeof quote.customer === 'object' ? quote.customer : null;
+  const customerName = custObj?.name || quote.customer || quote.customerName || 'Bjorn Valk';
+  const cleanCustomerName = String(customerName).replace(/[\\/:*?"<>|]/g, '').trim().replace(/\s+/g, '-');
+  const fileName = `Offerte-${quoteId}-${cleanCustomerName}.pdf`;
+
+  // Create temporary off-screen container for 6 pages
+  const tempDiv = document.createElement('div');
+  tempDiv.style.position = 'fixed';
+  tempDiv.style.left = '-9999px';
+  tempDiv.style.top = '0';
+  tempDiv.style.width = '794px';
+  tempDiv.style.zIndex = '-9999';
+  tempDiv.style.backgroundColor = '#FFFFFF';
+  document.body.appendChild(tempDiv);
+
+  const root = createRoot(tempDiv);
+
+  // Render all 6 pages inside Offerte6PagePDF (activePage="all")
+  root.render(
+    React.createElement(Offerte6PagePDF, { quote: quote, activePage: 'all' })
+  );
+
+  // Wait 600ms for images, fonts and React layout render
+  await new Promise(resolve => setTimeout(resolve, 600));
+
+  const pageElements = Array.from(tempDiv.querySelectorAll('.offerte-pdf-page'));
+
+  if (pageElements.length > 0) {
+    const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+
+    for (let i = 0; i < pageElements.length; i++) {
+      const el = pageElements[i];
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#FFFFFF',
+        logging: false
+      });
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      if (i > 0) {
+        pdf.addPage('a4', 'portrait');
+      }
+      pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+    }
+
+    pdf.save(fileName);
+
+    root.unmount();
+    if (document.body.contains(tempDiv)) {
+      document.body.removeChild(tempDiv);
+    }
+    return fileName;
+  } else {
+    root.unmount();
+    if (document.body.contains(tempDiv)) {
+      document.body.removeChild(tempDiv);
+    }
+    return downloadQuotePdfFallback(quote);
+  }
+}
+
 // ── 1. QUOTE PDF ─────────────────────────────────────────────────
 /**
- * Download a real quote PDF.
+ * Download a real 6-page quote PDF matching Live Preview 100%.
  * @param {object} quote  - row from quotes state
  */
 export function downloadQuotePdf(quote) {
+  generateFull6PagePdf(quote).catch(() => downloadQuotePdfFallback(quote));
+  return `Offerte-${quote?.id || 'OF-2026331'}.pdf`;
+}
+
+export function downloadQuotePdfFallback(quote) {
   const id        = quote?.id || 'OF-2026-001';
   const customer  = typeof quote?.customer === 'object'
     ? (quote.customer.name || 'Klant')
@@ -244,6 +324,11 @@ export function downloadQuotePdf(quote) {
  * and calls doc.save("Quote-{number} {customer}.pdf") to trigger an actual file download.
  */
 export function downloadDirectPdfFile(quoteData = {}) {
+  generateFull6PagePdf(quoteData).catch(() => downloadQuotePdfFallback(quoteData?.quote || quoteData));
+  return `Offerte-${(quoteData?.quote || quoteData)?.id || 'OF-2026331'}.pdf`;
+}
+
+export function downloadDirectPdfFileFallback(quoteData = {}) {
   // Extract properties supporting both raw params or full quote object
   const quote = quoteData.quote || quoteData;
   const quoteId = quote.id || quote.quoteId || 'OF-2026331';
