@@ -7,6 +7,111 @@ This file tracks all modifications, additions, and updates made to the **Vanuit 
 - **Key Features**: Admin Panel, Partner Panel, Role-Based Route Protection, Responsive Layout.
 - **Theme**: Premium Forest Green (`#3E4E36`), Accent Cream/Beige, custom typography.
 
+## 159. Step 4 — Customer Portal Language + Navigation/Flow Fix (Completed 2026-08-19)
+* **Goal**: Fix sidebar navigation link highlighting overlap bug, separate screen flows per active tab, and standardize all newly added Step 4 Customer Portal UI strings to English for dev/testing clarity.
+* **Changes**:
+  1. **Fixed Navigation Overlap & Active Highlight (`src/layouts/Sidebar.jsx`)**:
+     - Added `useLocation()` and helper `isLinkActive(linkPath)` that matches route path + query parameters (`?tab=design`, `?tab=planning`, `?tab=payments`, `?tab=handover`).
+     - Fixed bug where "Design & Options" and "Planning & Delivery" highlighted together or overlapped.
+     - Separated `OUTDOOR_KITCHEN_CUSTOMER_LINKS` (7 items) and `GARDEN_ROOM_CUSTOMER_LINKS` (9 items) dynamically driven by `isGardenRoomFamily(activeCustomerProject)`.
+  2. **English Language Standard Across All Step 4 Components**:
+     - `ProvDefBadge.jsx`: `"Provisional — Final after Site Survey"` vs `"Definitive"`.
+     - `RenderViewer.jsx`: `"The renders for your design will appear here."`, `"Day"`, `"Evening"`.
+     - `RenderDetailCards.jsx`: `"Materials & Details"`, `"Wood"`, `"Roof"`, `"Floor"`.
+     - `RenderVersionList.jsx`: `"Render Version History"`, `"What changed:"`, `"Current Version"`.
+     - `SchouwProposalCard.jsx`: `"Site Survey On Location"`, `"Approve — Schedule Site Survey"`, `"Request Another Day"`, `"Download Neighbour Letter"`, `"Download Calendar Invite (.ics)"`.
+     - `WeekBar.jsx` & `WeekCard.jsx`: `"Construction Schedule & Weeks"`, `"Completed"`, `"Currently Active"`, `"Preparation"`, `"Materials"`, `"The Build"`.
+     - `PrepChecklist.jsx`: `"Customer Preparation"`, `"Access to the rear garden at least 1.20 m wide"`, etc.
+  3. **Strict Screen Flow Separation (`src/pages/customer/CustomerProject.jsx`)**:
+     - `overview`: Banner + Photo Updates + Progress Timeline
+     - `design` / `renders`: RenderViewer + DetailCards + VersionList
+     - `planning` / `build`: SchouwCard + WeekBar + PrepChecklist
+     - `payments`: Project Payment Overview card
+     - `handover`: Completion & Warranty card
+  4. **Verification**:
+     - Production build (`npm run build`) completed with 0 errors (`✓ built in 9.72s`).
+
+---
+
+## 158. Step 4 — Garden Room Customer Portal "Planning & bouw" Screen (Completed 2026-08-18)
+* **Goal**: Build the data-driven "Planning & bouw" screen for Garden Room family projects (`garden_room`, `poolhouse`, `canopy`) consisting of ProvDefBadge, WeekBar, WeekCard, SchouwProposalCard, PrepChecklist, and Burenbrief PDF download.
+* **Changes**:
+  1. **New Component `ProvDefBadge.jsx` (`src/components/customer/ProvDefBadge.jsx`)**:
+     - State A (Provisional): `◌ Voorlopig — definitief na de schouw` (Orange/dashed style).
+     - State B (Definitive): `✓ Definitief` (Green success badge style).
+  2. **New Components `WeekBar.jsx` & `WeekCard.jsx` (`src/components/customer/WeekBar.jsx`, `src/components/customer/WeekCard.jsx`)**:
+     - Horizontal week construction timeline (Done, Now, Prep, Materials, Build). Scrollable on mobile.
+  3. **New Component `SchouwProposalCard.jsx` (`src/components/customer/SchouwProposalCard.jsx`)**:
+     - Site survey proposal card ("Schouw op locatie"), primary action ("Akkoord — plan de schouw in"), secondary action ("Andere dag aanvragen" modal interaction), .ics calendar invite download on completion.
+  4. **New Component `PrepChecklist.jsx` (`src/components/customer/PrepChecklist.jsx`)**:
+     - 5 tickable preparation checklist items with project-specific `localStorage` state persistence.
+  5. **Burenbrief PDF (`src/utils/pdfGenerator.js`)**:
+     - Added `generateBurenbriefPdf(project)` function generating a real downloadable PDF neighbour notice letter.
+  6. **Integration (`src/pages/customer/CustomerProject.jsx`)**:
+     - Conditionally renders the "Planning & bouw" screen when `isGardenRoomFamily(activeProject)` is `true` and tab is `planning` or `build`.
+     - Outdoor Kitchen and legacy projects remain 100% untouched.
+  7. **Documentation & Verification**:
+     - Updated `client_requirements.md` and `ai_memory.md`.
+     - Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.35s`).
+
+---
+
+## 157. Step 3 — Garden Room Customer Portal "Ontwerp & renders" Screen (Completed 2026-08-18)
+* **Goal**: Build the data-driven "Ontwerp & renders" screen for Garden Room family projects (`garden_room`, `poolhouse`, `canopy`) consisting of RenderViewer, RenderDetailCards, and RenderVersionList components.
+* **Changes**:
+  1. **New Component `RenderViewer.jsx` (`src/components/customer/RenderViewer.jsx`)**:
+     - 16:7 aspect ratio main render container.
+     - Day / Evening toggle button when evening render exists in data.
+     - 2–6 thumbnail navigation items with active view outline.
+     - Graceful placeholder state: *"De renders van jouw ontwerp volgen hier."* when no renders exist or on image load error.
+  2. **New Component `RenderDetailCards.jsx` (`src/components/customer/RenderDetailCards.jsx`)**:
+     - 3 detail render cards: Hout, Dak, Vloer with thumbnail, title, and description.
+  3. **New Component `RenderVersionList.jsx` (`src/components/customer/RenderVersionList.jsx`)**:
+     - Version history cards (V1, V2) showing version number, date, thumbnail, and mandatory *"Wat is gewijzigd:"* text line. Clean empty state when no eerdere versies exist.
+  4. **Integration (`src/pages/customer/CustomerProject.jsx`)**:
+     - Conditionally renders the "Ontwerp & renders" screen when `isGardenRoomFamily(activeProject)` is `true` and tab is `design` or `renders`.
+     - Outdoor Kitchen and legacy projects remain 100% untouched.
+  5. **Documentation & Verification**:
+     - Updated `client_requirements.md` and `ai_memory.md`.
+     - Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.43s`).
+
+---
+
+## 156. Step 2 — Dynamic Customer Portal Navigation Labels (Completed & Corrected 2026-08-18)
+* **Goal**: Make Customer Portal navigation labels dynamic based on the active customer project's `projectType` using `isGardenRoomFamily(activeCustomerProject)` for ALL THREE specified labels while keeping route paths, icons, order, and styling untouched.
+* **Changes**:
+  1. **Sidebar Component (`src/layouts/Sidebar.jsx`)**:
+     - Dynamically loads active customer project from `localStorage` (`app_projects`) matching logged-in customer user.
+     - Evaluates `isGardenRoomFamily(activeCustomerProject)`.
+     - Switches all 3 dynamic labels for Garden Room family (`garden_room`, `poolhouse`, `canopy`):
+       1. `Ontwerp & opties` ➔ `Ontwerp & renders` (EN: `Design & Options` ➔ `Design & Renders`)
+       2. `Planning & levering` ➔ `Planning & bouw` (EN: `Planning & Delivery` ➔ `Planning & Build`)
+       3. `Foto's uit de werkplaats` ➔ `Foto's & updates` (EN: `Workshop Photos` ➔ `Photos & Updates`)
+     - Outdoor Kitchen and legacy projects retain base labels.
+     - Route paths remain 100% unchanged (`/customer/...`).
+  2. **Documentation & Verification**:
+     - Updated `client_requirements.md` and `ai_memory.md`.
+     - Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.85s`).
+
+---
+
+
+## 155. Step 1 — Project Type Support & Backward-Compatible Identification Utility (Completed 2026-08-18)
+* **Goal**: Implement project type identification and helper utilities (`detectProjectType`, `isGardenRoomFamily`, `normalizeProjectType`) for `outdoor_kitchen`, `garden_room`, `poolhouse`, and `canopy` while preserving existing Outdoor Kitchen behaviour and leaving UI/localStorage untouched.
+* **Changes**:
+  1. **New Utility File (`src/utils/projectType.js`)**:
+     - `PROJECT_TYPES`: `outdoor_kitchen`, `garden_room`, `poolhouse`, `canopy`.
+     - `detectProjectType(projectOrCategory)`: Safely resolves project type; defaults to `outdoor_kitchen` for backward compatibility.
+     - `isGardenRoomFamily(projectOrCategory)`: Returns `true` for `garden_room`, `poolhouse`, `canopy`; `false` for `outdoor_kitchen`.
+     - `normalizeProjectType(rawProject)`: Memory-only normalizer without mutating or destroying `localStorage` keys.
+  2. **Model Integration (`src/utils/gardenRoomDataModel.js`)**:
+     - Integrated `projectType.js` helpers for clean modularity.
+  3. **Documentation & Verification**:
+     - Updated `client_requirements.md` and `ai_memory.md`.
+     - Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.07s`).
+
+---
+
 ## 154. Step 1 — Garden Room Data Model & Backward-Compatible Architecture (Completed 2026-08-18)
 * **Goal**: Establish the extended data models, helpers, and normalizer for Garden Rooms, Poolhouses, and Canopies while preserving 100% backward compatibility for base Outdoor Kitchen projects.
 * **Changes**:

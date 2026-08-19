@@ -710,4 +710,72 @@ export function downloadDocumentPdf(docObj) {
   return fileName;
 }
 
+/**
+ * Generates downloadable Burenbrief PDF for neighbours (Step 4)
+ */
+export function generateBurenbriefPdf(projectData) {
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const custName = projectData?.customer || 'Klant';
+  const address = projectData?.address || projectData?.deliveryAddress || 'Keizersgracht 420, Amsterdam';
+  const buildPeriod = projectData?.expectedDelivery || projectData?.deadline 
+    ? `Verwachte oplevering: ${projectData.expectedDelivery || projectData.deadline}` 
+    : 'De definitieve bouwperiode wordt bevestigd na de schouw.';
+
+  drawHeader(doc, 'BURENBRIEF', 'Informatie werkzaamheden buren', projectData?.id || 'PRJ-2001');
+
+  let y = 30;
+
+  // Title Box
+  doc.setFillColor(...BRAND.cream);
+  doc.roundedRect(14, y, 182, 16, 3, 3, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(...BRAND.primary);
+  doc.text('BURENBRIEF — WERKZAAMHEDEN BUITENVERBLIJF', 18, y + 10);
+  y += 24;
+
+  // Greeting & Letter Content
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(...BRAND.dark);
+
+  const letterLines = [
+    'Beste buren,',
+    '',
+    'Binnenkort starten er werkzaamheden aan onze woning voor de realisatie van een nieuw buitenverblijf.',
+    'Via deze brief stellen we u alvast op de hoogte van de planning en de opzet.',
+    '',
+    `Adres van de werkzaamheden:`,
+    `${address}`,
+    '',
+    `Verwachte bouwperiode:`,
+    `${buildPeriod}`,
+    '',
+    'We proberen de werkzaamheden zo zorgvuldig mogelijk uit te voeren en eventuele overlast tot een minimum te beperken.',
+    'Mocht u vooraf of tijdens de bouw vragen hebben, neem gerust even contact op.',
+    '',
+    'Alvast bedankt voor uw begrip en medewerking!',
+    '',
+    'Met vriendelijke groet,',
+    `${custName}`,
+    'Vanuit Ambacht B.V.'
+  ];
+
+  letterLines.forEach((line) => {
+    if (line.startsWith('Adres van de werkzaamheden:') || line.startsWith('Verwachte bouwperiode:')) {
+      doc.setFont('helvetica', 'bold');
+    } else {
+      doc.setFont('helvetica', 'normal');
+    }
+    doc.text(line, 18, y);
+    y += 6;
+  });
+
+  drawFooter(doc, 1);
+  const fileName = `Burenbrief_${(custName).replace(/\s+/g, '_')}.pdf`;
+  doc.save(fileName);
+  return fileName;
+}
+
 // ── 5. Legacy named export (backwards compat) ─────────────────────
+

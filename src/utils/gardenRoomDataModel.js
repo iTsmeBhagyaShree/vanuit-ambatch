@@ -9,35 +9,10 @@
  *    team updates, handover confirmation, seasonal maintenance, 3-month check)
  */
 
-export const PROJECT_TYPES = {
-  OUTDOOR_KITCHEN: 'outdoor_kitchen',
-  GARDEN_ROOM: 'garden_room',
-  POOLHOUSE: 'poolhouse',
-  CANOPY: 'canopy'
-};
+import { PROJECT_TYPES, detectProjectType, isGardenRoomFamily, normalizeProjectType } from './projectType.js';
 
-/**
- * Detects project type from project object or category string.
- * Defaults to 'outdoor_kitchen' for 100% backward compatibility.
- */
-export function detectProjectType(projectOrCategory) {
-  if (!projectOrCategory) return PROJECT_TYPES.OUTDOOR_KITCHEN;
-  
-  if (typeof projectOrCategory === 'object') {
-    if (projectOrCategory.projectType) return projectOrCategory.projectType;
-    const catStr = (projectOrCategory.category || projectOrCategory.name || '').toLowerCase();
-    if (catStr.includes('poolhouse')) return PROJECT_TYPES.POOLHOUSE;
-    if (catStr.includes('verblijf') || catStr.includes('garden room') || catStr.includes('studio')) return PROJECT_TYPES.GARDEN_ROOM;
-    if (catStr.includes('overkapping') || catStr.includes('canopy')) return PROJECT_TYPES.CANOPY;
-    return PROJECT_TYPES.OUTDOOR_KITCHEN;
-  }
+export { PROJECT_TYPES, detectProjectType, isGardenRoomFamily, normalizeProjectType };
 
-  const str = String(projectOrCategory).toLowerCase();
-  if (str.includes('poolhouse')) return PROJECT_TYPES.POOLHOUSE;
-  if (str.includes('verblijf') || str.includes('garden room') || str.includes('studio')) return PROJECT_TYPES.GARDEN_ROOM;
-  if (str.includes('overkapping') || str.includes('canopy')) return PROJECT_TYPES.CANOPY;
-  return PROJECT_TYPES.OUTDOOR_KITCHEN;
-}
 
 /**
  * Returns payment instalment structure based on project type.

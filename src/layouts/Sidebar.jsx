@@ -1,17 +1,67 @@
 import { useState, useEffect } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../context/LanguageContext';
+import { isGardenRoomFamily } from '../utils/projectType';
 import {
   LayoutDashboard, Users, FileText, Briefcase, UserSquare,
   Folder, PieChart, Settings, Calendar, LogOut, X, Menu, ChevronRight, ChevronLeft, ChevronDown,
-  Camera, Phone, Receipt
+  Camera, Phone, Receipt, CreditCard, ShieldCheck
 } from 'lucide-react';
 
 export default function Sidebar({ role }) {
   const { user, logout } = useAuth();
   const { t, language } = useLanguage();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const [activeCustomerProject, setActiveCustomerProject] = useState(null);
+
+  useEffect(() => {
+    if (role !== 'customer') return;
+
+    const loadActiveProject = () => {
+      try {
+        const savedProjects = localStorage.getItem('app_projects');
+        if (savedProjects) {
+          const parsed = JSON.parse(savedProjects);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const currentCustName = user?.name || '';
+            const match = parsed.find(p => 
+              currentCustName && (
+                (p.customer || '').toLowerCase().includes(currentCustName.toLowerCase()) ||
+                currentCustName.toLowerCase().includes((p.customer || '').toLowerCase())
+              )
+            ) || parsed[0];
+            setActiveCustomerProject(match);
+            return;
+          }
+        }
+      } catch (e) {}
+      setActiveCustomerProject(null);
+    };
+
+    loadActiveProject();
+    window.addEventListener('storage', loadActiveProject);
+    window.addEventListener('app_data_changed', loadActiveProject);
+    return () => {
+      window.removeEventListener('storage', loadActiveProject);
+      window.removeEventListener('app_data_changed', loadActiveProject);
+    };
+  }, [role, user]);
+
+  const isGardenRoom = isGardenRoomFamily(activeCustomerProject);
+
+  const currentPathWithSearch = location.pathname + location.search;
+  const isLinkActive = (linkPath) => {
+    if (linkPath.includes('?')) {
+      return currentPathWithSearch === linkPath;
+    }
+    if (linkPath === '/customer/project') {
+      return location.pathname === '/customer/project' && (!location.search || location.search === '?tab=overview');
+    }
+    return location.pathname === linkPath;
+  };
   
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -72,15 +122,33 @@ export default function Sidebar({ role }) {
     { name: t('common.myDetails'), path: '/partner/profile', icon: UserSquare },
   ];
 
-  const CUSTOMER_LINKS = [
-    { name: t('common.myProject'), path: '/customer/project', icon: LayoutDashboard },
-    { name: language === 'EN' ? 'My Quotes' : 'Mijn Offertes', path: '/customer/quotes', icon: Receipt },
-    { name: t('common.documents'), path: '/customer/documents', icon: Folder },
-    { name: t('common.photos'), path: '/customer/photos', icon: Camera },
-    { name: t('common.contact'), path: '/customer/contact', icon: Phone },
+  const OUTDOOR_KITCHEN_CUSTOMER_LINKS = [
+    { name: 'Overview', path: '/customer/project', icon: LayoutDashboard },
+    { name: 'My Quote', path: '/customer/quotes', icon: Receipt },
+    { name: 'Design & Options', path: '/customer/project?tab=design', icon: FileText },
+    { name: 'Planning & Delivery', path: '/customer/project?tab=planning', icon: Calendar },
+    { name: 'Workshop Photos', path: '/customer/photos', icon: Camera },
+    { name: 'Documents', path: '/customer/documents', icon: Folder },
+    { name: 'Contact', path: '/customer/contact', icon: Phone },
   ];
 
+  const GARDEN_ROOM_CUSTOMER_LINKS = [
+    { name: 'Overview', path: '/customer/project', icon: LayoutDashboard },
+    { name: 'My Quote', path: '/customer/quotes', icon: Receipt },
+    { name: 'Design & Renders', path: '/customer/project?tab=design', icon: FileText },
+    { name: 'Planning & Build', path: '/customer/project?tab=planning', icon: Calendar },
+    { name: 'Photos & Updates', path: '/customer/photos', icon: Camera },
+    { name: 'Documents', path: '/customer/documents', icon: Folder },
+    { name: 'Payments', path: '/customer/project?tab=payments', icon: CreditCard },
+    { name: 'Messages & Contact', path: '/customer/contact', icon: Phone },
+    { name: 'Handover & Aftercare', path: '/customer/project?tab=handover', icon: ShieldCheck },
+  ];
+
+  const CUSTOMER_LINKS = isGardenRoom ? GARDEN_ROOM_CUSTOMER_LINKS : OUTDOOR_KITCHEN_CUSTOMER_LINKS;
+
   const links = role === 'admin' ? ADMIN_LINKS : role === 'customer' ? CUSTOMER_LINKS : PARTNER_LINKS;
+
+
 
   const handleLogout = () => {
     logout();
@@ -198,24 +266,24 @@ export default function Sidebar({ role }) {
             );
           }
 
+          const active = isLinkActive(link.path);
+
           if (collapsed) {
             return (
               <div key={link.name} className="flex justify-center my-0.5">
                 <NavLink
                   to={link.path}
                   onClick={() => handleNavLinkClick(link.path)}
-                  className={({ isActive }) =>
+                  className={
                     `w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
-                      isActive
+                      active
                         ? 'bg-cream text-primary shadow-md font-bold'
                         : 'text-white/70 hover:bg-white/15 hover:text-white'
                     }`
                   }
                   title={link.name}
                 >
-                  {({ isActive }) => (
-                    <Icon className="w-4 h-4" strokeWidth={isActive ? 2.2 : 1.75} />
-                  )}
+                  <Icon className="w-4 h-4" strokeWidth={active ? 2.2 : 1.75} />
                 </NavLink>
               </div>
             );
@@ -226,24 +294,21 @@ export default function Sidebar({ role }) {
               key={link.name}
               to={link.path}
               onClick={() => handleNavLinkClick(link.path)}
-              className={({ isActive }) =>
+              className={
                 `flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all duration-150 ${
-                  isActive
+                  active
                     ? 'bg-white/15 text-white font-medium shadow-xs'
                     : 'text-white/70 hover:bg-white/10 hover:text-white'
                 }`
               }
             >
-              {({ isActive }) => (
-                <>
-                  <Icon className="w-4 h-4 flex-shrink-0" strokeWidth={isActive ? 2 : 1.5} />
-                  <span className={`text-xs font-body truncate ${isActive ? 'font-medium' : 'font-normal'}`}>{link.name}</span>
-                  {isActive && <ChevronRight className="w-3 h-3 ml-auto opacity-50 flex-shrink-0" />}
-                </>
-              )}
+              <Icon className="w-4 h-4 flex-shrink-0" strokeWidth={active ? 2 : 1.5} />
+              <span className={`text-xs font-body truncate ${active ? 'font-medium' : 'font-normal'}`}>{link.name}</span>
+              {active && <ChevronRight className="w-3 h-3 ml-auto opacity-50 flex-shrink-0" />}
             </NavLink>
           );
         })}
+
       </nav>
 
       {/* Logout */}

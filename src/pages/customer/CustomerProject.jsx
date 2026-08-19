@@ -3,26 +3,55 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../hooks/useAuth';
 import Card from '../../components/Card';
 import Badge from '../../components/Badge';
-import { CheckCircle2, Circle, Clock, Calendar, MapPin, Wrench, ShieldCheck, Compass, Sparkles, Camera, Eye, X, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, Calendar, MapPin, Wrench, ShieldCheck, Compass, Sparkles, Camera, Eye, X, ArrowRight, FileText, CreditCard } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { normalizeProjectData } from '../../utils/gardenRoomDataModel';
+import { isGardenRoomFamily } from '../../utils/projectType';
+
+import RenderViewer from '../../components/customer/RenderViewer';
+import RenderDetailCards from '../../components/customer/RenderDetailCards';
+import RenderVersionList from '../../components/customer/RenderVersionList';
+import WeekBar from '../../components/customer/WeekBar';
+import PrepChecklist from '../../components/customer/PrepChecklist';
+import SchouwProposalCard from '../../components/customer/SchouwProposalCard';
 
 export default function CustomerProject() {
   const { t, language } = useLanguage();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab');
 
-  const [activeProject, setActiveProject] = useState({
-    id: 'P-2001',
-    name: language === 'EN' ? 'Luxury Outdoor Kitchen Amsterdam' : 'Luxe Teak Buitenkeuken Amsterdam',
-    division: language === 'EN' ? 'Custom Outdoor Kitchens' : 'Buitenkeukens op maat',
-    customer: user?.name || (language === 'EN' ? 'John Miller' : 'Jan de Vries'),
-    address: 'Keizersgracht 420, 1016 GC Amsterdam',
-    expectedDelivery: '15 November 2026',
-    craftsman: 'Sven Hoek (Hoek Bouw)',
-    progress: 45,
-    status: 'In Progress'
+
+  const [activeProject, setActiveProject] = useState(() => {
+    const rawDefault = {
+      id: 'P-2001',
+      name: language === 'EN' ? 'Luxury Outdoor Kitchen Amsterdam' : 'Luxe Teak Buitenkeuken Amsterdam',
+      division: language === 'EN' ? 'Custom Outdoor Kitchens' : 'Buitenkeukens op maat',
+      customer: user?.name || (language === 'EN' ? 'John Miller' : 'Jan de Vries'),
+      address: 'Keizersgracht 420, 1016 GC Amsterdam',
+      expectedDelivery: '15 November 2026',
+      craftsman: 'Sven Hoek (Hoek Bouw)',
+      progress: 45,
+      status: 'In Progress'
+    };
+    return normalizeProjectData(rawDefault);
   });
+
+  const handleUpdateProject = (updatedProject) => {
+    setActiveProject(updatedProject);
+    try {
+      const saved = localStorage.getItem('app_projects');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const updatedList = parsed.map(p => p.id === updatedProject.id ? updatedProject : p);
+        localStorage.setItem('app_projects', JSON.stringify(updatedList));
+        window.dispatchEvent(new Event('app_data_changed'));
+      }
+    } catch (e) {}
+  };
+
 
   const [sharedPhotos, setSharedPhotos] = useState([]);
   const [selectedPhotoModal, setSelectedPhotoModal] = useState(null);
@@ -42,7 +71,7 @@ export default function CustomerProject() {
           ) || parsed[0];
 
           if (match) {
-            setActiveProject({
+            const normalized = normalizeProjectData({
               id: match.id || 'P-2001',
               name: match.name || (language === 'EN' ? 'Luxury Outdoor Kitchen' : 'Luxe Buitenkeuken'),
               division: match.category || (language === 'EN' ? 'Custom Outdoor Kitchens' : 'Buitenkeukens op maat'),
@@ -51,8 +80,12 @@ export default function CustomerProject() {
               expectedDelivery: match.deadline || '15 November 2026',
               craftsman: match.partner && match.partner !== 'Unassigned' ? match.partner : 'Sven Hoek (Hoek Bouw)',
               progress: Number(match.progress) || 45,
-              status: match.status || 'In Progress'
+              status: match.status || 'In Progress',
+              category: match.category,
+              projectType: match.projectType,
+              renderPackage: match.renderPackage
             });
+            setActiveProject(normalized);
           }
         }
       }
@@ -68,6 +101,7 @@ export default function CustomerProject() {
       }
     } catch (e) {}
   };
+
 
   useEffect(() => {
     loadCustomerProjectData();
@@ -104,13 +138,182 @@ export default function CustomerProject() {
       title: language === 'EN' ? '4. On-Site Assembly & Final Delivery' : '4. Oplevering & Locatie Montage', 
       date: activeProject.expectedDelivery, 
       status: progressVal >= 100 ? 'completed' : 'pending', 
-      desc: language === 'EN' ? `Final installation, appliance connection and sign-off at ${activeProject.address}.` : `Eindmontage, aansluiting apparatuur en oplevering op locatie.` 
     },
   ];
 
+  const isGardenRoom = isGardenRoomFamily(activeProject);
+
+  // 1. DESIGN & RENDERS TAB
+  if (activeTab === 'design' || activeTab === 'renders') {
+    if (isGardenRoom) {
+      return (
+        <div className="space-y-4 sm:space-y-6 max-w-4xl mx-auto font-body text-[#4A4A43]">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-2 border-b border-[#D6CFC2]">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-heading font-bold text-primary">
+                Design & Renders
+              </h2>
+              <p className="text-xs text-dark/60 mt-0.5">
+                Interactive 3D visualization, material details and version history for your project.
+              </p>
+            </div>
+          </div>
+          <RenderViewer renderPackage={activeProject.renderPackage} />
+          <RenderDetailCards detailRenders={activeProject.renderPackage?.detailRenders} />
+          <RenderVersionList versionHistory={activeProject.renderPackage?.versionHistory} />
+        </div>
+      );
+    }
+
+    // Outdoor Kitchen Design & Options
+    return (
+      <div className="space-y-4 sm:space-y-6 max-w-4xl mx-auto font-body text-[#4A4A43]">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-2 border-b border-[#D6CFC2]">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-heading font-bold text-primary">
+              Design & Options
+            </h2>
+            <p className="text-xs text-dark/60 mt-0.5">
+              Custom specifications, materials and configuration for your outdoor kitchen.
+            </p>
+          </div>
+        </div>
+        <Card title="Design Specifications" icon={FileText}>
+          <div className="space-y-3 font-body text-xs text-dark/80">
+            <div className="p-4 bg-white border border-[#D6CFC2] rounded-xl space-y-2">
+              <h4 className="font-bold text-primary text-sm font-heading">{activeProject.name}</h4>
+              <p>Worktop: Solid Concrete Polished finish</p>
+              <p>Timber: Teak Wood Grade A</p>
+              <p>Appliance integration: Kamado Joe Big II & Gas Burner</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // 2. PLANNING & BUILD TAB
+  if (activeTab === 'planning' || activeTab === 'build') {
+    if (isGardenRoom) {
+      return (
+        <div className="space-y-4 sm:space-y-6 max-w-4xl mx-auto font-body text-[#4A4A43]">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-2 border-b border-[#D6CFC2]">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-heading font-bold text-primary">
+                Planning & Build
+              </h2>
+              <p className="text-xs text-dark/60 mt-0.5">
+                Construction timeline, site survey scheduling, customer preparation and neighbour notice.
+              </p>
+            </div>
+          </div>
+          <SchouwProposalCard project={activeProject} onUpdateProject={handleUpdateProject} />
+          <WeekBar weekSchedule={activeProject.weekSchedule} />
+          <PrepChecklist projectId={activeProject.id} prepChecklist={activeProject.prepChecklist} />
+        </div>
+      );
+    }
+
+    // Outdoor Kitchen Planning & Delivery
+    return (
+      <div className="space-y-4 sm:space-y-6 max-w-4xl mx-auto font-body text-[#4A4A43]">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-2 border-b border-[#D6CFC2]">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-heading font-bold text-primary">
+              Planning & Delivery
+            </h2>
+            <p className="text-xs text-dark/60 mt-0.5">
+              Production schedule and assembly timeline for your custom outdoor kitchen.
+            </p>
+          </div>
+        </div>
+        <Card title="Production Progress Timeline" icon={Calendar}>
+          <div className="space-y-4 p-2 font-body">
+            {timelineSteps.map((step, idx) => (
+              <div key={idx} className="flex gap-3 text-xs">
+                <div className="flex flex-col items-center">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px] ${
+                    step.status === 'completed' ? 'bg-green-100 text-green-800 border border-green-300' :
+                    step.status === 'active' ? 'bg-primary text-cream font-bold' : 'bg-gray-100 text-gray-400'
+                  }`}>
+                    {idx + 1}
+                  </div>
+                  {idx < timelineSteps.length - 1 && <div className="w-0.5 flex-1 bg-[#D6CFC2] my-1" />}
+                </div>
+                <div className="pb-3 space-y-0.5">
+                  <div className="font-bold text-primary">{step.title}</div>
+                  <div className="text-[11px] text-dark/60 font-mono">{step.date}</div>
+                  {step.desc && <div className="text-[11px] text-dark/70 mt-1">{step.desc}</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // 3. PAYMENTS TAB
+  if (activeTab === 'payments') {
+    return (
+      <div className="space-y-4 sm:space-y-6 max-w-4xl mx-auto font-body text-[#4A4A43]">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-2 border-b border-[#D6CFC2]">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-heading font-bold text-primary">
+              Payments
+            </h2>
+            <p className="text-xs text-dark/60 mt-0.5">
+              Payment schedule, instalments and transaction history for your project.
+            </p>
+          </div>
+        </div>
+        <Card title="Project Payment Overview" icon={CreditCard}>
+          <div className="p-8 text-center bg-[#F7F4EE] border border-dashed border-[#C4BEB3] rounded-xl space-y-2">
+            <CreditCard className="w-8 h-8 text-primary mx-auto opacity-50" />
+            <h4 className="font-heading font-bold text-primary text-sm">Payment Schedule & Invoices</h4>
+            <p className="text-xs text-dark/60 max-w-md mx-auto">
+              Your 40% deposit, 40% pre-assembly, and 20% completion instalment breakdown will be displayed here.
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // 4. HANDOVER & AFTERCARE TAB
+  if (activeTab === 'handover') {
+    return (
+      <div className="space-y-4 sm:space-y-6 max-w-4xl mx-auto font-body text-[#4A4A43]">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-2 border-b border-[#D6CFC2]">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-heading font-bold text-primary">
+              Handover & Aftercare
+            </h2>
+            <p className="text-xs text-dark/60 mt-0.5">
+              Final sign-off, warranty certificate, seasonal maintenance and 3-month checkup.
+            </p>
+          </div>
+        </div>
+        <Card title="Completion & Warranty" icon={ShieldCheck}>
+          <div className="p-8 text-center bg-[#F7F4EE] border border-dashed border-[#C4BEB3] rounded-xl space-y-2">
+            <ShieldCheck className="w-8 h-8 text-primary mx-auto opacity-50" />
+            <h4 className="font-heading font-bold text-primary text-sm">Handover Protocol & Maintenance</h4>
+            <p className="text-xs text-dark/60 max-w-md mx-auto">
+              Your final sign-off report, 10-year timber warranty certificate, and maintenance guides will be available here after completion.
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // 5. OVERVIEW TAB (Default when no tab selected)
   return (
     <div className="space-y-4 sm:space-y-6 max-w-4xl mx-auto font-body text-[#4A4A43]">
+
+
       {/* Read-Only Header Banner */}
+
       <div className="bg-[#EDE8DF] border border-[#C4BEB3] p-4 sm:p-6 rounded-2xl shadow-xs space-y-3">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div>

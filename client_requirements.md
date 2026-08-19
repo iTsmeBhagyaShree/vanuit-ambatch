@@ -275,16 +275,44 @@ File: src/pages/admin/Projects.jsx
 
 ### PHASE 11 — Garden Room & Poolhouse Customer Portal Extension
 - STEP 0: Existing Customer Portal Codebase Audit & Gap Analysis (COMPLETE)
-- STEP 1: Garden Room Data Model & Backward-Compatible Architecture (COMPLETE)
-  - Created `src/utils/gardenRoomDataModel.js` with `detectProjectType()` for `outdoor_kitchen`, `garden_room`, `poolhouse`, `canopy`.
-  - Extended payment model: 2-stage (50/50) for Outdoor Kitchens; 3-stage (40/40/20) with handover lock for Garden Rooms.
-  - Extended planning model: 5-phase for Outdoor Kitchens; 7-phase (with Schouw & Prov/Def status) for Garden Rooms.
-  - Formulated renderPackage, prepChecklist, teamUpdates, handoverModel, seasonalMaintenance, and threeMonthCheck models.
-  - 100% backward-compatible with existing projects via `normalizeProjectData()`.
+- STEP 1: Garden Room Data Model & Project Type Support (COMPLETE)
+  - Created dedicated helper `src/utils/projectType.js` exporting `PROJECT_TYPES`, `detectProjectType()`, `isGardenRoomFamily()`, `normalizeProjectType()`.
+  - Supported project types: `outdoor_kitchen` (default for backward compatibility), `garden_room`, `poolhouse`, `canopy`.
+  - Memory-only normalization implemented without mutating existing `localStorage` keys or breaking Outdoor Kitchen data.
+  - Zero UI changes made. Production build verified cleanly (0 errors).
+
+- STEP 2: Dynamic Customer Portal Navigation Labels (COMPLETE & VERIFIED)
+  - Updated `src/layouts/Sidebar.jsx` to dynamically switch ALL THREE dynamic customer navigation labels using `isGardenRoomFamily(activeCustomerProject)`:
+    1. `Ontwerp & opties` ➔ `Ontwerp & renders` (EN: `Design & Options` ➔ `Design & Renders`)
+    2. `Planning & levering` ➔ `Planning & bouw` (EN: `Planning & Delivery` ➔ `Planning & Build`)
+    3. `Foto's uit de werkplaats` ➔ `Foto's & updates` (EN: `Workshop Photos` ➔ `Photos & Updates`)
+  - Legacy & `outdoor_kitchen` projects retain base labels.
+  - Active customer project detected dynamically from `localStorage` (`app_projects`) matching logged-in customer user.
+  - Zero route path changes made (`/customer/...` paths unchanged). Production build verified cleanly (0 errors).
+
+- STEP 3: Implement Customer Portal "Ontwerp & renders" Screen (COMPLETE & VERIFIED)
+  - Created `src/components/customer/RenderViewer.jsx`: 16:7 main render container, Day/Evening toggle (when evening render exists), 2-6 thumbnail view switcher, graceful placeholder ("De renders van jouw ontwerp volgen hier."), image error boundary.
+  - Created `src/components/customer/RenderDetailCards.jsx`: 3 detail cards (Hout, Dak, Vloer) with image, title, and description.
+  - Created `src/components/customer/RenderVersionList.jsx`: Version history list (V1, V2) with version number, date, thumbnail, and mandatory "Wat is gewijzigd:" text line.
+  - Updated `src/pages/customer/CustomerProject.jsx`: Extended design tab rendering to conditionally display "Ontwerp & renders" screen when `isGardenRoomFamily(activeProject)` is true.
+  - Outdoor Kitchen & legacy projects remain 100% untouched. Production build verified cleanly (0 errors).
+
+- STEP 4: Implement Customer Portal "Planning & build" Screen & Navigation/Flow Fix (COMPLETE & VERIFIED)
+  - Fixed Sidebar navigation links in `src/layouts/Sidebar.jsx`: Resolved link overlap bug where "Design & Options" and "Planning & Delivery" were highlighting together. Implemented custom `isLinkActive(linkPath)` helper using route + query param matching.
+  - Distinct Customer Navigation Links for Outdoor Kitchen (7 items) vs Garden Room Family (9 items: Overview, My Quote, Design & Renders, Planning & Build, Photos & Updates, Documents, Payments, Messages & Contact, Handover & Aftercare).
+  - English Copy Standard: Converted all newly added Step 4 UI strings, labels, badges, buttons, cards, empty states, and modal text into clean English for testing clarity.
+  - Screen Flow Separation: `CustomerProject.jsx` now strictly isolates screen content per active tab (`overview`, `design`, `planning`, `payments`, `handover`).
+  - Production build verified cleanly (`✓ built in 9.72s`, 0 errors).
 
 ---
 
-Updated: 18 August 2026
-Step 1 Completed — Garden Room Data Model & Backward-Compatible Architecture created.
+Updated: 19 August 2026
+Step 4 Completed — Customer Portal Language + Navigation/Flow Fix Implemented & Verified.
+
+
+
+
+
+
 
 
