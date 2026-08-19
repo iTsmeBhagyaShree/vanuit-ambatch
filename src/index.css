@@ -9,8 +9,9 @@
 :root {
   --primary-color: #3E4E36;
   --accent-color: #70624F;
-  --background-color: #D6CFC2;
+  --background-color: #FAF7F2;
 }
+
 
 @layer base {
   * {

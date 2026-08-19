@@ -122,17 +122,7 @@ export default function Sidebar({ role }) {
     { name: t('common.myDetails'), path: '/partner/profile', icon: UserSquare },
   ];
 
-  const OUTDOOR_KITCHEN_CUSTOMER_LINKS = [
-    { name: 'Overview', path: '/customer/project', icon: LayoutDashboard },
-    { name: 'My Quote', path: '/customer/quotes', icon: Receipt },
-    { name: 'Design & Options', path: '/customer/project?tab=design', icon: FileText },
-    { name: 'Planning & Delivery', path: '/customer/project?tab=planning', icon: Calendar },
-    { name: 'Workshop Photos', path: '/customer/photos', icon: Camera },
-    { name: 'Documents', path: '/customer/documents', icon: Folder },
-    { name: 'Contact', path: '/customer/contact', icon: Phone },
-  ];
-
-  const GARDEN_ROOM_CUSTOMER_LINKS = [
+  const CUSTOMER_LINKS = [
     { name: 'Overview', path: '/customer/project', icon: LayoutDashboard },
     { name: 'My Quote', path: '/customer/quotes', icon: Receipt },
     { name: 'Design & Renders', path: '/customer/project?tab=design', icon: FileText },
@@ -144,9 +134,8 @@ export default function Sidebar({ role }) {
     { name: 'Handover & Aftercare', path: '/customer/project?tab=handover', icon: ShieldCheck },
   ];
 
-  const CUSTOMER_LINKS = isGardenRoom ? GARDEN_ROOM_CUSTOMER_LINKS : OUTDOOR_KITCHEN_CUSTOMER_LINKS;
-
   const links = role === 'admin' ? ADMIN_LINKS : role === 'customer' ? CUSTOMER_LINKS : PARTNER_LINKS;
+
 
 
 

@@ -15,6 +15,8 @@ import { useLanguage } from '../../context/LanguageContext';
 import { tValue } from '../../utils/translator';
 import { calculateOrderSettlement } from '../../utils/orderMatcher';
 import { calculateProjectMarginWithPurchasing, UNIFIED_PURCHASING_CATEGORY } from '../../utils/purchasingAllocator';
+import { detectProjectType } from '../../utils/projectType';
+
 
 export default function Projects() {
   const { t, language } = useLanguage();
@@ -350,9 +352,30 @@ export default function Projects() {
     }
   };
 
+  const handleCategoryTypeChange = (projectId, newType) => {
+    const updated = projects.map(p => {
+      if (p.id === projectId) {
+        return {
+          ...p,
+          projectType: newType,
+          division: newType === 'outdoor_kitchen' ? 'Buitenkeukens op maat' : 'Buitenverblijven op maat',
+          category: newType === 'outdoor_kitchen' ? 'Buitenkeukens' : newType === 'poolhouse' ? 'Poolhouse' : newType === 'canopy' ? 'Overkappingen' : 'Buitenverblijf'
+        };
+      }
+      return p;
+    });
+    setProjects(updated);
+    try {
+      localStorage.setItem('app_projects', JSON.stringify(updated));
+      window.dispatchEvent(new Event('app_data_changed'));
+    } catch(e) {}
+    showToast(language === 'EN' ? `Updated project type to ${newType}` : `Projecttype bijgewerkt naar ${newType}`);
+  };
+
   const handleQuickRemoveFile = (idx) => {
     setSelectedUploadFiles(prev => prev.filter((_, i) => i !== idx));
   };
+
 
   const handleQuickUploadSubmit = async (e) => {
     e.preventDefault();
@@ -456,27 +479,25 @@ export default function Projects() {
     },
     { 
       header: language === 'EN' ? 'CATEGORY' : 'CATEGORIE',
-      style: { minWidth: '160px' },
+      style: { minWidth: '180px' },
       render: (row) => {
-        const projName = (row.name || '').toLowerCase();
-        const cat = row.category || (projName.includes('overkapping') || projName.includes('canopy') ? 'Overkappingen' : projName.includes('poolhouse') ? 'Poolhouse' : 'Buitenkeukens');
-        const logoSrc = cat.includes('Snijplanken')
-          ? '/logo_snijplanken.png'
-          : '/logo_buitenkeukens.png';
+        const pType = detectProjectType(row);
         return (
-          <div className="flex items-center gap-2 py-0.5">
-            <img 
-              src={logoSrc} 
-              alt={cat} 
-              className="h-5 max-w-[60px] object-contain mix-blend-multiply flex-shrink-0"
-            />
-            <span className="text-[10px] font-bold text-primary font-body bg-primary/10 px-2 py-0.5 rounded-md whitespace-nowrap">
-              {translateCategory(cat)}
-            </span>
-          </div>
+          <select
+            value={pType}
+            onChange={(e) => handleCategoryTypeChange(row.id, e.target.value)}
+            className="w-full px-2 py-1 bg-white border border-[#D6CFC2] rounded-lg text-[11px] font-bold text-primary focus:outline-none focus:ring-1 focus:ring-primary/40 cursor-pointer shadow-2xs"
+            title="Change Project Type for Customer Portal"
+          >
+            <option value="outdoor_kitchen">Outdoor Kitchens</option>
+            <option value="garden_room">Garden Rooms</option>
+            <option value="poolhouse">Poolhouse</option>
+            <option value="canopy">Canopy / Overkapping</option>
+          </select>
         );
       }
     },
+
     { 
       header: language === 'EN' ? 'PROJECT' : 'PROJECT', 
       render: (row) => (

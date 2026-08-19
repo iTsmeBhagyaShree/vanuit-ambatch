@@ -151,7 +151,8 @@ export default function TopNav() {
   };
 
   return (
-    <header className="h-14 bg-[#EDE8DF] border-b border-[#D6CFC2] flex items-center justify-between px-3 sm:px-4 lg:px-6 z-[99999] flex-shrink-0 relative">
+    <header className="h-14 bg-[#FAF7F2] border-b border-[#E6E0D4] flex items-center justify-between px-3 sm:px-4 lg:px-6 z-[99999] flex-shrink-0 relative">
+
       {/* Mobile Hamburger Button + Breadcrumb */}
       <div className="flex items-center gap-2 text-xs text-dark/50 font-body min-w-0 truncate flex-1 mr-2">
         <button
