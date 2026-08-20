@@ -96,10 +96,10 @@ export default function Sidebar({ role }) {
       icon: Briefcase,
       isDropdown: true,
       children: [
-        { name: language === 'EN' ? 'All Projects' : 'Alle Projecten', path: '/admin/projects' },
-        { name: language === 'EN' ? 'Global Inbox' : 'Inbox Berichten', path: '/admin/projects/inbox', badge: '4' },
-        { name: language === 'EN' ? 'Outdoor Kitchen Projects' : 'Project Buitenkeuken', path: '/admin/projects/outdoor-kitchens' },
-        { name: language === 'EN' ? 'Garden Room Projects' : 'Project Buitenverblijf', path: '/admin/projects/garden-rooms' },
+        { name: language === 'EN' ? 'Inbox messages' : 'Inbox berichten', path: '/admin/projects/inbox', badge: '4' },
+        { name: language === 'EN' ? 'Outdoor Kitchen Project' : 'Project buitenkeuken', path: '/admin/projects/outdoor-kitchens' },
+        { name: language === 'EN' ? 'Garden Room Project' : 'Project buitenverblijf', path: '/admin/projects/garden-rooms' },
+        { name: language === 'EN' ? 'Field Mapping' : 'Veldenkoppeling', path: '/admin/projects/field-mapping' },
       ]
     },
     { 
@@ -161,7 +161,7 @@ export default function Sidebar({ role }) {
     if (path === '/admin/leads') {
       window.dispatchEvent(new Event('app_reset_leads_view'));
     }
-    if (path === '/admin/projects') {
+    if (path === '/admin/projects' || path === '/admin/projects/inbox') {
       window.dispatchEvent(new Event('app_reset_projects_view'));
     }
   };
@@ -250,8 +250,9 @@ export default function Sidebar({ role }) {
                         key={child.name}
                         to={child.path}
                         onClick={() => setMobileOpen(false)}
+                        title={child.name}
                         className={({ isActive }) =>
-                          `px-2.5 py-1.5 rounded-lg transition-all duration-150 text-[11px] font-body flex items-center justify-between ${
+                          `px-2 py-1.5 rounded-lg transition-all duration-150 text-[11px] font-body flex items-center justify-between ${
                             isActive
                               ? 'bg-cream/20 text-cream font-medium'
                               : 'text-white/50 hover:bg-white/5 hover:text-white/80'
@@ -334,7 +335,7 @@ export default function Sidebar({ role }) {
   return (
     <>
       {/* Desktop & Tablet Collapsible Sidebar Rail System */}
-      <aside className={`hidden sm:flex transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-48'} bg-primary flex-col flex-shrink-0 shadow-lg relative z-30`}>
+      <aside className={`hidden sm:flex transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-52'} bg-primary flex-col flex-shrink-0 shadow-lg relative z-30`}>
         <SidebarContent collapsed={isCollapsed} />
       </aside>
 
