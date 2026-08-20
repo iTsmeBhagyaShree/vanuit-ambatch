@@ -6,7 +6,7 @@ import { isGardenRoomFamily } from '../utils/projectType';
 import {
   LayoutDashboard, Users, FileText, Briefcase, UserSquare,
   Folder, PieChart, Settings, Calendar, LogOut, X, Menu, ChevronRight, ChevronLeft, ChevronDown,
-  Camera, Phone, Receipt, CreditCard, ShieldCheck
+  Camera, Phone, Receipt, CreditCard, ShieldCheck, Smartphone
 } from 'lucide-react';
 
 export default function Sidebar({ role }) {
@@ -91,7 +91,17 @@ export default function Sidebar({ role }) {
   const ADMIN_LINKS = [
     { name: t('common.dashboard'), path: '/admin/dashboard', icon: LayoutDashboard },
     { name: t('common.leads'), path: '/admin/leads', icon: Users },
-    { name: t('common.projects'), path: '/admin/projects', icon: Briefcase },
+    { 
+      name: t('common.projects'), 
+      icon: Briefcase,
+      isDropdown: true,
+      children: [
+        { name: language === 'EN' ? 'All Projects' : 'Alle Projecten', path: '/admin/projects' },
+        { name: language === 'EN' ? 'Global Inbox' : 'Inbox Berichten', path: '/admin/projects/inbox', badge: '4' },
+        { name: language === 'EN' ? 'Outdoor Kitchen Projects' : 'Project Buitenkeuken', path: '/admin/projects/outdoor-kitchens' },
+        { name: language === 'EN' ? 'Garden Room Projects' : 'Project Buitenverblijf', path: '/admin/projects/garden-rooms' },
+      ]
+    },
     { 
       name: t('common.bookkeeping'), 
       icon: PieChart, 
@@ -132,7 +142,9 @@ export default function Sidebar({ role }) {
     { name: 'Payments', path: '/customer/project?tab=payments', icon: CreditCard },
     { name: 'Messages & Contact', path: '/customer/contact', icon: Phone },
     { name: 'Handover & Aftercare', path: '/customer/project?tab=handover', icon: ShieldCheck },
+    { name: 'Mobile View', path: '/customer/project?tab=mobile-view', icon: Smartphone },
   ];
+
 
   const links = role === 'admin' ? ADMIN_LINKS : role === 'customer' ? CUSTOMER_LINKS : PARTNER_LINKS;
 
@@ -239,14 +251,19 @@ export default function Sidebar({ role }) {
                         to={child.path}
                         onClick={() => setMobileOpen(false)}
                         className={({ isActive }) =>
-                          `px-2.5 py-1.5 rounded-lg transition-all duration-150 text-[11px] font-body ${
+                          `px-2.5 py-1.5 rounded-lg transition-all duration-150 text-[11px] font-body flex items-center justify-between ${
                             isActive
                               ? 'bg-cream/20 text-cream font-medium'
                               : 'text-white/50 hover:bg-white/5 hover:text-white/80'
                           }`
                         }
                       >
-                        {child.name}
+                        <span className="truncate">{child.name}</span>
+                        {child.badge && (
+                          <span className="ml-1 px-1.5 py-0.2 bg-[#D97706] text-white font-mono text-[9px] font-bold rounded-full">
+                            {child.badge}
+                          </span>
+                        )}
                       </NavLink>
                     ))}
                   </div>

@@ -1,27 +1,22 @@
 import React, { useState } from 'react';
-import Card from '../Card';
-import Badge from '../Badge';
-import { 
-  Sun, Moon, Check, Eye, MessageSquare, AlertCircle, Sparkles, ArrowRight, Layers 
-} from 'lucide-react';
+import { Sparkles, Sun, Moon, Check, MessageSquare, Download, Eye, ChevronRight } from 'lucide-react';
+import { downloadDirectPdfFile } from '../../utils/pdfGenerator';
+import woodTexture from '../../assets/wood_texture.png';
 
 /**
- * GardenRoomDesignView Component (1-to-1 implementation of Client Mockup PDF Page 8 & Screenshot 1)
+ * GardenRoomDesignView Component (1-to-1 implementation of Client Mockup PDF Garden Rooms Page 8)
  * 
- * Features:
- * - Top Header Tag Bar (Project Code, Updates 3, WhatsApp us)
- * - Page Title & Subtitle
- * - Render Viewer Card (Day/Night Mode Toggle, 4 View Angle Thumbnails, Active Badge)
- * - Full-bleed Render Viewport (matching Screenshot 1 mockup 1-to-1)
- * - Material & Finishing Details Grid (Douglas, EPDM Flat Roof, Ceramic Tiles 60x60)
- * - Layout Diagram Bar (To scale: Poolhouse enclosed 3.00m + Lounge covered 5.00m = 8.00m)
- * - Specs 2x2 Grid (Dimensions, Timber, Roof, Build Time)
- * - Your Selections List (with Provisional Sum note)
- * - About Douglas Timber Info Card
- * - Design Version History Card (Version 2 Current vs Version 1, Submit Feedback button)
+ * Clean Balanced Layout & Zero Empty Gaps:
+ * - 4 Interactive View Angles (Front View, Side View, Interior Poolhouse, From the Garden)
+ * - Interactive Day / Night Light Switch (Warm night spotlight render lighting effects)
+ * - Material & finishing details card (Douglas timber, EPDM flat roof, Ceramic 60x60 tiles, Layout diagram)
+ * - About Douglas Timber card (Left column bottom for exact vertical balance)
+ * - 2x2 Specs Grid Cards (DIMENSIONS 8.00x4.00, TIMBER Douglas, ROOF Flat, BUILD TIME 2 weeks)
+ * - Your Selections Card (Checklist of selected options)
+ * - Versions of your design section (Version 2 Current, Version 1 Initial)
  */
 export default function GardenRoomDesignView({ project = null }) {
-  const [activeAngle, setActiveAngle] = useState('front'); // 'front' | 'side' | 'interior' | 'garden'
+  const [activeAngle, setActiveAngle] = useState('front');
   const [isNightMode, setIsNightMode] = useState(false);
   const [feedbackToast, setFeedbackToast] = useState('');
 
@@ -32,54 +27,55 @@ export default function GardenRoomDesignView({ project = null }) {
       id: 'front',
       name: 'Front View',
       badge: 'RENDER · FRONT VIEW · VERSION 2',
-      thumbGradient: 'from-[#C5A072] to-[#B09267]',
-      nightGradient: 'from-[#2D3A29] via-[#3D4E39] to-[#1E2B1D]',
-      spotlight: 'radial-gradient(ellipse at 50% 40%, rgba(255, 220, 160, 0.4) 0%, rgba(0,0,0,0) 70%)'
+      thumbGradient: 'from-[#8B7355] via-[#A68A64] to-[#6E5A42]',
+      nightGradient: 'from-[#1A2218] via-[#2A3528] to-[#121811]',
+      spotlight: 'radial-gradient(ellipse at 50% 30%, rgba(255, 210, 150, 0.45) 0%, rgba(255, 180, 100, 0.15) 50%, transparent 80%)'
     },
     {
       id: 'side',
       name: 'Side View',
       badge: 'RENDER · SIDE VIEW · VERSION 2',
-      thumbGradient: 'from-[#B09267] to-[#8F7550]',
-      nightGradient: 'from-[#2B3828] via-[#384A35] to-[#1C281B]',
-      spotlight: 'radial-gradient(ellipse at 40% 40%, rgba(255, 220, 160, 0.4) 0%, rgba(0,0,0,0) 70%)'
+      thumbGradient: 'from-[#7A6448] via-[#947A58] to-[#5C4B36]',
+      nightGradient: 'from-[#161D14] via-[#242E22] to-[#0E130D]',
+      spotlight: 'radial-gradient(ellipse at 30% 40%, rgba(255, 210, 150, 0.45) 0%, rgba(255, 180, 100, 0.15) 50%, transparent 80%)'
     },
     {
       id: 'interior',
       name: 'Interior Poolhouse',
       badge: 'RENDER · INTERIOR POOLHOUSE · VERSION 2',
-      thumbGradient: 'from-[#9C825B] to-[#756040]',
-      nightGradient: 'from-[#3A2E20] via-[#524230] to-[#241B13]',
-      spotlight: 'radial-gradient(ellipse at 60% 35%, rgba(255, 220, 160, 0.45) 0%, rgba(0,0,0,0) 65%)'
+      thumbGradient: 'from-[#6E5A42] via-[#8B7355] to-[#4E3D2C]',
+      nightGradient: 'from-[#1B2019] via-[#2D382B] to-[#141813]',
+      spotlight: 'radial-gradient(ellipse at 70% 30%, rgba(255, 220, 170, 0.5) 0%, rgba(255, 190, 110, 0.2) 50%, transparent 80%)'
     },
     {
       id: 'garden',
       name: 'From the Garden',
       badge: 'RENDER · FROM THE GARDEN · VERSION 2',
-      thumbGradient: 'from-[#4D5E44] to-[#2E3C27]',
-      nightGradient: 'from-[#223220] via-[#32452F] to-[#162315]',
-      spotlight: 'radial-gradient(ellipse at 50% 45%, rgba(255, 220, 160, 0.35) 0%, rgba(0,0,0,0) 75%)'
+      thumbGradient: 'from-[#5C4B36] via-[#7A6448] to-[#3E3022]',
+      nightGradient: 'from-[#121711] via-[#1F271D] to-[#0A0E0A]',
+      spotlight: 'radial-gradient(ellipse at 50% 50%, rgba(255, 210, 150, 0.4) 0%, rgba(255, 180, 100, 0.15) 50%, transparent 80%)'
     }
   ];
 
-  const currentView = viewAngles.find(v => v.id === activeAngle) || viewAngles[0];
+  const currentView = viewAngles.find((v) => v.id === activeAngle) || viewAngles[0];
 
-  const handleSendFeedback = () => {
-    setFeedbackToast('Feedback form opened! You can describe requested modifications for Version 3.');
-    setTimeout(() => setFeedbackToast(''), 4000);
+  const handleDownloadSpecs = () => {
+    downloadDirectPdfFile('working-drawing');
+    setFeedbackToast('Downloaded Working Drawing Version 2 (PDF)!');
+    setTimeout(() => setFeedbackToast(''), 3500);
   };
 
   return (
-    <div className="space-y-6 font-body text-[#4A4A43] max-w-5xl w-full mx-auto">
+    <div className="space-y-4 font-body text-[#4A4A43] w-full">
       {/* Toast Notification */}
       {feedbackToast && (
-        <div className="fixed top-20 right-4 z-[9999] flex items-center gap-2 bg-primary text-cream px-4 py-3 rounded-xl shadow-xl border border-primary/20 text-xs">
+        <div className="fixed top-20 right-4 z-[9999] flex items-center gap-2 bg-primary text-cream px-4 py-3 rounded-xl shadow-xl border border-primary/20 text-xs font-medium">
           <Sparkles className="w-4 h-4 text-amber-300" />
           <span>{feedbackToast}</span>
         </div>
       )}
 
-      {/* 1. TOP HEADER TAG BAR (1-to-1 Client Mockup Screenshot 1) */}
+      {/* 1. TOP HEADER TAG BAR (1-to-1 Client Mockup PDF Page 8) */}
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-dark/60">
         <span className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-md font-bold">
           Custom Garden Room — project {projectCode}
@@ -92,7 +88,7 @@ export default function GardenRoomDesignView({ project = null }) {
             href="https://wa.me/31682008025"
             target="_blank"
             rel="noopener noreferrer"
-            className="bg-primary text-cream px-3 py-1 rounded-xl text-xs font-bold hover:bg-primary/90 transition-all flex items-center gap-1"
+            className="bg-primary text-cream px-3 py-1 rounded-xl text-xs font-bold hover:bg-primary/90 transition-all flex items-center gap-1 shadow-xs"
           >
             <MessageSquare className="w-3.5 h-3.5 text-accent" />
             <span>WhatsApp us</span>
@@ -101,8 +97,8 @@ export default function GardenRoomDesignView({ project = null }) {
       </div>
 
       {/* 2. PAGE TITLE & SUBTITLE */}
-      <div className="space-y-1">
-        <h1 className="text-2xl sm:text-3xl font-heading font-bold text-primary">
+      <div className="space-y-0.5">
+        <h1 className="text-xl sm:text-2xl font-heading font-bold text-primary">
           Design & renders
         </h1>
         <p className="text-xs text-dark/70 font-medium">
@@ -110,60 +106,63 @@ export default function GardenRoomDesignView({ project = null }) {
         </p>
       </div>
 
-      {/* 3. RENDER VIEWER CARD (Matching Screenshot 1 1-to-1) */}
-      <div className="bg-white border border-[#D6CFC2] p-4 sm:p-5 rounded-2xl shadow-xs space-y-4">
-        {/* Render Viewer Card Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-[#D6CFC2]/60 pb-3">
-          <h2 className="text-lg font-heading font-bold text-primary">
+      {/* 3. INTERACTIVE 3D RENDER VIEWER CONTAINER */}
+      <div className="bg-[#FAF8F5] border border-[#D8D2C5] p-3 sm:p-4 rounded-2xl shadow-xs space-y-3">
+        {/* Render Viewer Toolbar */}
+        <div className="flex flex-wrap justify-between items-center gap-2 pb-1">
+          <h3 className="font-heading font-bold text-primary text-sm sm:text-base">
             Render viewer
-          </h2>
+          </h3>
 
-          <div className="flex items-center gap-2 text-xs">
-            {/* Version Pill (Soft Blue-Gray Matching Screenshot 1) */}
-            <span className="bg-[#D7E3EC] text-[#2B4B68] px-3 py-1 rounded-full font-mono text-[11px] font-bold">
+          {/* Controls: Date Tag + Day/Night Toggle Switch */}
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-mono text-dark/60 bg-cream px-2.5 py-1 rounded-lg border border-[#D6CFC2] font-bold">
               • Version 2 · 14 August
             </span>
 
-            {/* Day / Night Switcher Buttons */}
-            <div className="flex items-center bg-[#EDE8DF] border border-[#D6CFC2] rounded-xl p-0.5">
+            {/* Day / Night Mode Switcher */}
+            <div className="bg-[#EAE6DD] border border-[#D6CFC2] p-0.5 rounded-xl flex items-center gap-0.5 text-xs font-bold">
               <button
                 type="button"
                 onClick={() => setIsNightMode(false)}
-                className={`px-3 py-1 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer ${
-                  !isNightMode ? 'bg-[#2B3827] text-white shadow-xs' : 'text-dark/70 hover:text-dark'
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  !isNightMode
+                    ? 'bg-white text-primary shadow-2xs font-bold'
+                    : 'text-dark/60 hover:text-dark'
                 }`}
               >
-                <Sun className="w-3.5 h-3.5" />
+                <Sun className="w-3.5 h-3.5 text-amber-500" />
                 <span>Day</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setIsNightMode(true)}
-                className={`px-3 py-1 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer ${
-                  isNightMode ? 'bg-[#2B3827] text-white shadow-xs' : 'text-dark/70 hover:text-dark'
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  isNightMode
+                    ? 'bg-[#1E251C] text-cream shadow-2xs font-bold'
+                    : 'text-dark/60 hover:text-dark'
                 }`}
               >
-                <Moon className="w-3.5 h-3.5" />
+                <Moon className="w-3.5 h-3.5 text-amber-300" />
                 <span>Night</span>
               </button>
             </div>
           </div>
         </div>
 
-        {/* Full-Bleed Render Viewport (Matching Screenshot 1 1-to-1) */}
+        {/* Full-Bleed Render Viewport */}
         <div className="relative w-full h-56 sm:h-72 rounded-2xl overflow-hidden border border-[#D6CFC2] shadow-xs transition-all duration-500">
-          {/* Full-bleed Timber Render Texture Backdrop */}
           <div className={`w-full h-full bg-gradient-to-br ${
             isNightMode ? currentView.nightGradient : currentView.thumbGradient
           } relative flex flex-col justify-end p-4 transition-all duration-500`}>
             
-            {/* Real Vertical Wood Slat Plank Lines Pattern (Crisp in Night Mode) */}
+            {/* Real Vertical Wood Slat Plank Lines Pattern */}
             <div 
               className="absolute inset-0 pointer-events-none transition-all duration-300" 
               style={{
                 opacity: isNightMode ? 0.65 : 0.4,
-                mixBlendMode: isNightMode ? 'overlay' : 'overlay',
+                mixBlendMode: 'overlay',
                 backgroundImage: isNightMode
                   ? 'repeating-linear-gradient(90deg, rgba(255, 230, 190, 0.4) 0px, rgba(255, 230, 190, 0.4) 2px, transparent 2px, transparent 16px)'
                   : 'repeating-linear-gradient(90deg, rgba(0,0,0,0.3) 0px, rgba(0,0,0,0.3) 2px, transparent 2px, transparent 16px)'
@@ -180,14 +179,14 @@ export default function GardenRoomDesignView({ project = null }) {
 
             <div className="absolute inset-0 bg-black/10 pointer-events-none" />
 
-            {/* Active Render Badge (Bottom-Left 1-to-1) */}
+            {/* Active Render Badge */}
             <div className="relative z-10 self-start bg-[#232B20]/85 text-cream px-3 py-1.5 rounded-md text-[10px] font-mono tracking-wider uppercase font-bold backdrop-blur-xs shadow-xs border border-white/10">
               {currentView.badge} {isNightMode ? '· NIGHT' : ''}
             </div>
           </div>
         </div>
 
-        {/* 4 Interactive View Thumbnails Row (Matching Screenshot 1 1-to-1) */}
+        {/* 4 Interactive View Thumbnails Row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 pt-1">
           {viewAngles.map((angle) => {
             const isSelected = activeAngle === angle.id;
@@ -202,7 +201,6 @@ export default function GardenRoomDesignView({ project = null }) {
                     : 'border-[#D6CFC2] bg-white hover:bg-gray-50'
                 }`}
               >
-                {/* Thumbnail Image Box with Vertical Wood Slat Lines */}
                 <div className={`w-full h-16 sm:h-20 bg-gradient-to-br ${
                   isNightMode ? angle.nightGradient : angle.thumbGradient
                 } relative border-b border-[#D6CFC2] overflow-hidden`}>
@@ -223,7 +221,6 @@ export default function GardenRoomDesignView({ project = null }) {
                   )}
                 </div>
 
-                {/* Label Bar Below Thumbnail */}
                 <div className="p-2 text-center">
                   <span className={`text-xs font-bold font-body block truncate ${
                     isSelected ? 'text-primary' : 'text-dark/70 group-hover:text-dark'
@@ -236,27 +233,27 @@ export default function GardenRoomDesignView({ project = null }) {
           })}
         </div>
 
-
-
         {/* Footnote Caption */}
         <p className="text-[11px] text-dark/60 italic pt-1">
           Impression based on your choices. Color and wood grain may vary in reality — wood is natural material.
         </p>
       </div>
 
-      {/* 4. MAIN CONTENT GRID (Left 2/3 Column vs Right 1/3 Column) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* 4. MAIN CONTENT GRID (Balanced Left vs Right Columns) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+        
         {/* LEFT COLUMN (2 Columns wide) */}
-        <div className="md:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4">
+          
           {/* Material & Finishing Details Card */}
-          <div className="bg-white border border-[#D6CFC2] p-5 rounded-2xl shadow-xs space-y-4">
+          <div className="bg-[#FAF8F5] border border-[#D8D2C5] p-4 sm:p-5 rounded-2xl shadow-xs space-y-4">
             <h3 className="text-base font-heading font-bold text-primary">
               Material & finishing in detail
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
               {/* Material 1: Douglas */}
-              <div className="bg-[#FFFDF9] border border-[#D6CFC2] p-3.5 rounded-xl space-y-2">
+              <div className="bg-white border border-[#D6CFC2] p-3.5 rounded-xl space-y-2">
                 <div className="w-full h-20 bg-[#B09267] rounded-lg border border-[#8F7550] flex items-end p-2 relative overflow-hidden">
                   <div 
                     className="absolute inset-0 opacity-40 mix-blend-overlay pointer-events-none" 
@@ -276,9 +273,8 @@ export default function GardenRoomDesignView({ project = null }) {
                 </p>
               </div>
 
-
               {/* Material 2: EPDM Flat Roof */}
-              <div className="bg-[#FFFDF9] border border-[#D6CFC2] p-3.5 rounded-xl space-y-2">
+              <div className="bg-white border border-[#D6CFC2] p-3.5 rounded-xl space-y-2">
                 <div className="w-full h-20 bg-[#363F47] rounded-lg border border-[#232930] flex items-end p-2">
                   <span className="bg-dark/70 text-cream text-[9px] font-mono uppercase font-bold px-1.5 py-0.5 rounded-xs">
                     FLAT ROOF
@@ -293,7 +289,7 @@ export default function GardenRoomDesignView({ project = null }) {
               </div>
 
               {/* Material 3: Ceramic Tiles */}
-              <div className="bg-[#FFFDF9] border border-[#D6CFC2] p-3.5 rounded-xl space-y-2">
+              <div className="bg-white border border-[#D6CFC2] p-3.5 rounded-xl space-y-2">
                 <div className="w-full h-20 bg-[#9C9488] rounded-lg border border-[#827A6F] flex items-end p-2">
                   <span className="bg-dark/70 text-cream text-[9px] font-mono uppercase font-bold px-1.5 py-0.5 rounded-xs">
                     FLOOR
@@ -333,10 +329,22 @@ export default function GardenRoomDesignView({ project = null }) {
               </div>
             </div>
           </div>
+
+          {/* About Douglas Timber Info Card (Placed here in left column for exact vertical balance!) */}
+          <div className="bg-[#FAF8F5] border border-[#D8D2C5] p-4 sm:p-5 rounded-2xl space-y-2 text-xs text-dark/80 shadow-xs">
+            <span className="text-[10px] sm:text-[11px] uppercase font-mono font-bold tracking-wider text-accent block">
+              ABOUT DOUGLAS TIMBER
+            </span>
+            <p className="leading-relaxed text-xs text-dark/70 font-medium">
+              Strong European softwood with a warm appearance. Untreated it turns silver-gray; an annual maintenance preserves its reddish-brown glow.
+            </p>
+          </div>
+
         </div>
 
         {/* RIGHT COLUMN (1 Column wide) */}
-        <div className="space-y-6">
+        <div className="space-y-4">
+          
           {/* 2x2 Specs Grid Cards */}
           <div className="grid grid-cols-2 gap-3.5">
             <div className="bg-[#EDE9E3] border border-[#D8D2C5] p-4 rounded-2xl space-y-1">
@@ -364,9 +372,8 @@ export default function GardenRoomDesignView({ project = null }) {
             </div>
           </div>
 
-
           {/* Your Selections Card */}
-          <div className="bg-white border border-[#D6CFC2] p-4 rounded-2xl shadow-xs space-y-3">
+          <div className="bg-[#FAF8F5] border border-[#D8D2C5] p-4 sm:p-5 rounded-2xl shadow-xs space-y-3">
             <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-accent block">
               YOUR SELECTIONS
             </span>
@@ -399,33 +406,23 @@ export default function GardenRoomDesignView({ project = null }) {
             </p>
           </div>
 
-          {/* About Douglas Timber Info Card */}
-          <div className="bg-[#FAF8F5] border border-[#D8D2C5] p-5 sm:p-5 rounded-2xl space-y-2 text-xs text-dark/80 shadow-2xs">
-            <span className="text-[10px] sm:text-[11px] uppercase font-mono font-bold tracking-wider text-accent block pt-0.5">
-              ABOUT DOUGLAS TIMBER
-            </span>
-            <p className="leading-relaxed text-xs text-dark/70 font-medium">
-              Strong European softwood with a warm appearance. Untreated it turns silver-gray; an annual maintenance preserves its reddish-brown glow.
-            </p>
-          </div>
-
         </div>
       </div>
 
-      {/* 5. DESIGN VERSIONS CARD (1-to-1 Client Mockup PDF Page 8) */}
-      <div className="bg-white border border-[#D6CFC2] p-5 rounded-2xl shadow-xs space-y-4">
+      {/* 5. DESIGN VERSIONS CARD */}
+      <div className="bg-[#FAF8F5] border border-[#D8D2C5] p-4 sm:p-5 rounded-2xl shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-[#D6CFC2]/60 pb-3">
           <h3 className="text-base font-heading font-bold text-primary">
             Versions of your design
           </h3>
-          <span className="text-xs text-dark/60">
+          <span className="text-xs text-dark/60 font-medium">
             See exactly what changed per version
           </span>
         </div>
 
         <div className="space-y-3">
           {/* Version 2 (Current) */}
-          <div className="bg-[#FFFDF9] border border-green-300 p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div className="bg-white border border-green-300 p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-2xs">
             <div className="space-y-1 max-w-2xl">
               <div className="flex items-center gap-2">
                 <h4 className="font-heading font-bold text-primary text-sm">
@@ -435,52 +432,39 @@ export default function GardenRoomDesignView({ project = null }) {
                   Current
                 </span>
               </div>
-              <p className="text-xs text-dark/70 leading-relaxed">
+              <p className="text-xs text-dark/70 leading-relaxed font-medium">
                 14 August 2026 · sliding door moved to south side, overhang widened 40 cm — following your feedback on afternoon sun.
               </p>
             </div>
 
             <button
               type="button"
-              className="px-3.5 py-1.5 bg-white text-dark/80 border border-[#D6CFC2] text-xs font-bold rounded-lg hover:bg-gray-50 transition-all cursor-pointer flex-shrink-0"
+              onClick={handleDownloadSpecs}
+              className="px-3.5 py-1.5 bg-white text-dark/80 border border-[#D6CFC2] text-xs font-bold rounded-lg hover:bg-gray-50 transition-all cursor-pointer flex-shrink-0 shadow-2xs"
             >
               View
             </button>
           </div>
 
           {/* Version 1 */}
-          <div className="bg-white border border-[#D6CFC2] p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div className="bg-white border border-[#D6CFC2] p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-2xs">
             <div className="space-y-1 max-w-2xl">
               <h4 className="font-heading font-bold text-primary text-sm">
                 Version 1
               </h4>
-              <p className="text-xs text-dark/60 leading-relaxed">
+              <p className="text-xs text-dark/70 leading-relaxed font-medium">
                 6 August 2026 · initial design based on quote.
               </p>
             </div>
 
             <button
               type="button"
-              className="px-3.5 py-1.5 bg-white text-dark/80 border border-[#D6CFC2] text-xs font-bold rounded-lg hover:bg-gray-50 transition-all cursor-pointer flex-shrink-0"
+              onClick={handleDownloadSpecs}
+              className="px-3.5 py-1.5 bg-white text-dark/80 border border-[#D6CFC2] text-xs font-bold rounded-lg hover:bg-gray-50 transition-all cursor-pointer flex-shrink-0 shadow-2xs"
             >
               View
             </button>
           </div>
-        </div>
-
-        {/* Card Footer Note & Action Button */}
-        <div className="pt-3 border-t border-[#D6CFC2] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-          <p className="text-xs text-dark/70">
-            Is something not right in version 2, or would you like to see something else?
-          </p>
-
-          <button
-            type="button"
-            onClick={handleSendFeedback}
-            className="px-4 py-2 bg-primary text-cream text-xs font-bold rounded-xl hover:bg-primary/90 transition-all cursor-pointer shadow-xs flex-shrink-0"
-          >
-            Submit feedback
-          </button>
         </div>
       </div>
     </div>

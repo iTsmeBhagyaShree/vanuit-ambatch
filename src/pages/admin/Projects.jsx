@@ -18,7 +18,7 @@ import { calculateProjectMarginWithPurchasing, UNIFIED_PURCHASING_CATEGORY } fro
 import { detectProjectType } from '../../utils/projectType';
 
 
-export default function Projects() {
+export default function Projects({ defaultCategoryFilter, titleOverride }) {
   const { t, language } = useLanguage();
   const navigate = useNavigate();
   const directFileInputRef = useRef(null);
@@ -51,7 +51,7 @@ export default function Projects() {
   // Search & Filters State — Default to 'projects' so All Projects tab with full columns is shown by default
   const [activeTab, setActiveTab] = useState('projects');
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState(defaultCategoryFilter ? defaultCategoryFilter : 'All');
   const [sortBy, setSortBy] = useState('deadline');
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   

@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, Check, AlertTriangle, ArrowLeft, ArrowRight, Download, Share2, Copy, Send, 
+import {
+  X, Check, AlertTriangle, ArrowLeft, ArrowRight, Download, Share2, Copy, Send,
   Plus, Trash2, RotateCcw, Upload, FileText, CheckCircle, Eye, HelpCircle, Layout, Sparkles, User, Briefcase
 } from 'lucide-react';
 import Button from './Button';
@@ -18,12 +18,12 @@ import heroImg from '/dasbordes images.png';
 import { downloadQuotePdf, generateFull6PagePdf } from '../utils/pdfGenerator';
 
 const STEPS = [
-  { id: 1, number: '1', title: 'Customer & details', desc: 'Bjorn Valk · Dongen' },
-  { id: 2, number: '2', title: 'Cover', desc: 'title · subtitle · 3 photos' },
-  { id: 3, number: '3', title: 'Configuration', desc: 'tiles · specs · diagram' },
-  { id: 4, number: '4', title: 'Investment', desc: 'line items · instalments' },
-  { id: 5, number: '5', title: 'Letter & process', desc: 'default texts' },
-  { id: 6, number: '6', title: 'Review & send', desc: 'preview · PDF · approval link' }
+  { id: 1, number: 1, title: 'Customer & details', desc: 'customer, address, date & validity' },
+  { id: 2, number: 2, title: 'Cover', desc: 'title, subtitle & 3 cover photos' },
+  { id: 3, number: 3, title: 'Configuration', desc: 'tiles, specs & layout diagram' },
+  { id: 4, number: 4, title: 'Investment', desc: 'line items, totals & 2 termijnen' },
+  { id: 5, number: 5, title: 'Letter & process', desc: 'intro letter & 5 process steps' },
+  { id: 6, number: 6, title: 'Review & send', desc: 'completeness check & approval link' }
 ];
 
 // Dynamic Responsive PDF Preview Scaler that fits 100% full-width in Zone 3 card
@@ -52,16 +52,16 @@ function ScaledPDFPreview({ quote, activePage, highlightField }) {
   const scaledHeight = 1050 * scale;
 
   return (
-    <div 
-      ref={containerRef} 
+    <div
+      ref={containerRef}
       className="w-full bg-[#EDE8DF] p-1.5 rounded-xl border border-[#D6CFC2]/70 overflow-hidden shadow-inner relative"
       style={{ height: `${Math.min(490, scaledHeight + 12)}px` }}
     >
-      <div 
-        style={{ 
-          width: '794px', 
+      <div
+        style={{
+          width: '794px',
           height: '1050px',
-          transform: `scale(${scale})`, 
+          transform: `scale(${scale})`,
           transformOrigin: 'top center',
           position: 'absolute',
           top: '6px',
@@ -91,6 +91,18 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
   const [highlightField, setHighlightField] = useState(null);
   const [showFieldLabels, setShowFieldLabels] = useState(true);
   const [photoWarnings, setPhotoWarnings] = useState({});
+
+  const stepFormRef = useRef(null);
+
+  const handleStepClick = (stepId) => {
+    setActiveStep(stepId);
+    setMobileTab('editor');
+    setTimeout(() => {
+      if (stepFormRef.current) {
+        stepFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 60);
+  };
 
   // Auto-sync preview page to active step
   useEffect(() => {
@@ -424,7 +436,7 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
   };
 
   return (
-    <div className="w-full h-[calc(100vh-125px)] max-h-[calc(100vh-125px)] flex flex-col justify-between font-body text-[#4A4A43] overflow-hidden">
+    <div className="w-full flex-1 flex flex-col justify-between font-body text-[#4A4A43] overflow-hidden">
       {/* Toast Notification */}
       <AnimatePresence>
         {toastMsg && (
@@ -436,63 +448,58 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
       </AnimatePresence>
 
       {/* TOP EDITOR NAVIGATION / STATUS BAR */}
-      <div className="flex-shrink-0 bg-white p-3 rounded-2xl border border-[#D6CFC2] shadow-xs flex flex-wrap items-center justify-between gap-3 mb-2.5">
-        <div className="flex items-center gap-3">
+      <div className="flex-shrink-0 bg-white p-2 sm:p-3 rounded-2xl border border-[#D6CFC2] shadow-xs flex items-center justify-between gap-2 mb-2.5">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
             onClick={onClose}
-            className="px-3 py-1.5 bg-[#EDE8DF] hover:bg-[#E2DDD3] text-primary rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="px-2.5 sm:px-3 py-1.5 bg-[#EDE8DF] hover:bg-[#E2DDD3] text-primary rounded-xl text-[11px] sm:text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer flex-shrink-0"
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back to Quotes</span>
+            <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Back to Quotes</span>
+            <span className="inline sm:hidden">Back</span>
           </button>
-          <div className="h-4 w-[1px] bg-[#D6CFC2]"></div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-serif font-bold text-base text-primary">Quote Editor</span>
-              <span className="font-mono text-xs text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md font-bold">{quote.id}</span>
-              <Badge variant={quote.status === 'Approved' || quote.status === 'Geaccepteerd' ? 'success' : quote.status === 'Sent' || quote.status === 'Verzonden' ? 'info' : 'default'}>
-                {quote.status}
-              </Badge>
-            </div>
+          <div className="h-4 w-[1px] bg-[#D6CFC2] hidden sm:block"></div>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="font-serif font-bold text-xs sm:text-base text-primary truncate">Quote Editor</span>
+            <span className="font-mono text-[10px] sm:text-xs text-amber-800 bg-amber-100 px-1.5 sm:px-2 py-0.5 rounded-md font-bold flex-shrink-0">{quote.id}</span>
+            <Badge variant={quote.status === 'Approved' || quote.status === 'Geaccepteerd' ? 'success' : quote.status === 'Sent' || quote.status === 'Verzonden' ? 'info' : 'default'}>
+              {quote.status}
+            </Badge>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="text-[11px] font-mono text-dark/60 bg-[#F8F7F4] px-3 py-1.5 rounded-xl border border-[#D6CFC2]">
-            🟢 Auto-saved as draft · {lastSavedTime}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="text-[9.5px] sm:text-[11px] font-mono text-dark/60 bg-[#F8F7F4] px-2 sm:px-3 py-1 rounded-xl border border-[#D6CFC2] whitespace-nowrap">
+            🟢 Draft · {lastSavedTime}
           </span>
         </div>
       </div>
 
-
-
       {/* MOBILE / TABLET TAB SWITCHER (< lg) */}
-      <div className="flex lg:hidden bg-white p-1.5 rounded-xl border border-[#D6CFC2] gap-1 shadow-xs">
+      <div className="flex lg:hidden bg-white p-1 rounded-xl border border-[#D6CFC2] gap-1 shadow-xs mb-2">
         <button
           onClick={() => setMobileTab('editor')}
-          className={`flex-1 py-2 text-xs font-bold font-mono rounded-lg transition-all cursor-pointer ${
-            mobileTab === 'editor' ? 'bg-[#33422C] text-white shadow-xs' : 'text-dark/70 hover:bg-[#F8F7F4]'
-          }`}
+          className={`flex-1 py-1.5 text-xs font-bold font-mono rounded-lg transition-all cursor-pointer ${mobileTab === 'editor' ? 'bg-[#33422C] text-white shadow-xs' : 'text-dark/70 hover:bg-[#F8F7F4]'
+            }`}
         >
           📝 Form Editor
         </button>
         <button
           onClick={() => setMobileTab('preview')}
-          className={`flex-1 py-2 text-xs font-bold font-mono rounded-lg transition-all cursor-pointer ${
-            mobileTab === 'preview' ? 'bg-[#33422C] text-white shadow-xs' : 'text-dark/70 hover:bg-[#F8F7F4]'
-          }`}
+          className={`flex-1 py-1.5 text-xs font-bold font-mono rounded-lg transition-all cursor-pointer ${mobileTab === 'preview' ? 'bg-[#33422C] text-white shadow-xs' : 'text-dark/70 hover:bg-[#F8F7F4]'
+            }`}
         >
           👁️ Live Preview (Page {previewPage}/6)
         </button>
       </div>
 
       {/* THREE-ZONE MAIN GRID LAYOUT */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 items-start min-h-0 overflow-hidden">
-        
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 items-start min-h-0 overflow-visible lg:overflow-hidden">
+
         {/* ========================================================= */}
         {/* ZONE 1: LEFT COLUMN - STEP NAVIGATION (3 Cols)            */}
         {/* ========================================================= */}
-        <div className={`lg:col-span-3 space-y-3 ${mobileTab === 'preview' ? 'hidden lg:block' : 'block'}`}>
+        <div className={`lg:col-span-3 space-y-3 lg:overflow-y-auto lg:max-h-[calc(100vh-210px)] pr-1 ${mobileTab === 'preview' ? 'hidden lg:block' : 'block'}`}>
           <div className="bg-white rounded-2xl p-3.5 border border-[#D6CFC2] shadow-xs space-y-2.5">
             <h3 className="font-serif font-bold text-lg text-primary whitespace-nowrap">Quote {quote.id}</h3>
 
@@ -505,23 +512,18 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                 return (
                   <button
                     key={step.id}
-                    onClick={() => {
-                      setActiveStep(step.id);
-                      setMobileTab('editor');
-                    }}
-                    className={`w-full text-left py-2 px-2.5 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer ${
-                      isActive
-                        ? 'bg-[#33422C] text-[#FDFBF7] shadow-sm font-bold'
-                        : 'hover:bg-[#F8F7F4] text-dark border border-transparent'
-                    }`}
+                    onClick={() => handleStepClick(step.id)}
+                    className={`w-full text-left py-2 px-2.5 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer ${isActive
+                      ? 'bg-[#33422C] text-[#FDFBF7] shadow-sm font-bold'
+                      : 'hover:bg-[#F8F7F4] text-dark border border-transparent'
+                      }`}
                   >
-                    <span className={`w-5 h-5 rounded-full text-[11px] font-mono font-bold flex items-center justify-center flex-shrink-0 ${
-                      isActive 
-                        ? 'bg-white text-[#33422C]' 
-                        : isCompleted 
-                        ? 'bg-[#33422C] text-white' 
+                    <span className={`w-5 h-5 rounded-full text-[11px] font-mono font-bold flex items-center justify-center flex-shrink-0 ${isActive
+                      ? 'bg-white text-[#33422C]'
+                      : isCompleted
+                        ? 'bg-[#33422C] text-white'
                         : 'border border-[#D6CFC2] text-dark/60'
-                    }`}>
+                      }`}>
                       {isCompleted ? '✓' : step.number}
                     </span>
                     <div className="min-w-0 flex-1">
@@ -543,28 +545,28 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
         {/* ========================================================= */}
         {/* ZONE 2: MIDDLE COLUMN - ACTIVE STEP FORM (6 Cols)          */}
         {/* ========================================================= */}
-        <div className={`lg:col-span-6 space-y-4 overflow-y-auto max-h-[calc(100vh-200px)] pr-1.5 ${mobileTab === 'preview' ? 'hidden lg:block' : 'block'}`}>
-          
+        <div ref={stepFormRef} className={`lg:col-span-6 space-y-4 lg:overflow-y-auto lg:max-h-[calc(100vh-210px)] pr-2 ${mobileTab === 'preview' ? 'hidden lg:block' : 'block'}`}>
+
           {/* Main Title & Subtitle */}
           <div className="space-y-1">
             <h2 className="font-serif font-bold text-3xl text-primary">{STEPS[activeStep - 1].title}</h2>
             <p className="text-xs text-dark/60 font-body">
-              {activeStep === 1 
+              {activeStep === 1
                 ? 'Everything here returns automatically on every page of the quote — choose once, never retype.'
                 : activeStep === 2
-                ? 'Page 1 of the quote. The subtitle writes itself based on step 3.'
-                : activeStep === 3
-                ? 'Page 3 — the most dynamic page. Everything here differs per quote.'
-                : activeStep === 4
-                ? 'Page 4. Totals and instalment amounts calculate themselves — try it: change a price.'
-                : STEPS[activeStep - 1].desc}
+                  ? 'Page 1 of the quote. The subtitle writes itself based on step 3.'
+                  : activeStep === 3
+                    ? 'Page 3 — the most dynamic page. Everything here differs per quote.'
+                    : activeStep === 4
+                      ? 'Page 4. Totals and instalment amounts calculate themselves — try it: change a price.'
+                      : STEPS[activeStep - 1].desc}
             </p>
           </div>
 
           {/* STEP 1: CUSTOMER & DETAILS */}
           {activeStep === 1 && (
             <div className="space-y-4">
-              
+
               {/* CARD 1: CUSTOMER */}
               <div className="bg-white rounded-2xl p-5 border border-[#D6CFC2] shadow-2xs space-y-3.5">
                 <span className="text-xs font-bold uppercase tracking-wider text-dark/80 font-mono block">CUSTOMER</span>
@@ -737,7 +739,7 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
           {/* STEP 2: COVER */}
           {activeStep === 2 && (
             <div className="space-y-4">
-              
+
               {/* CARD 1: TITLE & SUBTITLE */}
               <div className="bg-white rounded-2xl p-5 border border-[#D6CFC2] shadow-2xs space-y-4">
                 <div className="flex justify-between items-center">
@@ -795,9 +797,8 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <label className="text-[10px] font-bold uppercase tracking-wider text-dark/60 font-mono">SUBTITLE</label>
-                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded font-mono uppercase ${
-                            isOverride ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-800'
-                          }`}>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded font-mono uppercase ${isOverride ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-800'
+                            }`}>
                             {isOverride ? 'CUSTOM OVERRIDE' : 'AUTOMATIC (STEP 3)'}
                           </span>
                         </div>
@@ -872,8 +873,8 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                     const warning = photoWarnings[slot];
 
                     return (
-                      <div 
-                        key={slot} 
+                      <div
+                        key={slot}
                         className="bg-[#F8F7F4] border border-[#D6CFC2] rounded-xl p-3 space-y-2 relative"
                         onMouseEnter={() => setHighlightField('photos')}
                         onMouseLeave={() => setHighlightField(null)}
@@ -982,7 +983,7 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
           {/* STEP 3: CONFIGURATION */}
           {activeStep === 3 && (
             <div className="space-y-4">
-              
+
               {/* CARD 1: STAT TILES (ALWAYS 4) */}
               <div className="bg-white rounded-2xl p-5 border border-[#D6CFC2] shadow-2xs space-y-4">
                 <span className="text-xs font-bold uppercase tracking-wider text-dark/80 font-mono block">STAT TILES (ALWAYS 4)</span>
@@ -1171,9 +1172,8 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-bold uppercase tracking-wider text-dark/80 font-mono">SPECIFICATIONS</span>
                   <div className="flex items-center gap-2.5">
-                    <span className={`text-[10px] font-mono font-bold tracking-wider uppercase px-2 py-0.5 rounded ${
-                      totalSpecLines > 12 ? 'bg-red-100 text-red-800 border border-red-300' : 'text-dark/50'
-                    }`}>
+                    <span className={`text-[10px] font-mono font-bold tracking-wider uppercase px-2 py-0.5 rounded ${totalSpecLines > 12 ? 'bg-red-100 text-red-800 border border-red-300' : 'text-dark/50'
+                      }`}>
                       {totalSpecLines} / 12 LINES {totalSpecLines > 12 ? '⚠️ OVERFLOW' : ''}
                     </span>
                     <button
@@ -1284,7 +1284,7 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                       {language === 'EN' ? 'Upload Custom 3D / Project Photo' : 'Upload Aangepaste 3D / Projectfoto'}
                     </p>
                     <p className="text-[11px] text-dark/60">
-                      {language === 'EN' 
+                      {language === 'EN'
                         ? 'This photo is shown on Page 3 of the proposal next to the specifications and front-view diagram.'
                         : 'Deze foto wordt getoond op Pagina 3 van de offerte naast de specificaties en het vooraanzicht.'}
                     </p>
@@ -1411,7 +1411,7 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
           {/* STEP 4: INVESTMENT */}
           {activeStep === 4 && (
             <div className="space-y-4 font-body">
-              
+
               {/* CARD 1: LINE ITEMS */}
               <div className="bg-white rounded-2xl p-5 border border-[#D6CFC2] shadow-2xs space-y-4">
                 <div className="flex justify-between items-center">
@@ -1450,7 +1450,7 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                           placeholder="Line item title"
                           className="w-full sm:flex-1 px-3.5 py-2 bg-white border border-[#D6CFC2] rounded-xl font-bold text-dark text-xs focus:outline-none focus:border-primary"
                         />
-                        
+
                         <div className="flex items-center gap-1.5">
                           <input
                             type="number"
@@ -1655,27 +1655,24 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                           <button
                             type="button"
                             onClick={() => handleSetCount(2)}
-                            className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${
-                              count === 2 ? 'bg-[#33422C] text-white' : 'bg-[#EFECE6] text-dark/70 hover:bg-[#E2DDD3]'
-                            }`}
+                            className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${count === 2 ? 'bg-[#33422C] text-white' : 'bg-[#EFECE6] text-dark/70 hover:bg-[#E2DDD3]'
+                              }`}
                           >
                             2 Instalments (50/50)
                           </button>
                           <button
                             type="button"
                             onClick={() => handleSetCount(3)}
-                            className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${
-                              count === 3 ? 'bg-[#33422C] text-white' : 'bg-[#EFECE6] text-dark/70 hover:bg-[#E2DDD3]'
-                            }`}
+                            className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${count === 3 ? 'bg-[#33422C] text-white' : 'bg-[#EFECE6] text-dark/70 hover:bg-[#E2DDD3]'
+                              }`}
                           >
                             3 Instalments (30/40/30)
                           </button>
                         </div>
                       </div>
 
-                      <span className={`text-xs font-mono font-bold px-2.5 py-0.5 rounded-md ${
-                        isSumValid ? 'text-emerald-800 bg-emerald-100' : 'text-red-800 bg-red-100'
-                      }`}>
+                      <span className={`text-xs font-mono font-bold px-2.5 py-0.5 rounded-md ${isSumValid ? 'text-emerald-800 bg-emerald-100' : 'text-red-800 bg-red-100'
+                        }`}>
                         SUM = {pSum}% {isSumValid ? '✓' : '⚠️ Must equal 100%'}
                       </span>
                     </div>
@@ -1717,7 +1714,7 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
           {/* STEP 5: LETTER & PROCESS */}
           {activeStep === 5 && (
             <div className="space-y-4 font-body">
-              
+
               {/* CARD 1: PERSONAL LETTER (P2) */}
               <div className="bg-white rounded-2xl p-5 border border-[#D6CFC2] shadow-2xs space-y-4">
                 <span className="text-xs font-bold uppercase tracking-wider text-dark/80 font-mono block">PERSONAL LETTER (P2)</span>
@@ -1913,10 +1910,10 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                     <div className="flex items-center gap-2">
                       {((quote.investment?.lineItems || []).find(i => (i.title || i.description || '').toLowerCase().includes('bezorging'))?.priceInclVat === 0 ||
                         (quote.investment?.lineItems || []).find(i => (i.title || i.description || '').toLowerCase().includes('bezorging'))?.isIncluded !== false) && (
-                        <span className="bg-emerald-100 text-emerald-800 font-mono font-bold text-[10px] px-2.5 py-1 rounded-md uppercase">
-                          GRATIS
-                        </span>
-                      )}
+                          <span className="bg-emerald-100 text-emerald-800 font-mono font-bold text-[10px] px-2.5 py-1 rounded-md uppercase">
+                            GRATIS
+                          </span>
+                        )}
                       <span className="text-[10px] font-mono text-dark/50">badge only when the delivery price is € 0</span>
                     </div>
                   </div>
@@ -1937,7 +1934,7 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
           {/* STEP 6: REVIEW & SEND */}
           {activeStep === 6 && (
             <div className="space-y-4 font-body">
-              
+
               {/* SUMMARY REVIEW CARDS */}
               <div className="bg-white rounded-2xl p-5 border border-[#D6CFC2] shadow-2xs space-y-4">
                 <div className="flex justify-between items-center border-b border-[#D6CFC2]/60 pb-2">
@@ -1984,9 +1981,8 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
               <div className="bg-white rounded-2xl p-5 border border-[#D6CFC2] shadow-2xs space-y-3.5">
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-bold uppercase tracking-wider text-dark/80 font-mono">COMPLETENESS & VALIDATION CHECKLIST</span>
-                  <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded uppercase ${
-                    validation.errors.length === 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                  }`}>
+                  <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded uppercase ${validation.errors.length === 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                    }`}>
                     {validation.errors.length === 0 ? '✓ Ready to Send' : '⚠️ Validation Warnings'}
                   </span>
                 </div>
@@ -2079,13 +2075,12 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
                     type="button"
                     disabled={validation.errors.length > 0 || quote?.status === 'Verzonden' || quote?.status === 'Approved' || quote?.status === 'Geaccepteerd'}
                     onClick={() => setShowSendModal(true)}
-                    className={`px-4 py-2.5 font-bold text-xs rounded-xl shadow-xs transition-all font-mono flex items-center gap-2 ${
-                      quote?.status === 'Verzonden' || quote?.status === 'Approved' || quote?.status === 'Geaccepteerd'
-                        ? 'bg-emerald-700 text-white cursor-not-allowed opacity-80'
-                        : validation.errors.length > 0
+                    className={`px-4 py-2.5 font-bold text-xs rounded-xl shadow-xs transition-all font-mono flex items-center gap-2 ${quote?.status === 'Verzonden' || quote?.status === 'Approved' || quote?.status === 'Geaccepteerd'
+                      ? 'bg-emerald-700 text-white cursor-not-allowed opacity-80'
+                      : validation.errors.length > 0
                         ? 'bg-gray-300 text-gray-600 cursor-not-allowed border border-gray-400'
                         : 'bg-[#33422C] text-[#FDFBF7] hover:bg-[#283523] cursor-pointer'
-                    }`}
+                      }`}
                   >
                     <span>{quote?.status === 'Verzonden' ? '✅ Sent' : quote?.status === 'Approved' || quote?.status === 'Geaccepteerd' ? '✅ Approved' : '✈ Confirm & Send Quote'}</span>
                   </button>
@@ -2176,8 +2171,8 @@ export default function QuoteEditor({ quoteData, onClose, onSaveQuote, leadsList
         {/* ========================================================= */}
         {/* ZONE 3: RIGHT COLUMN - MANDATORY LIVE PREVIEW (3 Cols)    */}
         {/* ========================================================= */}
-        <div className={`lg:col-span-3 ${mobileTab === 'editor' ? 'hidden lg:block' : 'block'}`}>
-          <div className="bg-white rounded-2xl p-3 border border-[#D6CFC2] shadow-xs space-y-2 font-body sticky top-4">
+        <div className={`lg:col-span-3 overflow-y-auto max-h-[calc(100vh-210px)] pr-1 ${mobileTab === 'editor' ? 'hidden lg:block' : 'block'}`}>
+          <div className="bg-white rounded-2xl p-3 border border-[#D6CFC2] shadow-xs space-y-2 font-body relative">
             {/* Live Preview Header */}
             <div className="flex justify-between items-center border-b border-[#D6CFC2]/80 pb-2.5">
               <span className="text-xs font-mono font-bold tracking-wider text-dark/80 uppercase">LIVE PREVIEW</span>

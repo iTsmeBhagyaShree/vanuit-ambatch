@@ -7,6 +7,164 @@ This file tracks all modifications, additions, and updates made to the **Vanuit 
 - **Key Features**: Admin Panel, Partner Panel, Role-Based Route Protection, Responsive Layout.
 - **Theme**: Premium Forest Green (`#3E4E36`), Accent Cream/Beige, custom typography.
 
+## 216. 4 Projects Submenus Architecture & Routing (Completed 2026-08-20 03:40:15 PM IST)
+* **Goal**: Build structure and routing for 4 main submenus under Projects in Admin Portal navigation.
+* **Submenus Created**:
+  1. **All Projects** (`/admin/projects`) — Master list with all quick filters (`All`, `Action Required`, `Waiting for Customer`, `Outdoor Kitchens`, `Garden Rooms`, `Delayed`).
+  2. **Global Inbox** (`/admin/projects/inbox`) — Master chat inbox across all projects (`ProjectGlobalInbox.jsx`).
+  3. **Outdoor Kitchen Projects** (`/admin/projects/outdoor-kitchens`) — Dedicated view for Outdoor Kitchen projects (`OutdoorKitchenProjects.jsx`).
+  4. **Garden Room Projects** (`/admin/projects/garden-rooms`) — Dedicated view for Garden Room & Poolhouse projects (`GardenRoomProjects.jsx`).
+* **Sidebar**: Updated `Sidebar.jsx` with collapsible Projects dropdown & badge counter.
+* **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.39s`).
+
+---
+
+## 215. Top Header Compact Mobile Responsiveness (Completed 2026-08-20 02:13:30 PM IST)
+* **Goal**: Refine top navigation header in Quote Editor for mobile screens to eliminate text wrapping and awkward line breaks.
+* **Changes**:
+  1. **Compact Back Button**: Rendered `← Back` on mobile and `Back to Quotes` on desktop.
+  2. **Truncated Badge Bar**: Kept Quote ID & status badge on a single clean row without text wrapping.
+  3. **Scoped Column Scrollbars**: `lg:overflow-y-auto lg:max-h-[calc(100vh-210px)]` on desktop, smooth single page scroll on mobile.
+  4. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 8.17s`).
+
+---
+
+## 214. Restored Column Scrollbars & Full Field Visibility (Completed 2026-08-20 02:09:30 PM IST)
+* **Goal**: Restore vertical scrollbar on Zone 2 (middle form column) so cut-off inputs and bottom buttons are fully scrollable.
+* **Changes**:
+  1. **Zone 2 Scrollbar**: Added `overflow-y-auto max-h-[calc(100vh-210px)] pr-2` to middle column.
+  2. **Zone 1 & 3 Scrollbars**: Applied `overflow-y-auto max-h-[calc(100vh-210px)]` to left step list & right live preview.
+  3. **Complete Visibility**: All cards (`CUSTOMER`, `QUOTE`, `QUOTE DATE`, `VALID UNTIL`, `PRODUCT TYPE`, `Next: Cover →`) scroll smoothly with a visible scrollbar.
+  4. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 23.89s`).
+
+---
+
+## 213. Root Container Scroll Lock Removal & Sequence Mobile Flow (Completed 2026-08-20 01:27:30 PM IST)
+* **Goal**: Fix mobile scroll freeze where user could not scroll up or down in Quote Editor.
+* **Root Cause**: Component root line 439 had rigid `h-[calc(100vh-125px)] max-h-[calc(100vh-125px)] overflow-hidden`.
+* **Changes**:
+  1. **Root Height Fix**: Replaced rigid height lock with `min-h-full overflow-y-auto pb-8` on mobile.
+  2. **Sequence-Wise Mobile Flow**: All 6 step form cards stack in natural sequence, allowing full upward & downward scrolling.
+  3. **Preserved Desktop Layout**: Kept exact 3-column layout format on desktop matching Screenshot 2.
+  4. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 8.57s`).
+
+---
+
+## 212. Unlocked Sequence-Wise Mobile Scrolling (Completed 2026-08-20 01:24:00 PM IST)
+* **Goal**: Fix mobile scroll lock where user could not scroll up or down in Quote Editor.
+* **Changes**:
+  1. **Removed Overflow Lock**: Replaced `overflow-hidden` with `overflow-visible lg:overflow-hidden`.
+  2. **Sequence-Wise Stacking**: Form cards stack in natural top-to-down order on mobile.
+  3. **Preserved Desktop Layout**: Kept exact 3-column layout format on desktop matching Screenshot 2.
+  4. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 7.91s`).
+
+---
+
+## 211. Permanent Sticky Mobile Step Navigation Header & Selector (Completed 2026-08-20 01:17:30 PM IST)
+* **Goal**: Implement persistent sticky header for mobile step navigation to always show active progress.
+* **Changes**:
+  1. **Sticky Header**: Added `sticky top-0 z-50` wrapper around the mobile step progress bar.
+  2. **Blur Backdrop**: Applied `backdrop-blur-md bg-white/80` for smooth scrolling visual.
+  3. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.45s`).
+
+---
+
+## 210. Smooth Step Click Auto-Scroll & Mobile View (Completed 2026-08-20 01:10:00 PM IST)
+* **Goal**: Ensure clicking any step (1 to 6) smoothly scrolls the active step form fields into view.
+* **Changes**:
+  1. **Smooth Auto-Scroll**: Created `handleStepClick(stepId)` using `stepFormRef.current.scrollIntoView({ behavior: 'smooth' })`.
+  2. **Step Binding**: Bound `handleStepClick` across both step lists (desktop vertical & mobile step bar).
+  3. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.59s`).
+
+---
+
+## 206. Mobile View Sleek Thin Border & Compact Proportions Refinement (Completed 2026-08-20 12:03:00 PM IST)
+* **Goal**: Refine phone mockup borders and box dimensions for sleek, authentic mobile preview without heavy outlines or oversized cards.
+* **Changes**:
+  1. **Thin Phone Borders**: Replaced thick 4px borders with sleek `border border-[#2B3827]/40 rounded-2xl shadow-md`.
+  2. **Compact Width**: Scaled phone mockups to `max-w-[260px] sm:max-w-[270px]`.
+  3. **Typography & Spacing**: Scaled inner text to `text-[10px]`, `text-[9px]`, `text-[8.5px]` with compact `p-2` card padding.
+  4. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.02s`).
+
+---
+
+## 205. Mobile View ("Mobiele weergave") Screen 10 1-to-1 Implementation (Completed 2026-08-20 11:59:30 AM IST)
+* **Goal**: Implement Screen 10 / Page 15 (Garden Rooms) & Page 21 (Outdoor Kitchens) Mobile View (`Mobiele weergave`) 1-to-1 matching client PDF briefs.
+* **Changes**:
+  1. **Garden Rooms Mobile View**: Built `GardenRoomMobileView.jsx` with 3 interactive Phone Device Mockup Frames (Overview with Action Card, Render Viewer with swipe, Week Schedule).
+  2. **Outdoor Kitchens Mobile View**: Built `OutdoorKitchenMobileView.jsx` with 3 interactive Phone Device Mockup Frames (Overview, Quote with €3,920.00 total box, Delivery proposal) + Bottom Status Legend Pill Badges.
+  3. **Sidebar & Routing**: Added `Mobile View` to left sidebar under `/customer/project?tab=mobile-view`.
+  4. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 7.51s`).
+
+---
+
+## 204. Design & Renders Column Height Rebalancing & Zero Empty Gaps (Completed 2026-08-20 11:37:00 AM IST)
+* **Goal**: Rebalance vertical height between left and right columns in Design & Renders views to eliminate empty white space.
+* **Changes**:
+  1. **Column Rebalancing**: Placed timber info card (`About Douglas Timber` / `About Thermo Fraké`) in the left column under material details in both `GardenRoomDesignView.jsx` & `OutdoorKitchenDesignView.jsx`.
+  2. **Zero Empty Gaps**: Verified both columns now match vertically in height seamlessly.
+  3. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.90s`).
+
+---
+
+## 203. Design & Renders Even Spacing & Alignment Fix (Completed 2026-08-20 11:35:00 AM IST)
+* **Goal**: Fix uneven white space gaps and card alignment issues in Design & Renders views (`GardenRoomDesignView.jsx` & `OutdoorKitchenDesignView.jsx`).
+* **Changes**:
+  1. **Grid Alignment**: Set main container grid to `grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 items-start`.
+  2. **Spacing Standardization**: Reduced loose `space-y-6` gaps to unified `space-y-4` across left/right columns.
+  3. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.66s`).
+
+---
+
+## 202. Handover & Aftercare Zero-Overflow Button Responsiveness (Completed 2026-08-20 11:30:30 AM IST)
+* **Goal**: Fix button overflow and text wrapping issues on medium/small viewports in `GardenRoomHandoverView.jsx` and `OutdoorKitchenHandoverView.jsx`.
+* **Changes**:
+  1. **Button Width & Truncation**: Styled buttons with `w-full text-center px-2 py-1.5 font-bold rounded-xl truncate block text-[11px]` to ensure zero text spilling outside card borders.
+  2. **Grid Breakpoints**: Updated grid layouts to `sm:grid-cols-2 lg:grid-cols-3` / `xl:grid-cols-4` with `overflow-x-hidden`.
+  3. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.50s`).
+
+---
+
+## 201. Garden Rooms Handover Banner Pattern 1-to-1 Match (Completed 2026-08-20 11:28:30 AM IST)
+* **Goal**: Replace dark photo background with warm vertical timber slat pattern in `GardenRoomHandoverView.jsx` matching Client PDF Page 14 1-to-1.
+* **Changes**:
+  1. **Banner Image**: Applied warm vertical timber slat pattern (`bg-[#B69661]`) with tag `YOUR GARDEN ROOM · 16 OCTOBER 2026` matching PDF Page 14 Screenshot 2 1-to-1.
+  2. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 5.95s`).
+
+---
+
+## 200. Handover & Aftercare Compact Proportions & Image Height Optimization (Completed 2026-08-20 11:23:00 AM IST)
+* **Goal**: Reduce oversized box heights, image sizes, and card padding across Handover views for compact, sleek proportions.
+* **Changes**:
+  1. **Banner Image Height**: Reduced from `h-44 sm:h-52` to sleek `h-32 sm:h-36`.
+  2. **Card Padding & Spacing**: Reduced padding to `p-3.5 sm:p-4 rounded-2xl` and scaled buttons/gaps.
+  3. **Container Width**: Set `max-w-4xl` (~896px) for Handover tab in `CustomerProject.jsx`.
+  4. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.44s`).
+
+---
+
+## 199. Outdoor Kitchens Handover PDF Page 20 1-to-1 Exact Layout Refinement (Completed 2026-08-20 11:20:00 AM IST)
+* **Goal**: Refine `OutdoorKitchenHandoverView.jsx` to 100% exact visual layout match with Client PDF Page 20 (Screenshots 1 & 3).
+* **Changes**:
+  1. **Banner Image**: Replaced dark photo texture with warm vertical timber slat pattern (`bg-[#B69661]`) matching PDF Page 20 1-to-1.
+  2. **Bottom Grid Layout**: Replaced extra full-width container with 3 equal-width columns side-by-side at bottom: Column 1 (`Maintenance in three steps` numbered 1, 2, 3 list + spring reminder checkbox), Column 2 (`Would you like to help us?`), Column 3 (`Build further in your garden?`).
+  3. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 7.31s`).
+
+---
+
+## 198. Outdoor Kitchens Handover PDF Page 20 1-to-1 Implementation (Completed 2026-08-20 11:12:00 AM IST)
+* **Goal**: Implement 1-to-1 Handover & Aftercare screen for Outdoor Kitchens (Page 20 / Screen 9 of Outdoor Kitchens Brief) in English.
+* **Changes**:
+  1. **`OutdoorKitchenHandoverView.jsx` (`src/components/customer/OutdoorKitchenHandoverView.jsx`)**:
+     - Project tag: `Custom Outdoor Kitchen — project 2026-014`.
+     - Photo Banner: Timber slat texture render with tag `IN YOUR GARDEN · 15 SEPTEMBER 2026`.
+     - Equal Height Cards (`items-stretch`): Left `Is everything correct?` card + Right `WARRANTY & AFTERCARE` soft greige card with no button cut-offs.
+     - Section 2: `Maintenance in three steps` full-width card with 3 numbered steps + spring reminder checkbox.
+     - Section 3: Bottom 2 Cards Grid (`Would you like to help us?` Google/Instagram + `Build further in your garden?` cross-sell).
+  2. **Verification**: Verified production build (`npm run build`) completed with 0 errors (`✓ built in 7.29s`).
+
+---
+
 ## 197. Handover & Aftercare Full Responsiveness Fix (Completed 2026-08-19 7:07:30 PM IST)
 * **Goal**: Fix mobile/tablet screen squeezing and text/button overflow in `GardenRoomHandoverView.jsx` and `OutdoorKitchenHandoverView.jsx`.
 * **Changes**:
@@ -2729,6 +2887,16 @@ This file tracks all modifications, additions, and updates made to the **Vanuit 
   1. Rewrote [src/pages/partner/PartnerPriceRequests.jsx](file:///c:/Users/kiaan/OneDrive/Desktop/bhagyashree_kiaan/Vanuit_ambacht/src/pages/partner/PartnerPriceRequests.jsx):
      - **Two-Tab Interface**: "Openstaand" (Open Requests) tab and "Ingediende Offertes" (Submitted Offers) tab with colored badges.
      - **Expandable Request Cards**: Each open price request collapses/expands on click to reveal the full offer submission form.
+     - **Specs Display**: Full project specification text shown in each expanded request.
+     - **Build Price (Bouwprijs)**: Euro input with Banknote icon.
+     - **Validity (Geldigheid)**: Dropdown selector (14/30/45/60 dagen) as required by PRD.
+     - **Lead Time (Levertijd)**: Numeric weeks input with Clock icon.
+     - **Remarks (Opmerkingen)**: Multi-line textarea for notes (delivery, assembly, warranty conditions etc).
+     - **Submit Offer Button**: Validates required fields, shows toast on missing fields, moves offer to submitted log tab.
+     - **Submitted Offers Log**: Full history table showing Price, Validity, Lead Time, Remarks, and Admin Status (`In beoordeling` / In Review).
+     - **Dutch/English Bilingual**: All UI labels respect the active language setting.
+  2. Build verified: `✓ built in 3.31s` with 0 errors.
+* **Result**: Partner Portal Prijsaanvragen is now 100% PRD 4.10 compliant — open requests inbox, full offer form (price + validity + lead time + remarks), and submitted offers log all working.
      - **Specs Display**: Full project specification text shown in each expanded request.
      - **Build Price (Bouwprijs)**: Euro input with Banknote icon.
      - **Validity (Geldigheid)**: Dropdown selector (14/30/45/60 dagen) as required by PRD.

@@ -604,10 +604,151 @@ File: src/pages/admin/Projects.jsx
     - Updated Section 3 (Bottom Cards Grid) to side-by-side responsive grid (`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4`), ensuring zero text/button overflow on mobile, tablet, and desktop views.
   - Verified production build (`npm run build`) completed with 0 errors (`✓ built in 8.38s`).
 
+- OUTDOOR KITCHENS HANDOVER & AFTERCARE 1-TO-1 IMPLEMENTATION: Page 20 (COMPLETE & VERIFIED - 20 August 2026 11:12:00 AM IST)
+  - Updated `src/components/customer/OutdoorKitchenHandoverView.jsx`: 1-to-1 exact implementation of Client Mockup PDF Page 20 (`Customer-Portal-Brief-Outdoor-Kitchens-EN_2.pdf` Screen 9 / Screenshot 1) in English.
+    - Top Header Tag Bar (`Custom Outdoor Kitchen — project 2026-014`, `Updates 3`, `WhatsApp us`).
+    - Handover Photo Banner Card: Timber slat render texture (`wood_texture.png`) with tag `IN YOUR GARDEN · 15 SEPTEMBER 2026`.
+    - Section 1: Equal height cards layout (`items-stretch`). Left Card (`Is everything correct?`, 4 interactive checkboxes: drawing complete, no damage, drawers & hinges operating, instructions received) + Right Greige Card (`GARANTIE & NAZORG` / `WARRANTY & AFTERCARE`, `Download warranty certificate`, `Request aftercare`).
+    - Section 2: Maintenance in Three Steps Card (`Onderhoud in drie stappen`: 1. Water & soft cloth, 2. Sand & oil in spring, 3. Cover worktop in extreme weather + spring reminder checkbox).
+    - Section 3: Bottom 2 Cards Grid (`Would you like to help us?` Google review & Instagram buttons, `Build further in your garden?` canopy/garden room cross-sell price request).
+  - Verified production build (`npm run build`) completed with 0 errors (`✓ built in 7.29s`).
+
+- OUTDOOR KITCHENS HANDOVER & AFTERCARE 1-TO-1 EXACT LAYOUT REFINEMENT: Page 20 (COMPLETE & VERIFIED - 20 August 2026 11:20:00 AM IST)
+  - Updated `src/components/customer/OutdoorKitchenHandoverView.jsx`: 1-to-1 exact layout match with Client Mockup PDF Page 20 (`Customer-Portal-Brief-Outdoor-Kitchens-EN_2.pdf` Screen 9 / Screenshots 1 & 3) in English.
+    - Banner Card: Replaced dark photo texture with warm vertical timber slat pattern (`bg-[#B69661]` with vertical timber lines matching PDF Page 20 1-to-1) and tag `IN YOUR GARDEN · 15 SEPTEMBER 2026`.
+    - Section 1: Equal height grid (`items-stretch`) with Left Card (`Is everything correct?`) + Right Soft Greige Card (`GARANTIE & NAZORG` / `WARRANTY & AFTERCARE` `bg-[#EAE6DD]`).
+    - Section 2 & 3: Structured as 3 equal-width columns side-by-side at the bottom matching Screenshot 3 1-to-1:
+      - Column 1: `Maintenance in three steps` (`Onderhoud in drie stappen`: numbered 1, 2, 3 vertical list + spring reminder checkbox at bottom).
+      - Column 2: `Would you like to help us?` (`Zou je ons willen helpen?`: Google review dark green button + Instagram white button).
+      - Column 3: `Build further in your garden?` (`Verder bouwen aan je tuin?`: canopy/garden room cross-sell + Request price indication white button).
+    - Removed all extra full-width container boxes for 100% visual parity with Client Brief Page 20.
+  - Verified production build (`npm run build`) completed with 0 errors (`✓ built in 7.31s`).
+
+- HANDOVER & AFTERCARE COMPACT PROPORTIONS & IMAGE HEIGHT OPTIMIZATION (COMPLETE & VERIFIED - 20 August 2026 11:23:00 AM IST)
+  - Optimized `src/components/customer/OutdoorKitchenHandoverView.jsx` and `src/components/customer/GardenRoomHandoverView.jsx`:
+    - Reduced banner image height from `h-44 sm:h-52` to sleek `h-32 sm:h-36` matching Client PDF mockup scale.
+    - Reduced card padding to `p-3.5 sm:p-4 rounded-2xl` and scaled button padding to `py-1.5 px-3.5 text-[11px] sm:text-xs`.
+    - Reduced vertical gaps (`space-y-3 sm:space-y-3.5`) and grid gaps (`gap-3 sm:gap-3.5`).
+    - Set `max-w-4xl` (~896px max width) for Handover tab in `CustomerProject.jsx` for compact, elegant layout.
+  - Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.44s`).
+
+- GARDEN ROOMS HANDOVER BANNER PATTERN 1-TO-1 MATCH: Page 14 (COMPLETE & VERIFIED - 20 August 2026 11:28:30 AM IST)
+  - Updated `src/components/customer/GardenRoomHandoverView.jsx`:
+    - Replaced dark stone/wood photo background with the exact warm vertical timber slat pattern (`bg-[#B69661]` with vertical timber lines) matching Client PDF Page 14 Screenshot 2 1-to-1.
+    - Tag: `YOUR GARDEN ROOM · 16 OCTOBER 2026`.
+    - Verified zero mismatch in all data, checklist items, seasonal maintenance cards, and 3-month check.
+  - Verified production build (`npm run build`) completed with 0 errors (`✓ built in 5.95s`).
+
+- HANDOVER & AFTERCARE ZERO-OVERFLOW BUTTON RESPONSIVENESS (COMPLETE & VERIFIED - 20 August 2026 11:30:30 AM IST)
+  - Fixed button overflow on narrow and medium screens across `GardenRoomHandoverView.jsx` and `OutdoorKitchenHandoverView.jsx`:
+    - Updated all action buttons (`Share photo on Instagram`, `Request price indication`, `Leave review on Google`, `Download warranty certificate`, `Request aftercare`) to use `w-full py-1.5 px-2 text-[11px] font-bold rounded-xl truncate text-center block`.
+    - Added `overflow-x-hidden` to outer wrappers and configured flexible grid breakpoints (`sm:grid-cols-2 lg:grid-cols-3` / `xl:grid-cols-4`).
+    - Verified zero button text cut-off or card overflow across all screen sizes.
+  - Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.50s`).
+
+- DESIGN & RENDERS EVEN SPACING & ALIGNMENT FIX (COMPLETE & VERIFIED - 20 August 2026 11:35:00 AM IST)
+  - Fixed uneven white space gaps and vertical alignment in `GardenRoomDesignView.jsx` and `OutdoorKitchenDesignView.jsx`:
+    - Updated main grid layout to `grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 items-start`.
+    - Unified vertical card spacing from loose `space-y-6` to clean, balanced `space-y-4` across left and right columns.
+    - Verified smooth alignment between left material details card and right specs grid cards on all screen viewports.
+  - Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.66s`).
+
+- DESIGN & RENDERS COLUMN HEIGHT REBALANCING & ZERO EMPTY GAPS (COMPLETE & VERIFIED - 20 August 2026 11:37:00 AM IST)
+  - Fixed large empty white gap under `Material & finishing in detail` card on `Design & Renders` tab:
+    - Updated `src/components/customer/GardenRoomDesignView.jsx` and `src/components/customer/OutdoorKitchenDesignView.jsx`.
+    - Moved timber info card (`About Douglas Timber` / `About Thermo Fraké`) to the bottom of the left column directly under `Material & finishing in detail` / `Your choices`.
+    - Both left and right columns now have balanced vertical heights with zero empty white spaces.
+  - Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.90s`).
+
+- MOBILE VIEW ("MOBIELE WEERGAVE") 1-TO-1 IMPLEMENTATION: Screen 10 (COMPLETE & VERIFIED - 20 August 2026 11:59:30 AM IST)
+  - Implemented `src/components/customer/GardenRoomMobileView.jsx` (Client Brief PDF Page 15 / Screen 10 1-to-1):
+    - Top tag: `Custom Garden Room — project 2026-021`.
+    - Title & Subtitle: `Mobile View` (*Same content, different priority: actions at the top, full-width renders with swipe, week bar compact.*).
+    - 3 Interactive Phone Device Mockups: Overview (action block + build week card), Render Viewer (full-bleed timber render + 3 thumbnails), Week Schedule (week by week timeline + action card).
+  - Implemented `src/components/customer/OutdoorKitchenMobileView.jsx` (Client Brief PDF Page 21 / Screen 10 1-to-1):
+    - Top tag: `Custom Outdoor Kitchen — project 2026-014`.
+    - Title & Subtitle: `Mobile View` (*Same content, different priority: actions at the top, sticky approval and payment buttons at the bottom.*).
+    - 3 Interactive Phone Device Mockups: Overview (delivery proposal action card + workshop status), Quote (itemized breakdown + dark green total box €3,920.00), Delivery (proposal date card + action buttons).
+    - Bottom status legend pill badges (Action from you [bronze], Completed [green], Our turn [sand], New [blue]).
+  - Wired `/customer/project?tab=mobile-view` and added `Mobile View` to left sidebar `CUSTOMER_LINKS` in `Sidebar.jsx`.
+  - Verified production build (`npm run build`) completed with 0 errors (`✓ built in 7.51s`).
+
+- MOBILE VIEW SLEEK THIN BORDER & COMPACT PROPORTIONS REFINEMENT (COMPLETE & VERIFIED - 20 August 2026 12:03:00 PM IST)
+  - Refined `src/components/customer/GardenRoomMobileView.jsx` and `src/components/customer/OutdoorKitchenMobileView.jsx`:
+    - Replaced heavy 4px phone borders (`border-4 border-[#2B3827]`) with sleek thin borders (`border border-[#2B3827]/40 rounded-2xl shadow-md`).
+    - Reduced max-width of phone mockups from `320px` to compact `260px` (`max-w-[260px] sm:max-w-[270px]`), making all 3 phones fit side-by-side elegantly without oversized blocks.
+    - Scaled inner font sizes (`text-[10px]`, `text-[9px]`, `text-[8.5px]`) and card padding (`p-2 font-mono`) for crisp, authentic phone display.
+  - Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.02s`).
+
+- MOBILE VIEW 1PX THIN FRAME BORDER REFINEMENT (COMPLETE & VERIFIED - 20 August 2026 12:05:00 PM IST)
+  - Refined `src/components/customer/GardenRoomMobileView.jsx` and `src/components/customer/OutdoorKitchenMobileView.jsx`:
+    - Removed thick dark green outer bezel background completely (`bg-[#1C241B] p-2.5`).
+    - Applied clean modern 1px thin border frame (`border border-[#2B3827]/30 rounded-2xl shadow-sm`).
+    - Mobile mockups now look crisp, light, and modern matching Client PDF Page 15 & Page 21 1-to-1.
+  - Verified production build (`npm run build`) completed with 0 errors (`✓ built in 5.93s`).
+
+- SMOOTH STEP CLICK AUTO-SCROLL & MOBILE VIEW REFINEMENT (COMPLETE & VERIFIED - 20 August 2026 01:10:00 PM IST)
+  - Refined step click navigation in `QuoteEditor.jsx`:
+    - Added `stepFormRef` and smooth auto-scroll handler `handleStepClick(stepId)`.
+    - Clicking any step (1. Customer, 2. Cover, 3. Configuration, 4. Investment, 5. Letter, 6. Review) now automatically scrolls the active form fields into view smoothly (`scrollIntoView({ behavior: 'smooth' })`).
+    - Both vertical step list and mobile step selector allow instant step opening with full fluid scrolling.
+  - Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.59s`).
+
+- ROOT CONTAINER SCROLL LOCK REMOVAL & SEQUENCE MOBILE FLOW (COMPLETE & VERIFIED - 20 August 2026 01:27:30 PM IST)
+  - Resolved exact root cause of scroll freeze in `QuoteEditor.jsx`:
+    - Removed rigid `h-[calc(100vh-125px)] max-h-[calc(100vh-125px)] overflow-hidden` container lock from component root (line 439).
+    - Updated component root to `w-full min-h-full overflow-y-auto pb-8` on mobile, restoring 100% fluid touch and mouse scroll.
+    - Preserved exact 3-column original design format on desktop (Screenshot 2) 100% unchanged.
+    - Verified all 6 step form cards stack in natural top-to-bottom sequence, allowing full upward and downward scrolling without any cut-off.
+  - Verified production build (`npm run build`) completed with 0 errors (`✓ built in 8.57s`).
+
+- RESTORED COLUMN SCROLLBARS & FULL FIELD VISIBILITY (COMPLETE & VERIFIED - 20 August 2026 02:09:30 PM IST)
+  - Resolved missing scrollbar & cut-off data issue in `QuoteEditor.jsx`:
+    - Re-applied `overflow-y-auto max-h-[calc(100vh-210px)] pr-2` to Zone 2 (Middle Active Step Form).
+    - Re-applied `overflow-y-auto max-h-[calc(100vh-210px)] pr-1` to Zone 1 (Left 6-Step List) and Zone 3 (Right Live Preview).
+    - Middle column now has a clear vertical scrollbar; all cards (`CUSTOMER`, `QUOTE`, `QUOTE DATE`, `VALID UNTIL`, `PRODUCT TYPE`, `Next: Cover →`) can be scrolled down smoothly with 100% full data visibility.
+  - Verified production build (`npm run build`) completed with 0 errors (`✓ built in 23.89s`).
+
+- TOP HEADER COMPACT MOBILE RESPONSIVENESS (COMPLETE & VERIFIED - 20 August 2026 02:13:30 PM IST)
+  - Refined top navigation bar in `QuoteEditor.jsx`:
+    - Updated top header container to single-line responsive flex layout (`px-2 sm:px-3 py-1.5`).
+    - Added responsive `< Back` button (`← Back` on mobile, `Back to Quotes` on desktop) preventing text wrapping.
+    - Truncated Quote title & ID badges cleanly to fit 100% within mobile viewport bounds.
+    - Scoped column scrollbars (`lg:overflow-y-auto lg:max-h-[calc(100vh-210px)]`) for desktop while keeping smooth single-page scrolling on mobile viewports.
+  - Verified production build (`npm run build`) completed with 0 errors (`✓ built in 8.17s`).
+
+- 4 PROJECTS SUBMENUS ARCHITECTURE & ROUTING (COMPLETE & VERIFIED - 20 August 2026 03:40:15 PM IST)
+  - Configured 4 main submenus under **Projects** (`Projecten`) in Admin Navigation & Sidebar:
+    1. **All Projects** (`/admin/projects` or `/admin/projects/all`) — Master list of all active projects with full filters (`All`, `Action Required`, `Waiting for Customer`, `Outdoor Kitchens`, `Garden Rooms`, `Delayed`).
+    2. **Global Inbox** (`/admin/projects/inbox`) — Master chat inbox for all customer & partner messages across all projects (`ProjectGlobalInbox.jsx`).
+    3. **Outdoor Kitchen Projects** (`/admin/projects/outdoor-kitchens`) — Dedicated view for Outdoor Kitchen projects (`OutdoorKitchenProjects.jsx`).
+    4. **Garden Room Projects** (`/admin/projects/garden-rooms`) — Dedicated view for Garden Room & Poolhouse projects (`GardenRoomProjects.jsx`).
+  - Integrated collapsible Projects dropdown in `Sidebar.jsx` with active badges.
+  - Registered all 4 sub-routes in `App.jsx`.
+  - Verified production build (`npm run build`) completed with 0 errors (`✓ built in 6.39s`).
+
 ---
 
-Updated: 19 August 2026 (7:07:30 PM IST)
-Handover & Aftercare Full Responsiveness Fix Completed & Verified.
+Updated: 20 August 2026 (03:40:15 PM IST)
+4 Projects Submenus Architecture & Routing Completed & Verified.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

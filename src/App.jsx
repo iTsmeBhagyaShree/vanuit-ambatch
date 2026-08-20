@@ -9,6 +9,9 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import Leads from './pages/admin/Leads';
 import Quotes from './pages/admin/Quotes';
 import Projects from './pages/admin/Projects';
+import ProjectGlobalInbox from './pages/admin/ProjectGlobalInbox';
+import OutdoorKitchenProjects from './pages/admin/OutdoorKitchenProjects';
+import GardenRoomProjects from './pages/admin/GardenRoomProjects';
 import Partners from './pages/admin/Partners';
 import Finance from './pages/admin/Finance';
 import Reports from './pages/admin/Reports';
@@ -76,6 +79,10 @@ function App() {
         <Route path="leads" element={<Leads />} />
         <Route path="quotes" element={<Quotes />} />
         <Route path="projects" element={<Projects />} />
+        <Route path="projects/all" element={<Projects />} />
+        <Route path="projects/inbox" element={<ProjectGlobalInbox />} />
+        <Route path="projects/outdoor-kitchens" element={<OutdoorKitchenProjects />} />
+        <Route path="projects/garden-rooms" element={<GardenRoomProjects />} />
         <Route path="partners" element={<Partners />} />
         <Route path="documents" element={<Documents role="admin" />} />
         <Route path="finance" element={<Finance />} />
