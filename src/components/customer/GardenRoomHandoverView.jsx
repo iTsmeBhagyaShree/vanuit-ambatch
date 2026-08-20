@@ -6,13 +6,13 @@ import timberSlatRender from '../../assets/wood_texture.png';
 /**
  * GardenRoomHandoverView Component (1-to-1 implementation of Client Mockup PDF Garden Rooms Screen 9 & Page 14)
  * 
- * Clean English Translation & Proportional Layout:
+ * 100% Responsive & Non-Overlapping Layout:
  * - Top Tag Bar (Custom Garden Room — project 2026-021, Updates 3, WhatsApp us)
  * - Page Title & Subtitle (Handover & Aftercare)
  * - Photo Banner Card (YOUR GARDEN ROOM · 16 OCTOBER 2026)
- * - Handover Approval Grid (Is everything correct? with 4 checkboxes & confirm button + Warranty & Aftercare card)
- * - Seasonal Maintenance Calendar (Spring, Summer, Autumn, Winter + reminder checkbox)
- * - Bottom Row Cards (3-Month Checkup, Google Review & Instagram, Complete Your Outdoor Living cross-sell)
+ * - Section 1: Handover Approval Grid (Is everything correct? [2 cols] + Warranty & Aftercare soft greige card [1 col])
+ * - Section 2: Seasonal Maintenance Calendar (4 seasonal sub-cards in 4-column responsive grid)
+ * - Section 3: Bottom 3 Cards Grid (3-Month Checkup + Google Review/Instagram + Complete Your Outdoor Living cross-sell)
  */
 export default function GardenRoomHandoverView({ project = null }) {
   const [feedbackToast, setFeedbackToast] = useState('');
@@ -45,7 +45,7 @@ export default function GardenRoomHandoverView({ project = null }) {
   };
 
   return (
-    <div className="space-y-4 font-body text-[#4A4A43] w-full">
+    <div className="space-y-4 sm:space-y-5 font-body text-[#4A4A43] w-full">
       {/* Toast Notification */}
       {feedbackToast && (
         <div className="fixed top-20 right-4 z-[9999] flex items-center gap-2 bg-primary text-cream px-4 py-3 rounded-xl shadow-xl border border-primary/20 text-xs font-medium">
@@ -54,7 +54,7 @@ export default function GardenRoomHandoverView({ project = null }) {
         </div>
       )}
 
-      {/* 1. TOP HEADER TAG BAR (1-to-1 Client Mockup) */}
+      {/* 1. TOP HEADER TAG BAR */}
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-dark/60">
         <span className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-md font-bold">
           Custom Garden Room — project {projectCode}
@@ -80,12 +80,12 @@ export default function GardenRoomHandoverView({ project = null }) {
         <h1 className="text-xl sm:text-2xl font-heading font-bold text-primary">
           Handover & Aftercare
         </h1>
-        <p className="text-xs text-dark/70 font-medium">
+        <p className="text-xs sm:text-[13px] text-dark/70 font-medium">
           Handed over on 16 October 2026. Enjoy your garden room — and we remain reachable.
         </p>
       </div>
 
-      {/* 3. PHOTO BANNER CARD (1-to-1 Screenshot 1) */}
+      {/* 3. PHOTO BANNER CARD */}
       <div className="bg-[#FAF8F5] border border-[#D8D2C5] p-2 sm:p-2.5 rounded-2xl shadow-xs relative overflow-hidden">
         <div className="relative h-44 sm:h-52 w-full rounded-xl overflow-hidden bg-cover bg-center border border-[#D6CFC2]/60 flex items-end p-4" style={{ backgroundImage: `url(${timberSlatRender})` }}>
           <div className="bg-[#2B3827]/90 backdrop-blur-xs text-white font-mono text-[10px] sm:text-[11px] font-bold px-3 py-1 rounded-lg uppercase tracking-wider shadow-sm">
@@ -94,16 +94,16 @@ export default function GardenRoomHandoverView({ project = null }) {
         </div>
       </div>
 
-      {/* 4. SECTION 1: HANDOVER APPROVAL & WARRANTY GRID (1-to-1 Screenshot 1) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* 4. SECTION 1: HANDOVER APPROVAL & WARRANTY GRID */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         
-        {/* Left Card: Is Everything Correct? (2 Columns wide) */}
-        <div className="md:col-span-2 bg-[#FAF8F5] border border-[#D8D2C5] p-4 sm:p-4.5 rounded-2xl shadow-xs space-y-3 flex flex-col justify-between">
+        {/* Left Card: Is Everything Correct? (2 Columns wide on lg) */}
+        <div className="lg:col-span-2 bg-[#FAF8F5] border border-[#D8D2C5] p-4 sm:p-5 rounded-2xl shadow-xs space-y-3 flex flex-col justify-between">
           <div className="space-y-2">
-            <h3 className="font-heading font-bold text-primary text-sm sm:text-base">
+            <h3 className="font-heading font-bold text-primary text-base sm:text-lg">
               Is everything correct?
             </h3>
-            <p className="text-xs text-dark/70 leading-relaxed font-medium">
+            <p className="text-xs sm:text-[13px] text-dark/70 leading-relaxed font-medium">
               We went through the handover together. Confirm below — after that the final term (20%) follows. Notice something later? Aftercare is always available.
             </p>
 
@@ -114,7 +114,7 @@ export default function GardenRoomHandoverView({ project = null }) {
                   type="checkbox"
                   checked={checklist.drawing}
                   onChange={() => toggleCheck('drawing')}
-                  className="w-4 h-4 rounded text-primary focus:ring-primary border-[#D6CFC2]"
+                  className="w-4 h-4 rounded text-primary border-[#D6CFC2] focus:ring-primary accent-[#2B3827]"
                 />
                 <span>Built according to drawing and render</span>
               </label>
@@ -124,7 +124,7 @@ export default function GardenRoomHandoverView({ project = null }) {
                   type="checkbox"
                   checked={checklist.roof}
                   onChange={() => toggleCheck('roof')}
-                  className="w-4 h-4 rounded text-primary focus:ring-primary border-[#D6CFC2]"
+                  className="w-4 h-4 rounded text-primary border-[#D6CFC2] focus:ring-primary accent-[#2B3827]"
                 />
                 <span>Roof, gutters and drainage inspected</span>
               </label>
@@ -134,7 +134,7 @@ export default function GardenRoomHandoverView({ project = null }) {
                   type="checkbox"
                   checked={checklist.slidingDoors}
                   onChange={() => toggleCheck('slidingDoors')}
-                  className="w-4 h-4 rounded text-primary focus:ring-primary border-[#D6CFC2]"
+                  className="w-4 h-4 rounded text-primary border-[#D6CFC2] focus:ring-primary accent-[#2B3827]"
                 />
                 <span>Sliding doors, electrics and lighting working</span>
               </label>
@@ -144,7 +144,7 @@ export default function GardenRoomHandoverView({ project = null }) {
                   type="checkbox"
                   checked={checklist.gardenClean}
                   onChange={() => toggleCheck('gardenClean')}
-                  className="w-4 h-4 rounded text-primary focus:ring-primary border-[#D6CFC2]"
+                  className="w-4 h-4 rounded text-primary border-[#D6CFC2] focus:ring-primary accent-[#2B3827]"
                 />
                 <span>Garden and build site left clean and tidy</span>
               </label>
@@ -178,10 +178,10 @@ export default function GardenRoomHandoverView({ project = null }) {
           </div>
         </div>
 
-        {/* Right Card: Warranty & Aftercare (1 Column wide) */}
-        <div className="bg-[#FAF8F5] border border-[#D8D2C5] p-4 sm:p-4.5 rounded-2xl shadow-xs space-y-2.5 flex flex-col justify-between">
+        {/* Right Card: Warranty & Aftercare (1 Column wide on lg - Soft Greige bg-[#EAE6DD]) */}
+        <div className="lg:col-span-1 bg-[#EAE6DD] border border-[#C8C2B4] p-4 sm:p-5 rounded-2xl shadow-xs space-y-3 flex flex-col justify-between">
           <div className="space-y-1.5">
-            <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-accent block">
+            <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-[#70624F] block">
               WARRANTY & AFTERCARE
             </span>
             <p className="text-xs text-dark/70 leading-relaxed font-medium">
@@ -189,11 +189,11 @@ export default function GardenRoomHandoverView({ project = null }) {
             </p>
           </div>
 
-          <div className="space-y-1.5 pt-1">
+          <div className="space-y-2 pt-1">
             <button
               type="button"
               onClick={handleDownloadWarranty}
-              className="w-full py-2 bg-white text-dark/80 border border-[#D6CFC2] text-xs font-bold rounded-xl hover:bg-gray-50 transition-all cursor-pointer shadow-2xs text-center block"
+              className="w-full py-2 bg-white text-dark/80 border border-[#C8C2B4] text-xs font-bold rounded-xl hover:bg-gray-50 transition-all cursor-pointer shadow-2xs text-center block"
             >
               Download warranty certificate
             </button>
@@ -204,7 +204,7 @@ export default function GardenRoomHandoverView({ project = null }) {
                 setFeedbackToast('Aftercare request sent to Tim & Bram!');
                 setTimeout(() => setFeedbackToast(''), 3500);
               }}
-              className="w-full py-2 bg-white text-dark/80 border border-[#D6CFC2] text-xs font-bold rounded-xl hover:bg-gray-50 transition-all cursor-pointer shadow-2xs text-center block"
+              className="w-full py-2 bg-white text-dark/80 border border-[#C8C2B4] text-xs font-bold rounded-xl hover:bg-gray-50 transition-all cursor-pointer shadow-2xs text-center block"
             >
               Request aftercare
             </button>
@@ -213,10 +213,10 @@ export default function GardenRoomHandoverView({ project = null }) {
 
       </div>
 
-      {/* 5. SECTION 2: SEASONAL MAINTENANCE CALENDAR (1-to-1 Screenshot 2) */}
-      <div className="bg-[#FAF8F5] border border-[#D8D2C5] p-4 sm:p-4.5 rounded-2xl shadow-xs space-y-3">
+      {/* 5. SECTION 2: SEASONAL MAINTENANCE CALENDAR */}
+      <div className="bg-[#FAF8F5] border border-[#D8D2C5] p-4 sm:p-5 rounded-2xl shadow-xs space-y-3">
         <div className="space-y-0.5">
-          <h3 className="font-heading font-bold text-primary text-base">
+          <h3 className="font-heading font-bold text-primary text-base sm:text-lg">
             Maintenance Calendar
           </h3>
           <p className="text-xs text-dark/70 font-medium">
@@ -224,15 +224,15 @@ export default function GardenRoomHandoverView({ project = null }) {
           </p>
         </div>
 
-        {/* 4 Seasonal Cards Grid */}
+        {/* 4 Seasonal Sub-Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
           
           {/* Spring */}
-          <div className="bg-white border border-[#D6CFC2]/70 p-3.5 rounded-xl space-y-1">
-            <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-accent block">
+          <div className="bg-[#F5F2EC] border border-[#D6CFC2] p-3.5 rounded-xl space-y-1 shadow-2xs">
+            <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-[#70624F] block">
               SPRING
             </span>
-            <h5 className="font-heading font-bold text-primary text-xs">
+            <h5 className="font-heading font-bold text-primary text-xs sm:text-sm">
               Treat timber
             </h5>
             <p className="text-[11px] text-dark/70 leading-relaxed font-medium">
@@ -241,11 +241,11 @@ export default function GardenRoomHandoverView({ project = null }) {
           </div>
 
           {/* Summer */}
-          <div className="bg-white border border-[#D6CFC2]/70 p-3.5 rounded-xl space-y-1">
-            <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-accent block">
+          <div className="bg-[#F5F2EC] border border-[#D6CFC2] p-3.5 rounded-xl space-y-1 shadow-2xs">
+            <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-[#70624F] block">
               SUMMER
             </span>
-            <h5 className="font-heading font-bold text-primary text-xs">
+            <h5 className="font-heading font-bold text-primary text-xs sm:text-sm">
               Nothing — enjoy
             </h5>
             <p className="text-[11px] text-dark/70 leading-relaxed font-medium">
@@ -254,11 +254,11 @@ export default function GardenRoomHandoverView({ project = null }) {
           </div>
 
           {/* Autumn */}
-          <div className="bg-white border border-[#D6CFC2]/70 p-3.5 rounded-xl space-y-1">
-            <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-accent block">
+          <div className="bg-[#F5F2EC] border border-[#D6CFC2] p-3.5 rounded-xl space-y-1 shadow-2xs">
+            <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-[#70624F] block">
               AUTUMN
             </span>
-            <h5 className="font-heading font-bold text-primary text-xs">
+            <h5 className="font-heading font-bold text-primary text-xs sm:text-sm">
               Roof & drain clear
             </h5>
             <p className="text-[11px] text-dark/70 leading-relaxed font-medium">
@@ -267,11 +267,11 @@ export default function GardenRoomHandoverView({ project = null }) {
           </div>
 
           {/* Winter */}
-          <div className="bg-white border border-[#D6CFC2]/70 p-3.5 rounded-xl space-y-1">
-            <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-accent block">
+          <div className="bg-[#F5F2EC] border border-[#D6CFC2] p-3.5 rounded-xl space-y-1 shadow-2xs">
+            <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-[#70624F] block">
               WINTER
             </span>
-            <h5 className="font-heading font-bold text-primary text-xs">
+            <h5 className="font-heading font-bold text-primary text-xs sm:text-sm">
               Nothing needed
             </h5>
             <p className="text-[11px] text-dark/70 leading-relaxed font-medium">
@@ -288,18 +288,18 @@ export default function GardenRoomHandoverView({ project = null }) {
               type="checkbox"
               checked={seasonalReminder}
               onChange={(e) => setSeasonalReminder(e.target.checked)}
-              className="w-4 h-4 rounded text-primary focus:ring-primary border-[#D6CFC2]"
+              className="w-4 h-4 rounded text-primary border-[#D6CFC2] focus:ring-primary accent-[#2B3827]"
             />
             <span>Send me a seasonal maintenance reminder</span>
           </label>
         </div>
       </div>
 
-      {/* 6. SECTION 3: BOTTOM 3 CARDS GRID (1-to-1 Screenshot 2) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* 6. SECTION 3: BOTTOM 3 CARDS GRID (Side-by-Side Responsive Grid) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         
         {/* Card 1: The 3-month check */}
-        <div className="bg-[#FAF8F5] border border-[#D8D2C5] p-4 rounded-2xl shadow-xs space-y-2.5 flex flex-col justify-between">
+        <div className="bg-[#FAF8F5] border border-[#D8D2C5] p-4.5 rounded-2xl shadow-xs space-y-3 flex flex-col justify-between">
           <div className="space-y-1.5">
             <h4 className="font-heading font-bold text-primary text-xs sm:text-sm">
               The 3-month check
@@ -310,14 +310,14 @@ export default function GardenRoomHandoverView({ project = null }) {
           </div>
 
           <div className="pt-1">
-            <span className="bg-[#EDE9E3] text-[#70624F] font-mono text-[10px] font-bold px-2.5 py-1 rounded-md inline-block">
+            <span className="bg-[#EAE6DD] text-[#70624F] font-mono text-[10px] font-bold px-2.5 py-1 rounded-md inline-block">
               Scheduled · January 2027
             </span>
           </div>
         </div>
 
         {/* Card 2: Would you like to help us? */}
-        <div className="bg-[#FAF8F5] border border-[#D8D2C5] p-4 rounded-2xl shadow-xs space-y-2.5 flex flex-col justify-between">
+        <div className="bg-[#FAF8F5] border border-[#D8D2C5] p-4.5 rounded-2xl shadow-xs space-y-3 flex flex-col justify-between">
           <div className="space-y-1.5">
             <h4 className="font-heading font-bold text-primary text-xs sm:text-sm">
               Would you like to help us?
@@ -327,12 +327,12 @@ export default function GardenRoomHandoverView({ project = null }) {
             </p>
           </div>
 
-          <div className="space-y-1.5 pt-1">
+          <div className="space-y-2 pt-1">
             <a
               href="https://google.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full py-1.5 bg-[#2B3827] text-white text-xs font-bold rounded-xl text-center block hover:bg-[#1F291C] transition-all shadow-xs"
+              className="w-full py-2 bg-[#2B3827] text-white text-xs font-bold rounded-xl text-center block hover:bg-[#1F291C] transition-all shadow-xs"
             >
               Leave review on Google
             </a>
@@ -341,7 +341,7 @@ export default function GardenRoomHandoverView({ project = null }) {
               href="https://instagram.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full py-1.5 bg-white text-dark/80 border border-[#D6CFC2] text-xs font-bold rounded-xl text-center block hover:bg-gray-50 transition-all shadow-2xs"
+              className="w-full py-2 bg-white text-dark/80 border border-[#D6CFC2] text-xs font-bold rounded-xl text-center block hover:bg-gray-50 transition-all shadow-2xs"
             >
               Share photo on Instagram
             </a>
@@ -349,7 +349,7 @@ export default function GardenRoomHandoverView({ project = null }) {
         </div>
 
         {/* Card 3: Complete your outdoor living? */}
-        <div className="bg-[#FAF8F5] border border-[#D8D2C5] p-4 rounded-2xl shadow-xs space-y-2.5 flex flex-col justify-between items-start">
+        <div className="bg-[#FAF8F5] border border-[#D8D2C5] p-4.5 rounded-2xl shadow-xs space-y-3 flex flex-col justify-between items-start">
           <div className="space-y-1.5">
             <h4 className="font-heading font-bold text-primary text-xs sm:text-sm">
               Complete your outdoor living?
@@ -359,14 +359,14 @@ export default function GardenRoomHandoverView({ project = null }) {
             </p>
           </div>
 
-          <div className="pt-1">
+          <div className="pt-1 w-full">
             <button
               type="button"
               onClick={() => {
                 setFeedbackToast('Price indication requested! We will reach out with a custom proposal.');
                 setTimeout(() => setFeedbackToast(''), 4000);
               }}
-              className="px-4 py-1.5 bg-white text-dark/80 border border-[#D6CFC2] text-xs font-bold rounded-xl hover:bg-gray-50 transition-all cursor-pointer shadow-2xs inline-block"
+              className="w-full sm:w-auto px-4 py-2 bg-white text-dark/80 border border-[#D6CFC2] text-xs font-bold rounded-xl hover:bg-gray-50 transition-all cursor-pointer shadow-2xs text-center block"
             >
               Request price indication
             </button>

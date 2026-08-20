@@ -4,27 +4,27 @@ import { downloadDirectPdfFile } from '../../utils/pdfGenerator';
 import outdoorKitchenRender from '../../assets/outdoor_project_card.png';
 
 /**
- * OutdoorKitchenHandoverView Component (Tailored implementation of Outdoor Kitchen Screen 9 in English)
+ * OutdoorKitchenHandoverView Component (1-to-1 implementation of Client Mockup PDF Outdoor Kitchen Screen 9)
  * 
- * Features:
+ * 100% Responsive & Non-Overlapping Layout:
  * - Top Tag Bar (Custom Outdoor Kitchen — project 2026-014, Updates 3, WhatsApp us)
  * - Page Title & Subtitle (Handover & Aftercare)
- * - Photo Banner Card (YOUR OUTDOOR KITCHEN · 18 SEPTEMBER 2026)
- * - Handover Approval Grid (Is everything correct? with 4 checkboxes & confirm button + Warranty & Aftercare card)
- * - Seasonal Maintenance Calendar (Spring, Summer, Autumn, Winter + reminder checkbox)
- * - Bottom Row Cards (3-Month Checkup, Google Review & Instagram, Complete Your Outdoor Living cross-sell)
+ * - Photo Banner Card (IN YOUR GARDEN · 15 SEPTEMBER 2026)
+ * - Section 1: Handover Approval Grid (Is everything correct? [2 cols] + Warranty & Aftercare soft greige card [1 col])
+ * - Section 2: Maintenance in three steps (Full width 3-step maintenance card)
+ * - Section 3: Bottom 2 Cards Grid (Side-by-side on sm/md/lg: Google Review/Instagram + Build further in your garden)
  */
 export default function OutdoorKitchenHandoverView({ project = null }) {
   const [feedbackToast, setFeedbackToast] = useState('');
   const [checklist, setChecklist] = useState({
-    drawing: true,
-    worktop: true,
-    appliances: true,
-    terraceClean: true
+    drawingComplete: true,
+    noDamage: true,
+    drawersHinges: true,
+    instructionsReceived: true
   });
 
   const [confirmed, setConfirmed] = useState(false);
-  const [seasonalReminder, setSeasonalReminder] = useState(true);
+  const [springReminder, setSpringReminder] = useState(true);
 
   const projectCode = project?.id || '2026-014';
 
@@ -45,7 +45,7 @@ export default function OutdoorKitchenHandoverView({ project = null }) {
   };
 
   return (
-    <div className="space-y-4 font-body text-[#4A4A43] w-full">
+    <div className="space-y-4 sm:space-y-5 font-body text-[#4A4A43] w-full">
       {/* Toast Notification */}
       {feedbackToast && (
         <div className="fixed top-20 right-4 z-[9999] flex items-center gap-2 bg-primary text-cream px-4 py-3 rounded-xl shadow-xl border border-primary/20 text-xs font-medium">
@@ -80,8 +80,8 @@ export default function OutdoorKitchenHandoverView({ project = null }) {
         <h1 className="text-xl sm:text-2xl font-heading font-bold text-primary">
           Handover & Aftercare
         </h1>
-        <p className="text-xs text-dark/70 font-medium">
-          Handed over on 18 September 2026. Enjoy your outdoor kitchen — and we remain reachable.
+        <p className="text-xs sm:text-[13px] text-dark/70 font-medium">
+          Delivered on 15 September 2026. Enjoy cooking — and we remain reachable.
         </p>
       </div>
 
@@ -89,22 +89,22 @@ export default function OutdoorKitchenHandoverView({ project = null }) {
       <div className="bg-[#FAF8F5] border border-[#D8D2C5] p-2 sm:p-2.5 rounded-2xl shadow-xs relative overflow-hidden">
         <div className="relative h-44 sm:h-52 w-full rounded-xl overflow-hidden bg-cover bg-center border border-[#D6CFC2]/60 flex items-end p-4" style={{ backgroundImage: `url(${outdoorKitchenRender})` }}>
           <div className="bg-[#2B3827]/90 backdrop-blur-xs text-white font-mono text-[10px] sm:text-[11px] font-bold px-3 py-1 rounded-lg uppercase tracking-wider shadow-sm">
-            YOUR OUTDOOR KITCHEN · 18 SEPTEMBER 2026
+            IN YOUR GARDEN · 15 SEPTEMBER 2026
           </div>
         </div>
       </div>
 
       {/* 4. SECTION 1: HANDOVER APPROVAL & WARRANTY GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         
-        {/* Left Card: Is Everything Correct? (2 Columns wide) */}
-        <div className="md:col-span-2 bg-[#FAF8F5] border border-[#D8D2C5] p-4 sm:p-4.5 rounded-2xl shadow-xs space-y-3 flex flex-col justify-between">
+        {/* Left Card: Is Everything Correct? (2 Columns wide on lg) */}
+        <div className="lg:col-span-2 bg-[#FAF8F5] border border-[#D8D2C5] p-4 sm:p-5 rounded-2xl shadow-xs space-y-3 flex flex-col justify-between">
           <div className="space-y-2">
-            <h3 className="font-heading font-bold text-primary text-sm sm:text-base">
+            <h3 className="font-heading font-bold text-primary text-base sm:text-lg">
               Is everything correct?
             </h3>
-            <p className="text-xs text-dark/70 leading-relaxed font-medium">
-              We inspected the outdoor kitchen together upon delivery. Confirm below — after that the final invoice (50%) follows. Notice something later? Aftercare is always available.
+            <p className="text-xs sm:text-[13px] text-dark/70 leading-relaxed font-medium">
+              We went through the checklist together. Confirm below, then delivery is complete. Notice something later? Aftercare is always available.
             </p>
 
             {/* Checkbox List */}
@@ -112,41 +112,41 @@ export default function OutdoorKitchenHandoverView({ project = null }) {
               <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-dark/80 hover:text-primary">
                 <input
                   type="checkbox"
-                  checked={checklist.drawing}
-                  onChange={() => toggleCheck('drawing')}
-                  className="w-4 h-4 rounded text-primary focus:ring-primary border-[#D6CFC2]"
+                  checked={checklist.drawingComplete}
+                  onChange={() => toggleCheck('drawingComplete')}
+                  className="w-4 h-4 rounded text-primary border-[#D6CFC2] focus:ring-primary accent-[#2B3827]"
                 />
-                <span>Built according to drawing and specifications</span>
+                <span>Delivered complete according to drawing</span>
               </label>
 
               <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-dark/80 hover:text-primary">
                 <input
                   type="checkbox"
-                  checked={checklist.worktop}
-                  onChange={() => toggleCheck('worktop')}
-                  className="w-4 h-4 rounded text-primary focus:ring-primary border-[#D6CFC2]"
+                  checked={checklist.noDamage}
+                  onChange={() => toggleCheck('noDamage')}
+                  className="w-4 h-4 rounded text-primary border-[#D6CFC2] focus:ring-primary accent-[#2B3827]"
                 />
-                <span>Granite/Beton Cire worktop level and sealed</span>
+                <span>No damage to wood or worktop</span>
               </label>
 
               <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-dark/80 hover:text-primary">
                 <input
                   type="checkbox"
-                  checked={checklist.appliances}
-                  onChange={() => toggleCheck('appliances')}
-                  className="w-4 h-4 rounded text-primary focus:ring-primary border-[#D6CFC2]"
+                  checked={checklist.drawersHinges}
+                  onChange={() => toggleCheck('drawersHinges')}
+                  className="w-4 h-4 rounded text-primary border-[#D6CFC2] focus:ring-primary accent-[#2B3827]"
                 />
-                <span>Kamado cutout, sink and gas connections tested</span>
+                <span>Drawers and hinges operating smoothly</span>
               </label>
 
               <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-dark/80 hover:text-primary">
                 <input
                   type="checkbox"
-                  checked={checklist.terraceClean}
-                  onChange={() => toggleCheck('terraceClean')}
-                  className="w-4 h-4 rounded text-primary focus:ring-primary border-[#D6CFC2]"
+                  checked={checklist.instructionsReceived}
+                  onChange={() => toggleCheck('instructionsReceived')}
+                  className="w-4 h-4 rounded text-primary border-[#D6CFC2] focus:ring-primary accent-[#2B3827]"
                 />
-                <span>Terrace and workspace left clean and tidy</span>
+                <span>Explanation of use and maintenance received</span>
               </label>
             </div>
           </div>
@@ -178,22 +178,22 @@ export default function OutdoorKitchenHandoverView({ project = null }) {
           </div>
         </div>
 
-        {/* Right Card: Warranty & Aftercare (1 Column wide) */}
-        <div className="bg-[#FAF8F5] border border-[#D8D2C5] p-4 sm:p-4.5 rounded-2xl shadow-xs space-y-2.5 flex flex-col justify-between">
+        {/* Right Card: Warranty & Aftercare (1 Column wide on lg - Soft Greige bg-[#EAE6DD]) */}
+        <div className="lg:col-span-1 bg-[#EAE6DD] border border-[#C8C2B4] p-4 sm:p-5 rounded-2xl shadow-xs space-y-3 flex flex-col justify-between">
           <div className="space-y-1.5">
-            <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-accent block">
+            <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-[#70624F] block">
               WARRANTY & AFTERCARE
             </span>
             <p className="text-xs text-dark/70 leading-relaxed font-medium">
-              10-year warranty on timber frame & stainless hardware. And in three months we will contact you for the 3-month checkup.
+              Warranty on structure and finish, plus aftercare post delivery. Something loosened or a question about maintenance? One message is enough.
             </p>
           </div>
 
-          <div className="space-y-1.5 pt-1">
+          <div className="space-y-2 pt-1">
             <button
               type="button"
               onClick={handleDownloadWarranty}
-              className="w-full py-2 bg-white text-dark/80 border border-[#D6CFC2] text-xs font-bold rounded-xl hover:bg-gray-50 transition-all cursor-pointer shadow-2xs text-center block"
+              className="w-full py-2 bg-white text-dark/80 border border-[#C8C2B4] text-xs font-bold rounded-xl hover:bg-gray-50 transition-all cursor-pointer shadow-2xs text-center block"
             >
               Download warranty certificate
             </button>
@@ -204,7 +204,7 @@ export default function OutdoorKitchenHandoverView({ project = null }) {
                 setFeedbackToast('Aftercare request sent to Tim & Bram!');
                 setTimeout(() => setFeedbackToast(''), 3500);
               }}
-              className="w-full py-2 bg-white text-dark/80 border border-[#D6CFC2] text-xs font-bold rounded-xl hover:bg-gray-50 transition-all cursor-pointer shadow-2xs text-center block"
+              className="w-full py-2 bg-white text-dark/80 border border-[#C8C2B4] text-xs font-bold rounded-xl hover:bg-gray-50 transition-all cursor-pointer shadow-2xs text-center block"
             >
               Request aftercare
             </button>
@@ -213,111 +213,60 @@ export default function OutdoorKitchenHandoverView({ project = null }) {
 
       </div>
 
-      {/* 5. SECTION 2: SEASONAL MAINTENANCE CALENDAR */}
-      <div className="bg-[#FAF8F5] border border-[#D8D2C5] p-4 sm:p-4.5 rounded-2xl shadow-xs space-y-3">
+      {/* 5. SECTION 2: MAINTENANCE IN THREE STEPS (Full Width Container Card) */}
+      <div className="bg-[#FAF8F5] border border-[#D8D2C5] p-4 sm:p-5 rounded-2xl shadow-xs space-y-3">
         <div className="space-y-0.5">
-          <h3 className="font-heading font-bold text-primary text-base">
-            Maintenance Calendar
+          <h3 className="font-heading font-bold text-primary text-base sm:text-lg">
+            Maintenance in three steps
           </h3>
           <p className="text-xs text-dark/70 font-medium">
             How to keep your outdoor kitchen beautiful for 20 years. We send a short reminder every season.
           </p>
         </div>
 
-        {/* 4 Seasonal Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
-          
-          {/* Spring */}
-          <div className="bg-white border border-[#D6CFC2]/70 p-3.5 rounded-xl space-y-1">
-            <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-accent block">
-              SPRING
-            </span>
-            <h5 className="font-heading font-bold text-primary text-xs">
-              Oil timber & check seals
-            </h5>
-            <p className="text-[11px] text-dark/70 leading-relaxed font-medium">
-              Clean hardwood and apply 1 light coat of natural oil. Inspect worktop seal.
+        {/* 3 Numbered Steps List */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+          <div className="bg-[#F5F2EC] border border-[#D6CFC2] p-3.5 rounded-xl space-y-1 shadow-2xs">
+            <span className="font-bold font-heading text-primary text-sm font-mono block">1</span>
+            <p className="text-[11px] sm:text-xs text-dark/80 leading-relaxed font-medium">
+              Cleaning with water and a soft cloth — no aggressive chemicals.
             </p>
           </div>
 
-          {/* Summer */}
-          <div className="bg-white border border-[#D6CFC2]/70 p-3.5 rounded-xl space-y-1">
-            <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-accent block">
-              SUMMER
-            </span>
-            <h5 className="font-heading font-bold text-primary text-xs">
-              Clean worktop
-            </h5>
-            <p className="text-[11px] text-dark/70 leading-relaxed font-medium">
-              Wipe down granite/beton cire with warm water and neutral soap after grilling.
+          <div className="bg-[#F5F2EC] border border-[#D6CFC2] p-3.5 rounded-xl space-y-1 shadow-2xs">
+            <span className="font-bold font-heading text-primary text-sm font-mono block">2</span>
+            <p className="text-[11px] sm:text-xs text-dark/80 leading-relaxed font-medium">
+              Lightly sand and oil once a year, preferably in spring.
             </p>
           </div>
 
-          {/* Autumn */}
-          <div className="bg-white border border-[#D6CFC2]/70 p-3.5 rounded-xl space-y-1">
-            <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-accent block">
-              AUTUMN
-            </span>
-            <h5 className="font-heading font-bold text-primary text-xs">
-              Cover Kamado & drain water
-            </h5>
-            <p className="text-[11px] text-dark/70 leading-relaxed font-medium">
-              Drain outdoor sink lines before first frost. Fit breathable Kamado cover.
+          <div className="bg-[#F5F2EC] border border-[#D6CFC2] p-3.5 rounded-xl space-y-1 shadow-2xs">
+            <span className="font-bold font-heading text-primary text-sm font-mono block">3</span>
+            <p className="text-[11px] sm:text-xs text-dark/80 leading-relaxed font-medium">
+              Cover worktop during prolonged frost or extreme heat.
             </p>
           </div>
-
-          {/* Winter */}
-          <div className="bg-white border border-[#D6CFC2]/70 p-3.5 rounded-xl space-y-1">
-            <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-accent block">
-              WINTER
-            </span>
-            <h5 className="font-heading font-bold text-primary text-xs">
-              Winter protection
-            </h5>
-            <p className="text-[11px] text-dark/70 leading-relaxed font-medium">
-              Keep ventilation slots clear under cover. Teak and steel withstand frost easily.
-            </p>
-          </div>
-
         </div>
 
         {/* Reminder Checkbox */}
-        <div className="pt-1">
+        <div className="pt-2 border-t border-[#D6CFC2]/40">
           <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-dark/80 hover:text-primary">
             <input
               type="checkbox"
-              checked={seasonalReminder}
-              onChange={(e) => setSeasonalReminder(e.target.checked)}
-              className="w-4 h-4 rounded text-primary focus:ring-primary border-[#D6CFC2]"
+              checked={springReminder}
+              onChange={(e) => setSpringReminder(e.target.checked)}
+              className="w-4 h-4 rounded text-primary border-[#D6CFC2] focus:ring-primary accent-[#2B3827]"
             />
-            <span>Send me a seasonal maintenance reminder</span>
+            <span>Send me a maintenance reminder in spring</span>
           </label>
         </div>
       </div>
 
-      {/* 6. SECTION 3: BOTTOM 3 CARDS GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* 6. SECTION 3: BOTTOM 2 CARDS GRID (Side-by-Side Responsive Grid) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         
-        {/* Card 1: The 3-month check */}
-        <div className="bg-[#FAF8F5] border border-[#D8D2C5] p-4 rounded-2xl shadow-xs space-y-2.5 flex flex-col justify-between">
-          <div className="space-y-1.5">
-            <h4 className="font-heading font-bold text-primary text-xs sm:text-sm">
-              The 3-month check
-            </h4>
-            <p className="text-xs text-dark/70 leading-relaxed font-medium">
-              In December we get in touch: is everything working smoothly, hinges adjusted, are you satisfied? Small adjustments made on site.
-            </p>
-          </div>
-
-          <div className="pt-1">
-            <span className="bg-[#EDE9E3] text-[#70624F] font-mono text-[10px] font-bold px-2.5 py-1 rounded-md inline-block">
-              Scheduled · December 2026
-            </span>
-          </div>
-        </div>
-
-        {/* Card 2: Would you like to help us? */}
-        <div className="bg-[#FAF8F5] border border-[#D8D2C5] p-4 rounded-2xl shadow-xs space-y-2.5 flex flex-col justify-between">
+        {/* Card 1: Would you like to help us? */}
+        <div className="bg-[#FAF8F5] border border-[#D8D2C5] p-4.5 rounded-2xl shadow-xs space-y-3 flex flex-col justify-between">
           <div className="space-y-1.5">
             <h4 className="font-heading font-bold text-primary text-xs sm:text-sm">
               Would you like to help us?
@@ -327,12 +276,12 @@ export default function OutdoorKitchenHandoverView({ project = null }) {
             </p>
           </div>
 
-          <div className="space-y-1.5 pt-1">
+          <div className="space-y-2 pt-1">
             <a
               href="https://google.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full py-1.5 bg-[#2B3827] text-white text-xs font-bold rounded-xl text-center block hover:bg-[#1F291C] transition-all shadow-xs"
+              className="w-full py-2 bg-[#2B3827] text-white text-xs font-bold rounded-xl text-center block hover:bg-[#1F291C] transition-all shadow-xs"
             >
               Leave review on Google
             </a>
@@ -341,32 +290,32 @@ export default function OutdoorKitchenHandoverView({ project = null }) {
               href="https://instagram.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full py-1.5 bg-white text-dark/80 border border-[#D6CFC2] text-xs font-bold rounded-xl text-center block hover:bg-gray-50 transition-all shadow-2xs"
+              className="w-full py-2 bg-white text-dark/80 border border-[#D6CFC2] text-xs font-bold rounded-xl text-center block hover:bg-gray-50 transition-all shadow-2xs"
             >
               Share photo on Instagram
             </a>
           </div>
         </div>
 
-        {/* Card 3: Complete your outdoor living? */}
-        <div className="bg-[#FAF8F5] border border-[#D8D2C5] p-4 rounded-2xl shadow-xs space-y-2.5 flex flex-col justify-between items-start">
+        {/* Card 2: Build further in your garden? */}
+        <div className="bg-[#FAF8F5] border border-[#D8D2C5] p-4.5 rounded-2xl shadow-xs space-y-3 flex flex-col justify-between items-start">
           <div className="space-y-1.5">
             <h4 className="font-heading font-bold text-primary text-xs sm:text-sm">
-              Complete your outdoor living?
+              Build further in your garden?
             </h4>
             <p className="text-xs text-dark/70 leading-relaxed font-medium">
-              Many customers combine their outdoor kitchen with a custom timber canopy or garden room. Returning customer? We offer sharp pricing.
+              Many customers continue after their outdoor kitchen with a canopy or garden room. Returning customer? We offer sharp pricing.
             </p>
           </div>
 
-          <div className="pt-1">
+          <div className="pt-1 w-full">
             <button
               type="button"
               onClick={() => {
                 setFeedbackToast('Price indication requested! We will reach out with a custom proposal.');
                 setTimeout(() => setFeedbackToast(''), 4000);
               }}
-              className="px-4 py-1.5 bg-white text-dark/80 border border-[#D6CFC2] text-xs font-bold rounded-xl hover:bg-gray-50 transition-all cursor-pointer shadow-2xs inline-block"
+              className="w-full sm:w-auto px-4 py-2 bg-white text-dark/80 border border-[#D6CFC2] text-xs font-bold rounded-xl hover:bg-gray-50 transition-all cursor-pointer shadow-2xs text-center block"
             >
               Request price indication
             </button>
